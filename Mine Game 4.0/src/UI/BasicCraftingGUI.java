@@ -38,7 +38,7 @@ public class BasicCraftingGUI extends CraftingMenu {
 				RecipeLibrary.getRecipeFromLibrary(i).getInput(j).draw(g, x += itemSize + padding, y, itemSize, itemSize, observer);
 			}
 			g.drawImage(MediaLibrary.getImageFromLibrary(5001), x += itemSize + padding, y, itemSize, itemSize, observer);
-			for (int k = 0; k < RecipeLibrary.getRecipeFromLibrary(k).getNumOutputs(); k++) {
+			for (int k = 0; k < RecipeLibrary.getRecipeFromLibrary(i).getNumOutputs(); k++) {
 				RecipeLibrary.getRecipeFromLibrary(i).getOutput(k).draw(g, x += itemSize + padding, y, itemSize, itemSize, observer);
 			}
 			
