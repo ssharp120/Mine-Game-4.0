@@ -117,29 +117,96 @@ public class Inventory {
 		InventoryTile t = null;
 		if (item.getClass() == InventoryTile.class) {
 			t = (InventoryTile) item;
-		}
-		for (int i = 0; i < slots; i++) {
-			if (items[i] != null && item.getClass() == InventoryTile.class && items[i].getClass() == InventoryTile.class) {
-				if (t.getTileID() == ((InventoryTile) items[i]).getTileID()) {
-					if (t.getQuantity() + ((InventoryTile) items[i]).getQuantity() <= stackSize) {
-						((InventoryTile) items[i]).addQuantity(t.getQuantity());
-						return true;
-					} else if (((InventoryTile) items[i]).getQuantity() <= stackSize) {
-						int k = stackSize - ((InventoryTile) items[i]).getQuantity();
-						((InventoryTile) items[i]).addQuantity(k);
-						t.removeQuantity(k);
+			for (int i = 0; i < slots; i++) {
+				if (items[i] != null && item.getClass() == InventoryTile.class && items[i].getClass() == InventoryTile.class) {
+					if (t.getTileID() == ((InventoryTile) items[i]).getTileID()) {
+						if (t.getQuantity() + ((InventoryTile) items[i]).getQuantity() <= stackSize) {
+							((InventoryTile) items[i]).addQuantity(t.getQuantity());
+							return true;
+						} else if (((InventoryTile) items[i]).getQuantity() <= stackSize) {
+							int k = stackSize - ((InventoryTile) items[i]).getQuantity();
+							((InventoryTile) items[i]).addQuantity(k);
+							t.removeQuantity(k);
+						}
 					}
 				}
 			}
 		}
+
+		Ingredient n = null;
+		if (item.getClass() == Ingredient.class) {
+			n = (Ingredient) item;
+			for (int i = 0; i < slots; i++) {
+				if (items[i] != null && item.getClass() == Ingredient.class && items[i].getClass() == Ingredient.class) {
+					if (n.getItemID() == ((Ingredient) items[i]).getItemID()) {
+						if (n.getQuantity() + ((Ingredient) items[i]).getQuantity() <= stackSize) {
+							((Ingredient) items[i]).addQuantity(n.getQuantity());
+							return true;
+						} else if (((Ingredient) items[i]).getQuantity() <= stackSize) {
+							int k = stackSize - ((Ingredient) items[i]).getQuantity();
+							((Ingredient) items[i]).addQuantity(k);
+							n.removeQuantity(k);
+						}
+					}
+				}
+			}
+		}
+		
 		for (int i = 0; i < slots; i++) {
 			if (items[i] == null) {
 				if (item.getClass() == InventoryTile.class && ((InventoryTile) item).markedForDeletion) {
 					break;
 				}
+				if (item.getClass() == Ingredient.class && ((Ingredient) item).markedForDeletion) {
+					break;
+				}
 				items[i] = item;
 				return true;
 			}
+		}
+		
+		return false;
+	}
+	
+	public boolean removeItem(InventoryItem item) {
+		int remainingQuantity = 0;
+		InventoryTile t = null;
+		if (item.getClass() == InventoryTile.class) {
+			t = (InventoryTile) item;
+			remainingQuantity = ((InventoryTile) item).getQuantity();
+			for (int i = 0; i < slots; i++) {
+				if (items[i] != null && item.getClass() == InventoryTile.class && items[i].getClass() == InventoryTile.class) {
+					if (t.getTileID() == ((InventoryTile) items[i]).getTileID()) {
+						if (remainingQuantity <= ((InventoryTile) items[i]).getQuantity()) {
+							((InventoryTile) items[i]).removeQuantity(remainingQuantity);
+							return true;
+						} else {
+							remainingQuantity = remainingQuantity - ((InventoryTile) items[i]).getQuantity();
+							((InventoryTile) items[i]).removeQuantity(((InventoryTile) items[i]).getQuantity());
+						}
+					}
+				}
+			}
+		}
+
+		Ingredient n = null;
+		if (item.getClass() == Ingredient.class) {
+			n = (Ingredient) item;
+			remainingQuantity = ((Ingredient) item).getQuantity();
+			for (int i = 0; i < slots; i++) {
+				if (items[i] != null && item.getClass() == Ingredient.class && items[i].getClass() == Ingredient.class) {
+					if (n.getItemID() == ((Ingredient) items[i]).getItemID()) {
+						if (remainingQuantity <= ((Ingredient) items[i]).getQuantity()) {
+							((Ingredient) items[i]).removeQuantity(remainingQuantity);
+							return true;
+						} else {
+							remainingQuantity = remainingQuantity - ((Ingredient) items[i]).getQuantity();
+							((Ingredient) items[i]).removeQuantity(((Ingredient) items[i]).getQuantity());
+						}
+					}
+				}
+			}
+			
 		}
 		return false;
 	}
@@ -165,7 +232,7 @@ public class Inventory {
 	
 	public void dropFreeItem(int i) {
 		if (freeItem == null) return;
-		if (items[i] == null) {
+		if (items[i] == null || i == freeItemOrigin) {
 			items[freeItemOrigin] = null;
 			items[i] = freeItem;
 		} else {

@@ -59,10 +59,14 @@ public class BasicCraftingGUI extends CraftingMenu {
 				if (clickY >= yValues[i] && clickY <= yValues[i] + itemSize) {
 					System.out.println("Item " + i + " button presses");
 					InventoryItem[] currentItems = gameIn.player.inventory.getItems();
-					System.out.println(RecipeLibrary.getRecipeFromLibrary(i).checkRecipe(currentItems));
-					for (int j = 0; j < RecipeLibrary.getRecipeFromLibrary(i).getNumOutputs(); j++) {
-						gameIn.player.inventory.addItem(RecipeLibrary.getRecipeFromLibrary(i).getOutput(j));
-					}
+					if (RecipeLibrary.getRecipeFromLibrary(i).checkRecipe(currentItems)) {
+						for (int j = 0; j < RecipeLibrary.getRecipeFromLibrary(i).getNumOutputs(); j++) {
+							gameIn.player.inventory.addItem(RecipeLibrary.getRecipeFromLibrary(i).getOutput(j));
+						}
+						for (int k = 0; k < RecipeLibrary.getRecipeFromLibrary(i).getNumInputs(); k++) {
+							gameIn.player.inventory.removeItem(RecipeLibrary.getRecipeFromLibrary(i).getInput(k));
+						}
+					}	
 				}
 			}
 		}
