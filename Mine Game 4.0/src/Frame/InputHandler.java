@@ -173,7 +173,7 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 		int clickY = clickLocation.height;
 		if (arg0.getButton() == MouseEvent.BUTTON1) {
 			if (controlScheme == ControlScheme.BASIC_CRAFTING) {
-				gameIn.basicCraftingGUI.handleClick(clickX, clickY);
+				gameIn.basicCraftingGUI.handleClick(arg0.getX(), arg0.getY());
 			}
 		}
 		if (arg0.getButton() == MouseEvent.BUTTON2) {

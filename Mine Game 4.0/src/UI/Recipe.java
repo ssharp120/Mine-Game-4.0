@@ -20,14 +20,16 @@ public class Recipe {
 		if (in.length >= numInputs) {
 			for (InventoryItem j : inputs) {
 				boolean inputSatisfied = false;
-				for (InventoryItem i : in) {
-					if (i.getItemID() == j.getItemID()) {
-						if (i.getClass() == Ingredient.class) {
-							if (!inputSatisfied) inputSatisfied = ((Ingredient) i).getQuantity() >= ((Ingredient) j).getQuantity();
-						} else if (i.getClass() == InventoryTile.class) {
-							if (!inputSatisfied) inputSatisfied = ((InventoryTile) i).getQuantity() >= ((InventoryTile) j).getQuantity();
-						} else if (i.getClass() == InventoryTool.class) {
-							if (!inputSatisfied) inputSatisfied = ((InventoryTool) i).getDurability() == ((InventoryTool) i).getMaxDurability();
+				for (int i = 0; i < in.length; i++) {
+					if (in[i] != null) {
+						if (in[i].getItemID() == j.getItemID()) {
+							if (in[i].getClass() == Ingredient.class) {
+								if (!inputSatisfied) inputSatisfied = ((Ingredient) in[i]).getQuantity() >= ((Ingredient) j).getQuantity();
+							} else if (in[i].getClass() == InventoryTile.class) {
+								if (!inputSatisfied) inputSatisfied = ((InventoryTile) in[i]).getQuantity() >= ((InventoryTile) j).getQuantity();
+							} else if (in[i].getClass() == InventoryTool.class) {
+								if (!inputSatisfied) inputSatisfied = ((InventoryTool) in[i]).getDurability() == ((InventoryTool) in[i]).getMaxDurability();
+							}
 						}
 					}
 				}
@@ -45,7 +47,14 @@ public class Recipe {
 	
 	public InventoryItem getOutput(int outputIndex) {
 		// Item get! //
-		return outputs[outputIndex];
+		InventoryItem outputItem;
+		try {
+			outputItem = (InventoryItem) outputs[outputIndex].clone();
+			return outputItem;
+		} catch (CloneNotSupportedException e) {
+			e.printStackTrace();
+			return new Ingredient(0, 1);
+		}
 	}
 	
 	public int getNumInputs() {

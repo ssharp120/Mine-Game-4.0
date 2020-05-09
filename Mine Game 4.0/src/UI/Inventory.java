@@ -159,6 +159,10 @@ public class Inventory {
 		}
 	}
 	
+	public InventoryItem[] getItems() {
+		return items;
+	}
+	
 	public void dropFreeItem(int i) {
 		if (freeItem == null) return;
 		if (items[i] == null) {

@@ -205,7 +205,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	
 	public void initializeGUIs() {
 		workbenchGUI = new WorkbenchGUI();
-		basicCraftingGUI = new BasicCraftingGUI();
+		basicCraftingGUI = new BasicCraftingGUI(this);
 	}
 	
 	public void disableAllGUIs() {

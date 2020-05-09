@@ -5,7 +5,7 @@ import java.awt.image.ImageObserver;
 
 import Libraries.MediaLibrary;
 
-public class InventoryItem {
+public class InventoryItem implements Cloneable {
 	protected int imageID;
 	private int itemID;
 	public boolean markedForDeletion;
@@ -22,6 +22,11 @@ public class InventoryItem {
 	public void setImageID(int i) {
 		imageID = i;
 	}
+	
+	@Override
+    protected Object clone() throws CloneNotSupportedException {
+        return super.clone();
+    }
 	
 	public void draw(Graphics g, int x, int y, int iconWidth, int iconHeight, ImageObserver observer) {
 		int offset = iconWidth / 8;
