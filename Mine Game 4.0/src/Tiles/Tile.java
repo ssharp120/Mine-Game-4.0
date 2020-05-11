@@ -19,7 +19,10 @@ public class Tile {
     public static final SolidTile SAND = 		new DestructibleTile(7, 0xFFFFEB87, "Sand", 0.4, true, 1.0, 40.0);
     public static final SolidTile STONE =   	new DestructibleTile(8, 0xFFC0C0C0, "Stone", 0.8, true, 5.0, 250.0);
     public static final Tile LEAVES = 		    new BackgroundDestructibleTile(9, 0xFF3E911B, "Leaves", true, 0.2, 5.0);
-    
+    public static final SolidTile GLASS = 		new DestructibleTile(10, 0xFFF7F7F7, "Glass", 0.1, true, 2.0, 10.0);
+    public static final SolidTile IRON_ORE =   	new DestructibleTile(11, 0xFF8E514B, "Iron Ore", 0.8, true, 15.0, 1500.0);
+    public static final SolidTile IRON_TILE =   new DestructibleTile(12, 0xFFF2F2F2, "Iron Tile", 0.2, true, 30.0, 3000.0);
+
     public Tile(int id, int levelColour, String name) {
         this.id = id;
         this.name = name;

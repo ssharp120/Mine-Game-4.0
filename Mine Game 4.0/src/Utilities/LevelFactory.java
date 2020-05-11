@@ -81,7 +81,20 @@ public class LevelFactory {
 					int sandWidth = (int) Math.round(10 * Math.random() + 1);
 					for (int k = 0; k <= sandWidth; k++) {
 						for (int l = 0; l <= (int) Math.round(6 * Math.random() + 1); l++) {
+							if (j + k > i.getWidth() || j + k <= 0 || 512 + 17 + l > i.getHeight()) continue;
 							if (Math.random() > 0.15) i.setRGB(j + k, 512 + 17 + l, Tile.SAND.getLevelColour());
+						}
+					}
+					j += 5;
+					continue;
+				}
+				if (Math.random() < 0.15) {
+					int ironWidth = (int) Math.round(10 * Math.random() + 1);
+					int depth = (int) Math.round(100 * Math.random());
+					for (int k = 0; k <= ironWidth; k++) {
+						for (int l = 0; l <= (int) Math.round(6 * Math.random() + 1); l++) {
+							if (j + k >= i.getWidth() || j + k <= 0 || 512 + 17 + 32 + l + depth >= i.getHeight()) continue;
+							if (Math.random() > 0.15) i.setRGB(j + k, 512 + 17 + 32 + l + depth, Tile.IRON_ORE.getLevelColour());
 						}
 					}
 					j += 5;

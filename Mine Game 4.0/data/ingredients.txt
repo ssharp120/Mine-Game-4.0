@@ -1,2 +1,4 @@
 Stick
 80
+Iron
+80
