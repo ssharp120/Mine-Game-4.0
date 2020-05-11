@@ -8,6 +8,9 @@
 7 tile/sand
 8 tile/stone
 9 tile/leaves
+10 tile/glass
+11 tile/ironore
+12 tile/irontile
 5001 gui/arrow
 6001 background/cloud
 7001 entity/furniture/workbench
@@ -15,5 +18,7 @@
 8191 tile/air
 8192 tile/crack
 10000 item/pickaxe
+10001 item/shovel
+10002 item/axe
 12000 item/stick
-12001 item/plank
+12001 item/iron

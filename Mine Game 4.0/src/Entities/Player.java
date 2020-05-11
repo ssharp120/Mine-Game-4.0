@@ -40,6 +40,9 @@ public class Player extends Mob {
 	public boolean toggleInfo;
 	public boolean toggleInventory;
 	public boolean toggleCrafting;
+	public boolean toggleCreativeBlocks;
+	public boolean toggleCreativeIngredients;
+	public boolean toggleCreativeTools;
 	
 	public boolean canJump = true;
 	public double maxVelocityX = 3, maxVelocityY = 4;
@@ -89,6 +92,36 @@ public class Player extends Mob {
 			toggleCrafting = false;
 		} else {
 			toggleCrafting = true;
+		}
+		if (controls.func5.isPressed()) {
+			if (toggleCreativeBlocks) {
+				for (int i = 3; i <= 12; i++) {
+					inventory.addItem(new InventoryTile(i, inventory.getStackSize()/8));
+				}
+			}
+			toggleCreativeBlocks = false;
+		} else {
+			toggleCreativeBlocks = true;
+		}
+		if (controls.func6.isPressed()) {
+			if (toggleCreativeIngredients) {
+				for (int i = 0; i <= 1; i++) {
+					inventory.addItem(new Ingredient(i, inventory.getStackSize()/8));
+				}
+			}
+			toggleCreativeIngredients = false;
+		} else {
+			toggleCreativeIngredients = true;
+		}
+		if (controls.func7.isPressed()) {
+			if (toggleCreativeTools) {
+				inventory.addItem(new Pickaxe(10000, 25.0, 200000.0, 175000.0, "Steel Pickaxe"));
+				inventory.addItem(new Shovel(10001, 25.0, 200000.0, 175000.0, "Steel Shovel"));
+				inventory.addItem(new Axe(10002, 25.0, 200000.0, 175000.0, "Steel Shovel"));
+			}
+			toggleCreativeTools = false;
+		} else {
+			toggleCreativeTools = true;
 		}
 		
 		if (inventory.isActive()) {
