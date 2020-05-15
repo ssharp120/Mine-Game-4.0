@@ -95,7 +95,7 @@ public class Player extends Mob {
 		}
 		if (controls.func5.isPressed()) {
 			if (toggleCreativeBlocks) {
-				for (int i = 3; i <= 12; i++) {
+				for (int i = 3; i <= 13; i++) {
 					inventory.addItem(new InventoryTile(i, inventory.getStackSize()/8));
 				}
 			}
@@ -204,7 +204,8 @@ public class Player extends Mob {
 			}
 		}
 		if (controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY && controls.up.isPressed() && controls.down.isPressed()) aY = 0;
-		if (!collisionBelow(x, y, spriteWidth, spriteHeight, level)) { 
+		if (!collisionBelow(x, y, spriteWidth, spriteHeight, level) || controls.down.isPressed() && arePlatformsBelow(x, y, spriteWidth, spriteHeight, level) 
+				|| (!controls.up.isPressed() && arePlatformsAbove(x, y, spriteWidth, spriteHeight, level) & vY < 0) ) { 
 			aY = .025;
 			canJump = true;
 			if (controls.getControlScheme() != InputHandler.ControlScheme.GAMEPLAY || (!controls.left.isPressed() && !controls.right.isPressed())) {
@@ -245,7 +246,9 @@ public class Player extends Mob {
 		if (aY < 0.00001 && aY > -0.00001) aY = 0;
 		
 		if ((aX < 0 && !collisionLeft(x, y, spriteWidth, spriteHeight, level)) || (aX > 0 && !collisionRight(x, y, spriteWidth, spriteHeight, level))) vX += aX;
-		if ((aY < 0 && !collisionAbove(x, y, spriteWidth, spriteHeight, level)) || (aY > 0 && !collisionBelow(x, y, spriteWidth, spriteHeight, level))) vY += aY;
+		if ((aY < 0 && !collisionAbove(x, y, spriteWidth, spriteHeight, level)) || (aY > 0 && (!collisionBelow(x, y, spriteWidth, spriteHeight, level) 
+				|| (controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY && controls.down.isPressed() && arePlatformsBelow(x, y, spriteWidth, spriteHeight, level) ))
+				|| (!controls.up.isPressed() && arePlatformsAbove(x, y, spriteWidth, spriteHeight, level) & vY < 0))) vY += aY;
 
 		if ((vX < 0 && collisionLeft(x, y, spriteWidth, spriteHeight, level)) || (vX > 0 && collisionRight(x, y, spriteWidth, spriteHeight, level))) {
 			if (vX > 0) {
@@ -264,7 +267,8 @@ public class Player extends Mob {
 				}
 			}
 		}
-		if ((vY < 0 && collisionAbove(x, y, spriteWidth, spriteHeight, level)) || (vY > 0 && collisionBelow(x, y, spriteWidth, spriteHeight, level))) {
+		if ((vY < 0 && collisionAbove(x, y, spriteWidth, spriteHeight, level)) || (vY > 0 && (collisionBelow(x, y, spriteWidth, spriteHeight, level) 
+				&& !controls.down.isPressed() || ( controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY && controls.down.isPressed() && !arePlatformsBelow(x, y, spriteWidth, spriteHeight, level))))) {
 			if (vY < 0) {
 				vY = Math.log(-vY) / 4;
 			} else {
@@ -294,7 +298,8 @@ public class Player extends Mob {
 		if (vY < 0.001 && vY > -0.001) vY = 0;
 		
 		if ((vX < 0 && !collisionLeft(x, y, spriteWidth, spriteHeight, level)) || (vX > 0 && !collisionRight(x, y, spriteWidth, spriteHeight, level))) dX += vX;
-		if ((vY < 0 && !collisionAbove(x, y, spriteWidth, spriteHeight, level)) || (vY > 0 && !collisionBelow(x, y, spriteWidth, spriteHeight, level))) dY += vY;
+		if ((vY < 0 && !collisionAbove(x, y, spriteWidth, spriteHeight, level)) || (vY > 0 && (!collisionBelow(x, y, spriteWidth, spriteHeight, level) 
+				|| ( controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY && controls.down.isPressed() && arePlatformsBelow(x, y, spriteWidth, spriteHeight, level))))) dY += vY;
 		
 		int deltaX = Math.toIntExact(Math.round(Math.floor(dX))) - x;
 		if (deltaX > 0) {
@@ -325,23 +330,26 @@ public class Player extends Mob {
 	}
 
 	public void printMovementInfo(Graphics g, int drawX, int drawY) {
+		g.setColor(Color.GREEN);
 		g.drawString("Mass: " + mass + " kg", drawX, drawY);
-		g.drawString("Acceleration: " + Math.sqrt(Math.pow(aX, 2) + Math.pow(aY, 2)) + " pixels/s^2", drawX, drawY + 16);
-		g.drawString("   Horizontal: " + aX + " pixels/s^2", drawX, drawY + 32);
-		g.drawString("   Vertical: " + aY + " pixels/s^2", drawX, drawY + 48);
-		g.drawString("Velocity: " + Math.sqrt(Math.pow(vX, 2) + Math.pow(vY, 2)) + " pixels/s", drawX, drawY + 64);
-		g.drawString("   Horizontal: " + vX + " pixels/s", drawX, drawY + 80);
-		g.drawString("   Vertical: " + vY + " pixels/s", drawX, drawY + 96);
-		g.drawString("Collisions: ", drawX, drawY + 96 + 16);
-		g.drawString("   Left: " + collisionLeft(x, y, spriteWidth, spriteHeight, level) + ", Right: " + collisionRight(x, y, spriteWidth, spriteHeight, level), drawX, drawY + 96 + 32);
-		g.drawString("   Above: " + collisionAbove(x, y, spriteWidth, spriteHeight, level) + ", Below: " + collisionBelow(x, y, spriteWidth, spriteHeight, level), drawX, drawY + 96 + 48);
-		g.drawString("Air Resistance: " + airResistance * 100 + "%, " + Math.abs(airResistance * vX) + " pixels/s^2", drawX, drawY + 96 + 64);
-		g.drawString("Coefficient of friction: " + friction, drawX, drawY + 96 + 80);
-		g.drawString("Frictional acceleration: " + Math.abs(friction * mass * 0.001 * vX) + " pixels/s^2", drawX, drawY + 96 + 96);
-		g.drawString("Position (exact): " + dX + "," + dY, drawX, drawY + 96 + 96 + 16);
-		g.drawString("Position (round): " + x + "," + y, drawX, drawY + 96 + 96 + 32);
-		g.drawString("Position (tiles): " + x/32 + "," + y/32, drawX, drawY + 96 + 96 + 48);
-		g.drawString("Health: " + health + "/" + baseHealth, drawX, drawY + 96 + 96 + 64);
+		g.drawString("Acceleration: " + Math.sqrt(Math.pow(aX, 2) + Math.pow(aY, 2)) + " pixels/s^2", drawX, drawY += 16);
+		g.drawString("   Horizontal: " + aX + " pixels/s^2", drawX, drawY += 16);
+		g.drawString("   Vertical: " + aY + " pixels/s^2", drawX, drawY += 16);
+		g.drawString("Velocity: " + Math.sqrt(Math.pow(vX, 2) + Math.pow(vY, 2)) + " pixels/s", drawX, drawY += 16);
+		g.drawString("   Horizontal: " + vX + " pixels/s", drawX, drawY += 16);
+		g.drawString("   Vertical: " + vY + " pixels/s", drawX, drawY += 16);
+		g.drawString("Collisions: ", drawX, drawY += 16);
+		g.drawString("   Left: " + collisionLeft(x, y, spriteWidth, spriteHeight, level) + ", Right: " + collisionRight(x, y, spriteWidth, spriteHeight, level), drawX, drawY += 16);
+		g.drawString("   Above: " + collisionAbove(x, y, spriteWidth, spriteHeight, level) + ", Below: " + collisionBelow(x, y, spriteWidth, spriteHeight, level), drawX, drawY  += 16);
+		g.drawString("Platforms: ", drawX, drawY  += 16);
+		g.drawString("   Above: " + arePlatformsAbove(x, y, spriteWidth, spriteHeight, level) + ", Below: " + arePlatformsBelow(x, y, spriteWidth, spriteHeight, level), drawX, drawY  += 16);
+		g.drawString("Air Resistance: " + airResistance * 100 + "%, " + Math.abs(airResistance * vX) + " pixels/s^2", drawX, drawY += 16);
+		g.drawString("Coefficient of friction: " + friction, drawX, drawY += 16);
+		g.drawString("Frictional acceleration: " + Math.abs(friction * mass * 0.001 * vX) + " pixels/s^2", drawX, drawY += 16);
+		g.drawString("Position (exact): " + dX + "," + dY, drawX, drawY += 16);
+		g.drawString("Position (round): " + x + "," + y, drawX, drawY += 16);
+		g.drawString("Position (tiles): " + x/32 + "," + y/32, drawX, drawY += 16);
+		g.drawString("Health: " + health + "/" + baseHealth, drawX, drawY += 16);
 	}
 	
 	public void toggleInfo() {

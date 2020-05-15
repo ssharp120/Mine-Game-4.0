@@ -11,6 +11,7 @@
 10 tile/glass
 11 tile/ironore
 12 tile/irontile
+13 tile/woodplatform
 5001 gui/arrow
 6001 background/cloud
 7001 entity/furniture/workbench

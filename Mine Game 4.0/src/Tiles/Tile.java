@@ -22,6 +22,7 @@ public class Tile {
     public static final SolidTile GLASS = 		new DestructibleTile(10, 0xFFF7F7F7, "Glass", 0.1, true, 2.0, 10.0);
     public static final SolidTile IRON_ORE =   	new DestructibleTile(11, 0xFF8E514B, "Iron Ore", 0.8, true, 15.0, 1500.0);
     public static final SolidTile IRON_TILE =   new DestructibleTile(12, 0xFFF2F2F2, "Iron Tile", 0.2, true, 30.0, 3000.0);
+    public static final Platform WOOD_PLATFORM= new Platform(13, 0XFFD86C00, "Wooden Platform", 0.7, true, 2.0, 50.0);
 
     public Tile(int id, int levelColour, String name) {
         this.id = id;
