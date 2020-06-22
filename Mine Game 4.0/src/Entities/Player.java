@@ -43,6 +43,7 @@ public class Player extends Mob {
 	public boolean toggleCreativeBlocks;
 	public boolean toggleCreativeIngredients;
 	public boolean toggleCreativeTools;
+	private boolean toggleRefresh;
 	
 	public boolean canJump = true;
 	public double maxVelocityX = 3, maxVelocityY = 4;
@@ -87,6 +88,10 @@ public class Player extends Mob {
 		} else {
 			toggleInventory = true;
 		}
+		if (controls.esc.isPressed()) {
+			if (inventory.isActive()) inventory.setActive(false);
+			if (game.basicCraftingGUI.isActive()) game.basicCraftingGUI.setActive(false);
+		}
 		if (controls.crafting.isPressed() && !inventory.isActive()) {
 			if (toggleCrafting) game.basicCraftingGUI.toggleActive();
 			toggleCrafting = false;
@@ -124,10 +129,21 @@ public class Player extends Mob {
 			toggleCreativeTools = true;
 		}
 		
+		if (controls.func12.isPressed()) {
+			if (toggleRefresh) {
+				for (int i = 0; i <= 1; i++) {
+					game.resetWindow();
+				}
+			}
+			toggleRefresh = false;
+		} else {
+			toggleRefresh = true;
+		}
+		
 		if (inventory.isActive()) {
 			controls.setControlScheme(InputHandler.ControlScheme.INVENTORY);
 			game.disableAllGUIs();
-		} else if (game.basicCraftingGUI.isActive()) {
+		} else if (game != null && game.basicCraftingGUI != null && game.basicCraftingGUI.isActive()) {
 			controls.setControlScheme(InputHandler.ControlScheme.BASIC_CRAFTING);
 		}
 		else controls.setControlScheme(InputHandler.ControlScheme.GAMEPLAY);
@@ -137,9 +153,9 @@ public class Player extends Mob {
 		if (controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY) {
 			if (controls.leftButtonHeld) {
 				//System.out.println("" + Math.abs((controls.lastDestructibleX << 5) - x) + ", " + Math.abs((controls.lastDestructibleY << 5) - y));
-				if (Math.abs((controls.lastDestructibleX << 5) - (x + 4)) < (128 + 4) && Math.abs((controls.lastDestructibleY << 5) - (y + spriteHeight / 4)) < 128) {
+				if (Math.abs((controls.lastDestructibleX << 5) - (x + 4)) < 128 && Math.abs((controls.lastDestructibleY << 5) - (y + spriteHeight / 3)) < 128 + 64 - 8) {
 					double j = 0.1;
-					if (inventory.getActiveItem() != null && inventory.getActiveItem().getClass().getSuperclass() == InventoryTool.class) {
+					if (inventory.getActiveItem() != null && inventory.getActiveItem().getClass().getSuperclass() == InventoryTool.class && level.getTile(controls.lastDestructibleX, controls.lastDestructibleY).getId() != Tile.SKY.getId()) {
 						j = ((InventoryTool) inventory.getActiveItem()).getHardness() / 2;
 						for (int i = 0; i < ((InventoryTool) inventory.getActiveItem()).getEffectiveTiles().length; i++) {
 							if (level.getTile(controls.lastDestructibleX, controls.lastDestructibleY).getId() == ((InventoryTool) inventory.getActiveItem()).getEffectiveTiles()[i]) {
@@ -155,7 +171,7 @@ public class Player extends Mob {
 						}
 						for (int i = 0; i < ((InventoryTool) inventory.getActiveItem()).getIneffectiveTiles().length; i++) {
 							if (level.getTile(controls.lastDestructibleX, controls.lastDestructibleY).getId() == ((InventoryTool) inventory.getActiveItem()).getIneffectiveTiles()[i]) {
-								j = 1 / ((InventoryTool) inventory.getActiveItem()).getHardness(); 
+								j = ((InventoryTool) inventory.getActiveItem()).getHardness() / 10; 
 								//System.out.println("Ineffective Hit");
 							}
 						}
@@ -304,24 +320,24 @@ public class Player extends Mob {
 		int deltaX = Math.toIntExact(Math.round(Math.floor(dX))) - x;
 		if (deltaX > 0) {
 			for (int i = 0; i < deltaX; i++) {
-				level.getGameLoop().repaint();
+				if (level.getGameLoop() != null) level.getGameLoop().repaint();
 				x++;
 			}
 		} else {		
 			for (int i = 0; i < -deltaX; i++) {
-				level.getGameLoop().repaint();
+				if (level.getGameLoop() != null) level.getGameLoop().repaint();
 				x--;
 			}
 		}
 		int deltaY = Math.toIntExact(Math.round(Math.floor(dY))) - y;
 		if (deltaY > 0) {
 			for (int i = 0; i < deltaY; i++) {
-				level.getGameLoop().repaint();
+				if (level.getGameLoop() != null) level.getGameLoop().repaint();
 				y++;
 			}
 		} else {		
 			for (int i = 0; i < -deltaY; i++) {
-				level.getGameLoop().repaint();
+				if (level.getGameLoop() != null) level.getGameLoop().repaint();
 				y--;
 			}
 		}

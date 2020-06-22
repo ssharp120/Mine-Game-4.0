@@ -307,6 +307,7 @@ public class FileUtilities {
 	 }
 	 
 	 public static void log(String msg) {
+		 
 		 try {
 		 if (logger == null) logger = new FileWriter(fsv.getHomeDirectory() + fs.getSeparator() + "Mine Game 4.0 Data" + fs.getSeparator() + "client_" + TIMESTAMP_AT_RUNTIME + ".txt");
 		 System.out.print(msg);
@@ -316,6 +317,7 @@ public class FileUtilities {
 			 e.printStackTrace();
 			 System.exit(120);
 		 }
+		 
 	 }
 	 
 	 public static void closeLog() {

@@ -81,6 +81,34 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		level.tick();
 	}
 	
+	public void resetWindow() {
+		frame.remove(this);
+		frame.setVisible(false);
+		frame.setEnabled(false);
+		frame = null;
+		frame = new JFrame("Mine Game 4.0");
+        frame.setIconImage(loadImage("icon.png"));
+		frame.setResizable(true);
+		frame.setMinimumSize(new Dimension(800, 600));
+		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		frame.addWindowListener(new java.awt.event.WindowAdapter() {
+		    public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+		    	Runtime.getRuntime().gc();
+		        if (JOptionPane.showConfirmDialog(frame, 
+		            "Are you sure to want to exit the game?", "Quit now?", 
+		            JOptionPane.YES_NO_OPTION,
+		            JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION){
+		        	exitSequence();
+		            System.exit(0);
+		        }
+		    }
+		});
+		frame.setBackground(Color.BLUE);
+		frame.add(this);
+		
+		checkDisplayMode();
+	}
+	
 	public void checkFullscreenFocus() {
 		if (fullscreen) {
 			if (window != null && !window.manager.getFSWindow().isFocused()) {
@@ -135,8 +163,9 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		
 		checkDisplayMode();
 		
-		initializeGameElements();
 		initializeGUIs();
+		initializeGameElements();
+		
 	}
 	
 	public void exitSequence() {
@@ -196,9 +225,9 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		AttributeLibrary.populateIngredientLibraries();
 		RecipeLibrary.populateRecipeLibrary();
 		audioManager = new AudioManager();
-		LevelFactory.generateLevel("levels/lvl0.png", 0, 0, this);
+		
 		Calendar.prepareCalendar(System.currentTimeMillis());
-		level = new Level("levels/lvl0.png", "Generated", 0, this, 120 * 16, 500*32);
+		level = new Level(LevelFactory.generateLevel(0, this), "Generated", 0, this, 120 * 16, 500*32);
 		player = new Player(level, "Test", level.spawnX, level.spawnY, input);
 		level.addEntity(player);
 	}

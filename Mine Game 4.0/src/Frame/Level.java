@@ -36,20 +36,46 @@ public class Level {
 	
 	private List<Entity> entities = new ArrayList<Entity>();
 	
+	public Level(BufferedImage image, String name, int i, GameLoop mg, int x, int y) {
+		index = i;
+		spawnX = x;
+		spawnY = y;
+		sky = new Sky("sky1", game);
+		this.name = name;
+		this.loadLevelFromImage(image);
+		game = mg;
+	}
+	
 	public Level(String path, String name, int i, GameLoop mg, int x, int y) {
 		index = i;
 		spawnX = x;
 		spawnY = y;
 		sky = new Sky("sky1", game);
 		this.name = name;
+		game = mg;
 		if (path != null) {
             this.filePath = path;
-            this.loadLevelFromFile();
+            this.loadLevelFromFile(filePath);
             game = mg;
         }
 	}
 	
-	private void loadLevelFromFile() {
+	private void loadLevelFromImage(BufferedImage image) {
+        	FileUtilities.log("Loading level " + index + " from " + filePath + "...\n\t");
+        	
+        	this.image = image;
+        	
+            this.width = this.image.getWidth();
+            this.height = this.image.getHeight();
+            tiles = new int[width][height];
+            durabilities = new double[width][height];
+            this.loadTiles();
+            FileUtilities.log("Level " + index + ", " + name + ", loaded from " + filePath + ":\n"
+            		+ "\tSize: " + width + "x" + height + ", " + width * height + " tiles\n"
+            		+ "\tSpawnpoint: " + spawnX + ", " + spawnY + "\n");
+	}
+	
+	private void loadLevelFromFile(String filePath) {
         try {
         	FileUtilities.log("Loading level " + index + " from " + filePath + "...\n\t");
         	

@@ -43,9 +43,9 @@ public class Inventory {
 		this.stackSize = stackSize;
 		this.controls = controls;
 		items = new InventoryItem[slots];
-		items[0] = new Pickaxe(10000, 25.0, 200000.0, 175000.0, "Steel Pickaxe");
-		items[1] = new Shovel(10001, 25.0, 200000.0, 175000.0, "Steel Shovel");
-		items[2] = new Axe(10002, 25.0, 200000.0, 175000.0, "Steel Shovel");
+		//items[0] = new Pickaxe(10000, 25.0, 200000.0, 175000.0, "Steel Pickaxe");
+		//items[1] = new Shovel(10001, 25.0, 200000.0, 175000.0, "Steel Shovel");
+		//items[2] = new Axe(10002, 25.0, 200000.0, 175000.0, "Steel Shovel");
 		//items[2] = new InventoryEntity(new Furniture(364/32, 16765/32, controls.gameIn.level, Furniture.FURNITURE_ID.WORKBENCH));
 		topLeft = new Dimension[slots];
 	}
@@ -212,7 +212,7 @@ public class Inventory {
 	}
 	
 	public void drawFreeItem(Graphics g, ImageObserver observer) {
-		freeItem.draw(g, mouseLocation.width, mouseLocation.height, iconSize, iconSize, observer);
+		freeItem.draw(g, mouseLocation.width - iconSize / 2, mouseLocation.height - iconSize / 2, iconSize, iconSize, observer);
 	}
 	
 	public int getFreeItemOrigin() {

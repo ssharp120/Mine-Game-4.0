@@ -15,24 +15,6 @@ import Libraries.AttributeLibrary;
 import Tiles.Tile;
 
 public class LevelFactory {
-	public static Level constructLevel(int levelIndex, GameLoop game) {
-		try {
-			String[] levelAttributes = AttributeLibrary.getLevelAttributeFromLibrary(levelIndex).split(",");
-			String filePath = levelAttributes[0];
-			String name = levelAttributes[1];
-			
-			int spawnX = Integer.parseInt(levelAttributes[2]);
-			int spawnY = Integer.parseInt(levelAttributes[3]);
-			
-			game.currentWorldValue = Integer.parseInt(levelAttributes[4]);
-			
-			return new Level(filePath, name, levelIndex, game, spawnX, spawnY);
-		} catch (NumberFormatException e) {
-			FileUtilities.log("Level values incorrectly formatted for level " + levelIndex + "\n");
-			return new Level("AlphaMap.png", "Level loaded incorrectly", levelIndex, game, 128, 128);
-		}
-	}
-	
 	public static void saveLevel(String filepath, int worldType, int levelIndex, Level level) {
 		FileUtilities.log("Saving level..." + "\n\t");
 		BufferedImage i = new BufferedImage(level.width, level.height, BufferedImage.TYPE_INT_RGB);
@@ -49,12 +31,9 @@ public class LevelFactory {
 		}
 	}
 	
-	public static void generateLevel(String filepath, int worldType, int levelIndex, GameLoop game) {
+	public static BufferedImage generateLevel(int worldType, GameLoop game) {
 		BufferedImage i = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
-		int spawnX = 0;
-		int spawnY = 0;
-		int world = 0;
-		int subWorld = 0;
+		
 		if (worldType == 0) {
 			i = new BufferedImage(1024, 1024, BufferedImage.TYPE_INT_RGB);
 			for (int j = 0; j < i.getWidth(); j++) {
@@ -114,17 +93,8 @@ public class LevelFactory {
 					continue;
 				}
 			}
-			spawnX = i.getWidth() / 2;
-			spawnY = 500 * 32;
-			world = 1;
-			subWorld = 1;
 		}
 		
-		try {
-			ImageIO.write(i, "png", FileUtilities.getFile(filepath));
-		} catch (IOException e) {
-			FileUtilities.log("Level Generation Failed" + "\n");
-		}
-		FileUtilities.writeToPosition("levels/index.txt", filepath + ",Generated Level " + world + "-" + subWorld + "," + spawnX + "," + spawnY + "," + world + "," + subWorld + "\n", 0);
+		return i;
 	}
 }

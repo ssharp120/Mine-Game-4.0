@@ -65,6 +65,7 @@ public class MediaLibrary {
 		fontLibrary.put("Subtext", new Font("Console", Font.PLAIN, 10));
 		fontLibrary.put("Health", new Font("Bauhaus 93", Font.PLAIN, 32));
 		fontLibrary.put("Numbering", new Font("Bauhaus 93", Font.BOLD, 64));
+		fontLibrary.put("Indicator", new Font("Console", Font.BOLD, 32));
 	}
 	
 	public static Font getFontFromLibrary(String fontIndex) {

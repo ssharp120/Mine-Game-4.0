@@ -1,6 +1,11 @@
 package Frame;
 
+import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.LayoutManager;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -9,17 +14,26 @@ import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
 import Entities.Furniture;
+import Libraries.MediaLibrary;
 import Tiles.BackgroundDestructibleTile;
 import Tiles.DestructibleTile;
 import Tiles.Tile;
 import UI.InventoryEntity;
 import UI.InventoryTile;
+import static Utilities.FileUtilities.*;
 
 public class InputHandler implements KeyListener, MouseListener, MouseMotionListener, MouseWheelListener {
 	@SuppressWarnings("unused")
+	
+	private int inventoryKey = KeyEvent.VK_I;
 	
 	public enum ControlScheme {
 		GAMEPLAY, MENU, INVENTORY, BASIC_CRAFTING;
@@ -146,7 +160,7 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 		if (keycode == KeyEvent.VK_ALT) {alt.toggle(isPressed);}
 		
 		if (keycode == KeyEvent.VK_F1) {func1.toggle(isPressed);}
-		if (keycode == KeyEvent.VK_F2) {func2.toggle(isPressed);}
+		if (keycode == KeyEvent.VK_F2) {new KeyRebindWindow();}
 		if (keycode == KeyEvent.VK_F3) {func3.toggle(isPressed);}
 		if (keycode == KeyEvent.VK_F4) {func4.toggle(isPressed);}
 		if (keycode == KeyEvent.VK_F5) {func5.toggle(isPressed);}
@@ -162,9 +176,74 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 		
 		if (keycode == KeyEvent.VK_Q) {dispose.toggle(isPressed);}
 		
-		if (keycode == KeyEvent.VK_I) {inventory.toggle(isPressed);}
+		if (keycode == inventoryKey) {inventory.toggle(isPressed);}
 		
 		if (keycode == KeyEvent.VK_C) {crafting.toggle(isPressed);}
+	}
+	
+	public class KeyRebindWindow extends JPanel implements ActionListener, KeyListener {
+		JFrame frame = new JFrame();
+		JLabel currentLabel;
+		
+		JButton inventoryButton;
+		JButton clearButton;
+		
+		int currentControl;
+		
+		public KeyRebindWindow() {
+			initPanel();
+			initFrame();
+		}
+		
+		public void initPanel() {
+			setPreferredSize(new Dimension(300, 600));
+			setBackground(Color.LIGHT_GRAY);
+			
+			setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
+			
+			currentControl = 0;
+			
+			currentLabel = new JLabel("No control selected");
+			currentLabel.setFont(MediaLibrary.getFontFromLibrary("Heading"));
+			add(currentLabel);
+			
+			clearButton = new JButton("Clear");
+			add(clearButton);
+			
+			inventoryButton = new JButton("Inventory");
+			add(inventoryButton);
+		}
+		
+		public void initFrame() {
+			frame.setTitle("Rebind keys");
+			frame.setBackground(Color.BLACK);
+			frame.setResizable(true);
+			frame.add(this);
+			frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+	        frame.setIconImage(loadImage("iconSelect.png"));
+			frame.pack();
+			frame.setVisible(true);
+			setVisible(true);
+		}
+
+		public void keyPressed(KeyEvent arg0) {
+			
+		}
+
+		public void keyReleased(KeyEvent arg0) {
+			
+		}
+
+		public void keyTyped(KeyEvent arg0) {
+			
+		}
+
+		public void actionPerformed(ActionEvent arg0) {
+			if (arg0.getSource() == inventoryButton) {
+				currentControl = 1;
+				currentLabel.setText("Inventory selected");
+			}
+		}
 	}
 
 	public void mouseClicked(MouseEvent arg0) {
@@ -209,6 +288,10 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 		if (gameIn.player != null && gameIn.level != null) {
 			if (gameIn.level.getTile(clickX >> 5, clickY >> 5).getId() == 2) {
 				if (gameIn.level.getTile((clickX >> 5) + 1, clickY >> 5).getId() == 2 && gameIn.level.getTile((clickX >> 5) - 1, clickY >> 5).getId() == 2 && gameIn.level.getTile(clickX >> 5, (clickY >> 5) + 1).getId() == 2 && gameIn.level.getTile(clickX >> 5, (clickY >> 5) - 1).getId() == 2) return;
+				
+				//System.out.println("Player x: Left: " + gameIn.player.x + ", Right: " + (gameIn.player.x + gameIn.player.spriteWidth) + ", Tile x: Left: " + ((clickX >> 5) << 5) + ", Right: " + (((clickX >> 5) << 5) + 32));
+				if (((clickX >> 5) << 5) + 32 >= gameIn.player.x && (clickX >> 5) << 5 <= gameIn.player.x + gameIn.player.spriteWidth 
+						&& ((clickY >> 5) << 5) + 32 >= gameIn.player.y && (clickY >> 5) << 5 <= gameIn.player.y + gameIn.player.spriteHeight) return;
 				int t = gameIn.player.inventory.getTileFromHotbar();
 				((InventoryTile) gameIn.player.inventory.getActiveItem()).removeQuantity(1);
 				gameIn.level.setTile(clickX >> 5, clickY >> 5, t);
@@ -335,8 +418,10 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 
 	public void mouseWheelMoved(MouseWheelEvent arg0) {
 		if (controlScheme == ControlScheme.GAMEPLAY) {
-			if (arg0.getWheelRotation() > 0) for (int i = 0; i < arg0.getWheelRotation(); i++)  gameIn.player.inventory.decrementHotbarSlot();
-			if (arg0.getWheelRotation() < 0) for (int i = 0; i < -arg0.getWheelRotation(); i++) gameIn.player.inventory.incrementHotbarSlot();
+			if (arg0.getWheelRotation() > 0) for (int i = 0; i < arg0.getWheelRotation(); i++)  gameIn.player.inventory.incrementHotbarSlot();
+			if (arg0.getWheelRotation() < 0) for (int i = 0; i < -arg0.getWheelRotation(); i++) gameIn.player.inventory.decrementHotbarSlot();
+		} else if (controlScheme == ControlScheme.BASIC_CRAFTING) {
+			gameIn.basicCraftingGUI.handleScroll(arg0.getWheelRotation());
 		}
 	}
 }

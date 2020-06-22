@@ -10,54 +10,107 @@ import Libraries.RecipeLibrary;
 
 public class BasicCraftingGUI extends CraftingMenu {
 	private int scrollY;
+	private int scrollMax;
 	private int[] yValues = new int[100];
 	int itemSize = 128;
+	int offset = 64;
 	int padding = 8;
+	int yInitial = 155;
+	int xInitial = 90;
+	int scrollValue = 10;
+	int numItemsAbove = 0;
+	int numItemsBelow = 0;
 	GameLoop gameIn;
 	
 	public void draw(Graphics g, int screenWidth, int screenHeight, ImageObserver observer) {
-		g.setColor(Color.BLUE);
-		g.drawRect(100, 150, screenWidth - 200, screenHeight - 200);
-		g.setColor(Color.GRAY);
-		g.fillRect(100, 150, screenWidth - 200, screenHeight - 200);
-		g.setColor(Color.BLACK);
-		int y = 155;
-		int x = 60;
+		int targetX = screenWidth - (2 * offset), targetY = screenHeight - (2 * offset);
+		if (targetX / 16 < targetY / 9) itemSize = targetX / 16;
+		else itemSize = targetY / 9;
+		int outline = 6 + itemSize / 6;
+		// Start below hotbar
+		yInitial = (offset - outline) / 2 + itemSize + outline + padding;		
+		
+		numItemsAbove = 0;
+		numItemsBelow = 0;
+		
+		if (gameIn != null & gameIn.player != null) {
+			gameIn.player.inventory.drawHotbar(g, screenWidth, screenHeight, observer);
+			if (gameIn.player.drawInfo) {
+				if (scrollMax > screenHeight) {
+					g.setColor(Color.CYAN);
+					g.drawLine(0, scrollY, 100, scrollY/screenHeight);
+					g.setColor(Color.RED);
+					g.drawLine(0, scrollMax, 100, scrollMax/screenHeight);
+				} else {
+					g.setColor(Color.CYAN);
+					g.drawLine(0, scrollY, 100, scrollY);
+					g.setColor(Color.RED);
+					g.drawLine(0, scrollMax, 100, scrollMax);
+				}
+				g.setColor(Color.BLUE);
+				g.drawRect(100, yInitial, screenWidth - 200, screenHeight - yInitial - 50);
+				g.setColor(Color.GRAY);
+				g.fillRect(100, yInitial, screenWidth - 200, screenHeight - yInitial - 50);
+				g.setColor(Color.BLACK);
+			}
+		}
+		
+		int y = yInitial + scrollValue - scrollY;
+		int x = xInitial;
+
 		for (int i = 0; i < RecipeLibrary.getFilledRecipeSlots(); i++) {
 			g.setFont(MediaLibrary.getFontFromLibrary("Numbering"));
 			g.setColor(new Color((int) Math.abs(Math.round(254 * Math.sin(i/10 + 1))),(int) Math.abs(Math.round(254 * Math.sin(i/10 + 2))),(int) Math.abs(Math.round(254 * Math.sin(i/10 + 2)))));
 			
 			yValues[i] = y;
-			g.setColor(Color.BLACK);
-			g.fillRect(60 + itemSize * 4 / 5 + padding *2, y + padding, itemSize, itemSize);
-			g.setColor(Color.DARK_GRAY);
-			g.fillRect(60 + itemSize * 4 / 5 + padding, y, itemSize, itemSize);
-			
-			g.drawString(i + ".", x += itemSize + padding, y + itemSize/2 + g.getFontMetrics().getAscent()/3);
-			for (int j = 0; j < RecipeLibrary.getRecipeFromLibrary(i).getNumInputs(); j++) {
-				RecipeLibrary.getRecipeFromLibrary(i).getInput(j).draw(g, x += itemSize + padding, y, itemSize, itemSize, observer);
-			}
-			g.drawImage(MediaLibrary.getImageFromLibrary(5001), x += itemSize + padding, y, itemSize, itemSize, observer);
-			for (int k = 0; k < RecipeLibrary.getRecipeFromLibrary(i).getNumOutputs(); k++) {
-				RecipeLibrary.getRecipeFromLibrary(i).getOutput(k).draw(g, x += itemSize + padding, y, itemSize, itemSize, observer);
-			}
-			
+			if (y >= yInitial && y + itemSize <= screenHeight - 50) {
+				g.setColor(Color.BLACK);
+				g.fillRect(x += itemSize * 4 / 5 + padding * 2, y + padding, itemSize, itemSize);
+				g.setColor(Color.DARK_GRAY);
+				g.fillRect(x - padding, y, itemSize, itemSize);
+
+				for (int j = 0; j < RecipeLibrary.getRecipeFromLibrary(i).getNumInputs(); j++) {
+					RecipeLibrary.getRecipeFromLibrary(i).getInput(j).draw(g, x += itemSize + padding, y, itemSize, itemSize, observer);
+				}
+				g.drawImage(MediaLibrary.getImageFromLibrary(5001), x += itemSize + padding, y, itemSize, itemSize, observer);
+				for (int k = 0; k < RecipeLibrary.getRecipeFromLibrary(i).getNumOutputs(); k++) {
+					RecipeLibrary.getRecipeFromLibrary(i).getOutput(k).draw(g, x += itemSize + padding, y, itemSize, itemSize, observer);
+				}
+			} else if (y < yInitial) numItemsAbove++;
+			else if (y + itemSize >= screenHeight - 50) numItemsBelow++;
 			y += itemSize + padding;
-			x = 60;
+			x = xInitial;
 		}
+		if (numItemsAbove > 0) {
+			int indicatorX = xInitial + (itemSize * 4 / 5 + padding)/2 - itemSize / 4;
+			g.drawImage(MediaLibrary.getImageFromLibrary(5002), indicatorX, yInitial, itemSize / 2, itemSize / 2, observer);
+			g.setColor(Color.RED);
+			g.setFont(MediaLibrary.getFontFromLibrary("Indicator"));
+			g.drawString("" + numItemsAbove, indicatorX + itemSize / 4 - g.getFontMetrics().stringWidth("" + numItemsAbove) / 2, yInitial + itemSize / 2 + padding / 4 + g.getFontMetrics().getAscent());
+		}
+		if (numItemsBelow > 0) {
+			int indicatorX = xInitial + (itemSize * 4 / 5 + padding)/2 - itemSize / 4;
+			g.drawImage(MediaLibrary.getImageFromLibrary(5002), indicatorX, screenHeight - 50, itemSize / 2, -itemSize / 2, observer);
+			g.setColor(Color.RED);
+			g.setFont(MediaLibrary.getFontFromLibrary("Indicator"));
+			g.drawString("" + numItemsBelow, indicatorX + itemSize / 4 - g.getFontMetrics().stringWidth("" + numItemsAbove) / 2, screenHeight - 50 - itemSize / 2 - padding / 4 - g.getFontMetrics().getDescent());
+		}
+		scrollMax = y - screenHeight + 200 + scrollY;
 	}
 	
 	public BasicCraftingGUI(GameLoop game) {
 		super(new int[] {1});
 		gameIn = game;
+		scrollY = 0;
+		scrollMax = 1000;
 	}
 	
 	public void handleClick(int clickX, int clickY) {
-		System.out.println("" + clickX + ", " + clickY);
-		if (clickX >= 60 + itemSize * 4 / 5 + padding && clickX <= 60 + itemSize * 4 / 5 + padding + itemSize) {
+		//System.out.println("" + clickX + ", " + clickY);
+		if (clickX >= xInitial + itemSize * 4 / 5 + padding && clickX <= xInitial + itemSize * 4 / 5 + padding + itemSize) {
 			for (int i = 0; i < RecipeLibrary.getFilledRecipeSlots(); i++) {
 				if (clickY >= yValues[i] && clickY <= yValues[i] + itemSize) {
-					System.out.println("Item " + i + " button presses");
+					//System.out.println("Item " + i + " button presses");
 					InventoryItem[] currentItems = gameIn.player.inventory.getItems();
 					if (RecipeLibrary.getRecipeFromLibrary(i).checkRecipe(currentItems)) {
 						for (int j = 0; j < RecipeLibrary.getRecipeFromLibrary(i).getNumOutputs(); j++) {
@@ -72,6 +125,17 @@ public class BasicCraftingGUI extends CraftingMenu {
 		}
 	}
 
+	public void handleScroll(int scrollDelta) {
+		scrollValue = itemSize / 10;
+		if (scrollMax < scrollValue * 2) {
+			scrollY = 0;
+			return;
+		}
+		if (scrollY + scrollDelta * scrollValue > 0 && scrollY + scrollDelta * scrollValue < scrollMax) scrollY += scrollDelta * scrollValue;
+		if (scrollY < scrollValue) scrollY = scrollValue;
+		if (scrollY > scrollMax) scrollY = scrollMax;
+	}
+	
 	public int getScrollY() {
 		return scrollY;
 	}

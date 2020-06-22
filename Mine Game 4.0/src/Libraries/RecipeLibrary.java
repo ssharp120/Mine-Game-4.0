@@ -64,6 +64,7 @@ public class RecipeLibrary {
 							attributes[0] = recipeFile.nextInt();
 							attributes[1] = recipeFile.nextInt();
 							inputs[inputIndex] = ItemFactory.createItem("i", attributes);
+							break;
 						}
 						// InventoryEntity //
 						case "e": break;
@@ -73,9 +74,23 @@ public class RecipeLibrary {
 							attributes[0] = recipeFile.nextInt();
 							attributes[1] = recipeFile.nextInt();
 							inputs[inputIndex] = ItemFactory.createItem("b", attributes);
+							break;
 						}
 						// InventoryTool //
-						case "t": break;
+						case "t": {
+							int[] attributes = new int[2];
+							double[] attributesDoubles = new double[3];
+							String[] attributesStrings = new String[1];
+							attributes[0] = recipeFile.nextInt();
+							attributes[1] = recipeFile.nextInt();
+							attributesDoubles[0] = recipeFile.nextDouble();
+							attributesDoubles[1] = recipeFile.nextDouble();
+							attributesDoubles[2] = recipeFile.nextDouble();
+							attributesStrings[0] = recipeFile.next();
+							inputs[inputIndex] = ItemFactory.createItem("t", attributes, attributesDoubles, attributesStrings);
+							break;
+						}
+						default: break;
 					}
 					inputIndex++;
 				}
@@ -93,6 +108,7 @@ public class RecipeLibrary {
 							attributes[0] = recipeFile.nextInt();
 							attributes[1] = recipeFile.nextInt();
 							outputs[outputIndex] = ItemFactory.createItem("i", attributes);
+							break;
 						}
 						// InventoryEntity //
 						case "e": break;
@@ -102,9 +118,23 @@ public class RecipeLibrary {
 							attributes[0] = recipeFile.nextInt();
 							attributes[1] = recipeFile.nextInt();
 							outputs[outputIndex] = ItemFactory.createItem("b", attributes);
-						};
+							break;
+						}
 						// InventoryTool //
-						case "t": break;
+						case "t": {
+							int[] attributes = new int[2];
+							double[] attributesDoubles = new double[3];
+							String[] attributesStrings = new String[1];
+							attributes[0] = recipeFile.nextInt();
+							attributes[1] = recipeFile.nextInt();
+							attributesDoubles[0] = recipeFile.nextDouble();
+							attributesDoubles[1] = recipeFile.nextDouble();
+							attributesDoubles[2] = recipeFile.nextDouble();
+							attributesStrings[0] = recipeFile.next();
+							outputs[outputIndex] = ItemFactory.createItem("t", attributes, attributesDoubles, attributesStrings);
+							break;
+						}
+						default: break;
 					}
 					outputIndex++;
 				}
