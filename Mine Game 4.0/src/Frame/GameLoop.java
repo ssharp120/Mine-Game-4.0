@@ -24,6 +24,7 @@ import Entities.Player;
 import Libraries.AttributeLibrary;
 import Libraries.MediaLibrary;
 import Libraries.RecipeLibrary;
+import Libraries.StructureLibrary;
 import Startup.PreloadDialog;
 import Tiles.BackgroundDestructibleTile;
 import Tiles.DestructibleTile;
@@ -224,10 +225,11 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		AttributeLibrary.populateLevelLibrary();
 		AttributeLibrary.populateIngredientLibraries();
 		RecipeLibrary.populateRecipeLibrary();
+		StructureLibrary.populateStructureLibrary();
 		audioManager = new AudioManager();
 		
 		Calendar.prepareCalendar(System.currentTimeMillis());
-		level = new Level(LevelFactory.generateLevel(0, this), "Generated", 0, this, 120 * 16, 500*32);
+		level = new Level(LevelFactory.generateLevel(0, this), "Generated", 0, this, 120 * 16, 510*32);
 		player = new Player(level, "Test", level.spawnX, level.spawnY, input);
 		level.addEntity(player);
 	}
@@ -332,7 +334,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		}
 		
 		try {
-		player.drawPlayerModel(g, xOffset, yOffset);
+		player.drawPlayerModel(g, xOffset, yOffset, this);
 		} catch (NullPointerException e) {
 			FileUtilities.log(e.getMessage());
 			new PreloadDialog();
@@ -355,7 +357,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	public void drawHUD(Graphics g) {
 		FontMetrics metr = getFontMetrics(MediaLibrary.getFontFromLibrary("HUDFont"));
 		
-		g.setColor(Color.BLACK);
+		g.setColor(Color.DARK_GRAY);
 		g.setFont(MediaLibrary.getFontFromLibrary("HUDFont"));
 		
 		String str = "";
@@ -378,7 +380,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			} else g.drawImage(MediaLibrary.getImageFromLibrary(displayTile.getId()), ((int) drawResolution.getWidth() / 2) - 32, i, 64, 64, this);
 			if (displayTile.getClass() == DestructibleTile.class) str = tileDurability + " / " + ((DestructibleTile) displayTile).baseDurability;
 			if (displayTile.getClass() == BackgroundDestructibleTile.class) str = tileDurability + " / " + ((BackgroundDestructibleTile) displayTile).baseDurability;
-			g.drawString(str, ((int) drawResolution.getWidth() / 2) - (metr.stringWidth(str) / 2), i + 92);
+			g.drawString(str, ((int) drawResolution.getWidth() / 2) - (metr.stringWidth(str) / 2), i + 100);
 		}
 		
 		g.setColor(Color.GREEN);

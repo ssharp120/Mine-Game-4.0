@@ -1,6 +1,8 @@
 package Utilities;
 
+import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.EOFException;
@@ -56,6 +58,17 @@ public class FileUtilities {
 			return loadImageFromProject(path);
 		 }
 	 }
+	
+	public static BufferedImage loadBufferedImage(String path) {
+		Image img = loadImage(path);
+		BufferedImage bimg = new BufferedImage(img.getWidth(null), img.getHeight(null), BufferedImage.TYPE_INT_ARGB);
+		
+		Graphics2D bg = bimg.createGraphics();
+		bg.drawImage(img, 0, 0, null);
+		bg.dispose();
+		
+		return bimg;
+	}
 	
 	 public static Scanner getFileInternal(String path) {
 		 if (!DEBUG) {

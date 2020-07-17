@@ -15,6 +15,7 @@ import javax.imageio.ImageIO;
 import Entities.Entity;
 import Tiles.BackgroundDestructibleTile;
 import Tiles.DestructibleTile;
+import Tiles.Platform;
 import Tiles.RandomizedTile;
 import Tiles.Tile;
 import UI.InventoryTile;
@@ -186,7 +187,7 @@ public class Level {
 	
 	public void destructible(int targetX, int targetY, double damage) {
 		Tile t = getTile(targetX, targetY);
-		if (t.getId() != 8191 && (t.getClass() == DestructibleTile.class || t.getClass() == BackgroundDestructibleTile.class)) {
+		if (t.getId() != 8191 && (t.getClass() == DestructibleTile.class || t.getClass() == BackgroundDestructibleTile.class || t.getClass() == Platform.class)) {
 			double initialDurability = getDurability(targetX, targetY);
 			setDurability(targetX, targetY, initialDurability - damage);
 			if (getDurability(targetX, targetY) <= 0) {

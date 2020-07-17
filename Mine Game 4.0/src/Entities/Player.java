@@ -6,6 +6,8 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Stroke;
+import java.awt.image.ImageObserver;
+import java.util.Observer;
 
 import Frame.GameLoop;
 import Frame.InputHandler;
@@ -25,6 +27,7 @@ public class Player extends Mob {
 	public Inventory inventory;
 	
 	protected boolean shouldMove = true;
+	protected boolean shouldFly = false;
 	protected boolean isSwimming = false;
 	protected boolean ground = false;
 	protected boolean damaged = false;
@@ -43,10 +46,11 @@ public class Player extends Mob {
 	public boolean toggleCreativeBlocks;
 	public boolean toggleCreativeIngredients;
 	public boolean toggleCreativeTools;
+	public boolean toggleCreativeFlying;
 	private boolean toggleRefresh;
 	
 	public boolean canJump = true;
-	public double maxVelocityX = 3, maxVelocityY = 4;
+	public double maxVelocityX = 3, maxVelocityY = 20;
 	
 	public double airResistance = 0.001;
 	public double friction = 0;
@@ -75,6 +79,9 @@ public class Player extends Mob {
 
 	public void tick() {
 		if (health <= 0.0) health = 0.0;
+		if (health <= baseHealth) {
+			heal(0.005 + Math.random() * 0.002);
+		}
 		calculatePhysics();
 		if (controls.func3.isPressed()) {
 			if (toggleInfo) toggleInfo();
@@ -127,6 +134,15 @@ public class Player extends Mob {
 			toggleCreativeTools = false;
 		} else {
 			toggleCreativeTools = true;
+		}
+		
+		if (controls.func8.isPressed()) {
+			if (toggleCreativeFlying) {
+				shouldFly = !shouldFly;
+			}
+			toggleCreativeFlying = false;
+		} else {
+			toggleCreativeFlying = true;
 		}
 		
 		if (controls.func12.isPressed()) {
@@ -213,8 +229,11 @@ public class Player extends Mob {
 		dirR = false;
 		
 		if (controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY && controls.left.isPressed() && controls.right.isPressed()) aX = 0;
-		if (controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY && !collisionAbove(x, y, spriteWidth, spriteHeight, level) && collisionBelow(x, y, spriteWidth, spriteHeight, level) && controls.up.isPressed()) { 
-			if (canJump) {
+		if (controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY && !collisionAbove(x, y, spriteWidth, spriteHeight, level) && (collisionBelow(x, y, spriteWidth, spriteHeight, level) || shouldFly) && controls.up.isPressed()) { 
+			if (shouldFly) {
+				vY -= 0.125;
+				if (controls.down.isPressed()) vY = 0;
+			} else if (canJump) {
 				vY = -2.5;
 				canJump = false;
 			}
@@ -288,6 +307,9 @@ public class Player extends Mob {
 			if (vY < 0) {
 				vY = Math.log(-vY) / 4;
 			} else {
+				if (vY > 5) {
+					damage(Math.pow(Math.pow(99, 1D/15D), vY - 5));
+				}
 				vY = 0;
 			}
 		}
@@ -389,24 +411,22 @@ public class Player extends Mob {
 		}		
 	}
 	
-	public void drawPlayerModel(Graphics g, int xOffset, int yOffset) {
+	public void drawPlayerModel(Graphics g, int xOffset, int yOffset, ImageObserver observer) {
 		g.setColor(Color.GRAY);
-		g.fillRect(x - game.xOffset, y - game.yOffset - 3, spriteWidth, spriteHeight);
+		
 		if (getMovingDir() == 2) {
-			g.setColor(Color.BLACK);
-			g.drawLine(x - game.xOffset + (2 * spriteWidth / 3), y - game.yOffset - 3 + (spriteHeight / 3), x - game.xOffset + (spriteWidth / 3), y - game.yOffset - 3 + (spriteHeight / 2));
-			g.drawLine(x - game.xOffset + (spriteWidth / 3), y - game.yOffset - 3 + (spriteHeight / 2), x - game.xOffset + (2 * spriteWidth / 3), y - game.yOffset - 3 + (2 * spriteHeight / 3));
+			g.drawImage(MediaLibrary.getImageFromLibrary(7500), x - game.xOffset + spriteWidth, y - game.yOffset - 3, -spriteWidth, spriteHeight, observer);
+			if (shouldFly) g.drawImage(MediaLibrary.getImageFromLibrary(7499), x - game.xOffset + spriteWidth, y - game.yOffset - 3, -spriteWidth, spriteHeight, observer);
 		} else if (getMovingDir() == 3) {
-			g.setColor(Color.WHITE);
-			g.drawLine(x - game.xOffset + (spriteWidth / 3), y - game.yOffset - 3 + (spriteHeight / 3), x - game.xOffset + (2 * spriteWidth / 3), y - game.yOffset - 3 + (spriteHeight / 2));
-			g.drawLine(x - game.xOffset + (2 * spriteWidth / 3), y - game.yOffset - 3 + (spriteHeight / 2), x - game.xOffset + (spriteWidth / 3), y - game.yOffset - 3 + (2 * spriteHeight / 3));
+			g.drawImage(MediaLibrary.getImageFromLibrary(7500), x - game.xOffset, y - game.yOffset - 3, spriteWidth, spriteHeight, observer);
+			if (shouldFly) g.drawImage(MediaLibrary.getImageFromLibrary(7499), x - game.xOffset, y - game.yOffset - 3, spriteWidth, spriteHeight, observer);
 		}
 		
 		g.setColor(Color.DARK_GRAY);
 		g.fillOval(32, 32, 128, 128);
 		
 		Graphics2D g2 = (Graphics2D) g;
-		Stroke back1 = new BasicStroke(5, BasicStroke.CAP_SQUARE, BasicStroke.JOIN_MITER, 10.0f, new float[] {4.0f,8.0f}, 0.0f);
+		Stroke back1 = new BasicStroke(5, BasicStroke.CAP_SQUARE, BasicStroke.JOIN_MITER, 10.0f, new float[] {4.0f, 8.0f}, 0.0f);
 		Stroke h1 = new BasicStroke(20);
 		Stroke h2 = new BasicStroke(4);
 		Stroke h3 = new BasicStroke(6);

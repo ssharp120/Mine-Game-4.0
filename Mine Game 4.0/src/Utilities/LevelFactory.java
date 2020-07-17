@@ -12,6 +12,8 @@ import javax.swing.filechooser.FileSystemView;
 import Frame.GameLoop;
 import Frame.Level;
 import Libraries.AttributeLibrary;
+import Libraries.StructureLibrary;
+import Structures.BasicGeneratedStructure;
 import Tiles.Tile;
 
 public class LevelFactory {
@@ -55,7 +57,27 @@ public class LevelFactory {
 				}
 			}
 			
-			for (int j = 5; j <= i.getWidth() - 5; j++) {
+			BasicGeneratedStructure boulder = (BasicGeneratedStructure) StructureLibrary.getStructureFromLibrary(1);
+			for (int j = boulder.width + 16; j < i.getWidth() - boulder.width - 16; j++) {
+				if (Math.random() < 0.015) {
+					int startY = (int) Math.round(6 * Math.random());
+					for (int k = 0; k < boulder.width; k++) {
+						for (int m = 0; m < boulder.height; m++) {
+							if (boulder.getTile(k, m) > 2 && boulder.getTile(k, m) < 8000) i.setRGB(j + k, 512 + 17 - 1 + startY + m, Tile.tiles[boulder.getTile(k, m)].getLevelColour());
+						}
+					}
+				}
+			}
+			
+			BasicGeneratedStructure shrine = (BasicGeneratedStructure) StructureLibrary.getStructureFromLibrary(2);
+				int startX = i.getWidth() / 2 + 42 - (int) Math.round(100 * Math.random());
+				for (int k = 0; k < shrine.width; k++) {
+					for (int m = 0; m < shrine.height; m++) {
+						if (shrine.getTile(k, m) > 2 && shrine.getTile(k, m) < 8000) i.setRGB(startX + k, 512 + 17 - 16 + m, Tile.tiles[shrine.getTile(k, m)].getLevelColour());
+					}
+				}
+			
+			for (int j = 15; j <= i.getWidth() - 15; j++) {
 				if (Math.random() < 0.015) {
 					int sandWidth = (int) Math.round(10 * Math.random() + 1);
 					for (int k = 0; k <= sandWidth; k++) {

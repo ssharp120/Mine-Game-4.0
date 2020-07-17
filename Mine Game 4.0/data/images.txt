@@ -15,6 +15,8 @@
 5001 gui/arrow
 5002 gui/arrowsmall
 7001 entity/furniture/workbench
+7499 entity/player/jetpack
+7500 entity/player/player1
 8190 tile/barrier
 8191 tile/air
 8192 tile/crack
