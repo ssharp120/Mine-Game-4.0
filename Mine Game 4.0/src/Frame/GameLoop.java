@@ -20,6 +20,7 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
+import Entities.OxygenGenerator;
 import Entities.Player;
 import Libraries.AttributeLibrary;
 import Libraries.MediaLibrary;
@@ -229,9 +230,11 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		audioManager = new AudioManager();
 		
 		Calendar.prepareCalendar(System.currentTimeMillis());
-		level = new Level(LevelFactory.generateLevel(0, this), "Generated", 0, this, 120 * 16, 510*32);
+		level = new Level(LevelFactory.generateLevel(0, this), "Generated", 0, this, (64 + 16) * 32, 516*32);
 		player = new Player(level, "Test", level.spawnX, level.spawnY, input);
 		level.addEntity(player);
+		
+		level.addEntity(new OxygenGenerator(level, true, 60, 528));
 	}
 	
 	public void initializeGUIs() {
@@ -341,12 +344,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			this.setEnabled(false);
 		}
 		
-		/* GUI dominance:
-		 * Workbench > Basic crafting 
-		 */
-		if (workbenchGUI.isActive()) {
-			workbenchGUI.draw(g, drawResolution.width, drawResolution.height, this);
-		} else if (basicCraftingGUI.isActive()){
+		if (basicCraftingGUI.isActive()){
 			basicCraftingGUI.draw(g, drawResolution.width, drawResolution.height, this);
 		}
 		

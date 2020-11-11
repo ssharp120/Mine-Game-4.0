@@ -46,7 +46,7 @@ public class LevelFactory {
 			
 			for (int j = 0; j <= i.getWidth(); j++) {
 				for (int k = 0; k <= i.getHeight() - 2; k++) {
-					if (j > 5 && j < i.getWidth() - 5) {
+					if (j > 24 && j < i.getWidth() - 5) {
 						if (k > 512 + 32 - (int) Math.round(Math.random() * 7)) {
 							i.setRGB(j, k, Tile.STONE.getLevelColour());
 						} else if (k > 512 + 17 && k <= 512 + 72) {
@@ -70,15 +70,23 @@ public class LevelFactory {
 			}
 			
 			BasicGeneratedStructure shrine = (BasicGeneratedStructure) StructureLibrary.getStructureFromLibrary(2);
-				int startX = i.getWidth() / 2 + 42 - (int) Math.round(100 * Math.random());
-				for (int k = 0; k < shrine.width; k++) {
-					for (int m = 0; m < shrine.height; m++) {
-						if (shrine.getTile(k, m) > 2 && shrine.getTile(k, m) < 8000) i.setRGB(startX + k, 512 + 17 - 16 + m, Tile.tiles[shrine.getTile(k, m)].getLevelColour());
-					}
+			int startX = i.getWidth() / 2 + 42 - (int) Math.round(100 * Math.random());
+			for (int k = 0; k < shrine.width; k++) {
+				for (int m = 0; m < shrine.height; m++) {
+					if (shrine.getTile(k, m) > 2 && shrine.getTile(k, m) < 8000) i.setRGB(startX + k, 512 + 17 - 16 + m, Tile.tiles[shrine.getTile(k, m)].getLevelColour());
 				}
+			}
+				
+			BasicGeneratedStructure crashed_ship = (BasicGeneratedStructure) StructureLibrary.getStructureFromLibrary(3);
+			startX = 0;
+			for (int k = 0; k < crashed_ship.width; k++) {
+				for (int m = 0; m < crashed_ship.height; m++) {
+					if (crashed_ship.getTile(k, m) > 1 && crashed_ship.getTile(k, m) < 8000) i.setRGB(startX + k, 512 - 8 + m, Tile.tiles[crashed_ship.getTile(k, m)].getLevelColour());
+				}
+			}
 			
 			for (int j = 15; j <= i.getWidth() - 15; j++) {
-				if (Math.random() < 0.015) {
+				if (Math.random() < 0.015 && j > 32) {
 					int sandWidth = (int) Math.round(10 * Math.random() + 1);
 					for (int k = 0; k <= sandWidth; k++) {
 						for (int l = 0; l <= (int) Math.round(6 * Math.random() + 1); l++) {
@@ -101,7 +109,7 @@ public class LevelFactory {
 					j += 5;
 					continue;
 				}
-				if (Math.random() < 0.025) {
+				if (Math.random() < 0.025 && j > 72) {
 					int l = (int) Math.round(6 * Math.random() + 4);
 					for (int leafX = 0; leafX < 5; leafX++) {
 						for (int leafY = 0; leafY < 5; leafY++) {

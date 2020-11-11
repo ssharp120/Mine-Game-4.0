@@ -1,3 +1,4 @@
 0 void
 1 boulder
 2 shrine
+3 crashed_ship

@@ -61,8 +61,8 @@ public class Furniture extends Entity {
 	public void tick() {
 		if (checkConflict()) {
 			markedForDeletion = true;
-			InventoryEntity j = new InventoryEntity(new Furniture(x, y, level, id));
-			level.getGameLoop().player.inventory.addItem(j);
+			//InventoryEntity j = new InventoryEntity(new Furniture(x, y, level, id));
+			//level.getGameLoop().player.inventory.addItem(j);
 		}
 	}
 	

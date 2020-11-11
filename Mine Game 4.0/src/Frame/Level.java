@@ -13,6 +13,8 @@ import java.util.List;
 import javax.imageio.ImageIO;
 
 import Entities.Entity;
+import Entities.OxygenGenerator;
+import Entities.Player;
 import Tiles.BackgroundDestructibleTile;
 import Tiles.DestructibleTile;
 import Tiles.Platform;
@@ -27,6 +29,7 @@ public class Level {
 	protected String filePath;
 	public String name;
 	private int[][] tiles;
+	private int[][] tileData;
 	private double[][] durabilities;
 	public int width, height;
 	public int xOffset, yOffset;
@@ -69,6 +72,7 @@ public class Level {
             this.width = this.image.getWidth();
             this.height = this.image.getHeight();
             tiles = new int[width][height];
+            tileData = new int[width][height];
             durabilities = new double[width][height];
             this.loadTiles();
             FileUtilities.log("Level " + index + ", " + name + ", loaded from " + filePath + ":\n"
@@ -142,21 +146,52 @@ public class Level {
 	}
 	
 	public synchronized void tick() {
+		boolean oxygenConnected = false;
 		for (Entity e : getEntities()) {
 			e.tick();
+			if (e.getClass() == OxygenGenerator.class) {
+				if (Math.pow(Math.abs(e.x * 32 - entities.get(0).x + 32)^2 + Math.abs(e.y * 32 - entities.get(0).y + 64)^2, 0.5) < 22) {
+					((Player) entities.get(0)).connectOxygen();
+					((Player) entities.get(0)).addOxygen(0.025);
+					((Player) entities.get(0)).addOxygenPoint(e.x * 32, e.y * 32);
+					oxygenConnected = true;
+				}
+			}
 		}
 		entities.removeIf(i -> i.markedForDeletion);
-		for (int y = 0; y < height - 1; y++) {
-			for (int x = 0; x < width; x++) {
-				if (tiles[x][y] == 15 && tiles[x][y+1] == 2 &&  tiles[x + 1][y+1] == 2) {
-					tiles[x][y] = 2;
-					tiles[x][y - 1] = 2;
-					tiles[x + 1][y] = 2;
-					tiles[x + 1][y - 1] = 2;
+		if (game.ticks % 250 == 160) {
+			for (int y = 0; y < height - 1; y++) {
+				for (int x = 0; x < width; x++) {
+					checkLeafDecay(x, y);
 				}
 			}
 		}
 		sky.tick();
+		if (!oxygenConnected) {
+			((Player) entities.get(0)).disconnectOxygen();
+			((Player) entities.get(0)).removeOxygen(0.01);
+		}
+	}
+		
+	public void checkLeafDecay(int x, int y) {
+		if (tiles[x][y] == Tile.LEAVES.getId()) {
+			boolean woodFound = false;
+			for (int i = -2; i <= 2; i++) {
+				for (int j = 0; j < 3; j++) {
+					if (tiles[x + i][y + j] == Tile.NATURAL_WOOD.getId()) woodFound = true;
+				}
+			}
+			if ((tiles[x + 1][y] == Tile.VOID.getId() && tiles[x - 1][y] == Tile.VOID.getId() && tiles[x][y + 1] == Tile.VOID.getId() && tiles[x][y - 1] == Tile.VOID.getId())) {
+				tiles[x][y] = Tile.VOID.getId();
+			}
+			if (!woodFound) {
+				for (int i = 0; i < 5; i++) {
+					for (int j = 0; j < 3; j++) {
+						if (tiles[x + i][y + j] == Tile.LEAVES.getId()) tiles[x + i][y + j] = Tile.VOID.getId();
+					}
+				}
+			}
+		}
 	}
 	
 	public synchronized void draw(Graphics g) { 

@@ -67,7 +67,12 @@ public class RecipeLibrary {
 							break;
 						}
 						// InventoryEntity //
-						case "e": break;
+						case "e": {
+							int[] attributes = new int[1];
+							attributes[0] = recipeFile.nextInt();
+							inputs[inputIndex] = ItemFactory.createItem("e", attributes);
+							break;
+						}
 						// InventoryTile //
 						case "b": {
 							int[] attributes = new int[2];
@@ -111,7 +116,12 @@ public class RecipeLibrary {
 							break;
 						}
 						// InventoryEntity //
-						case "e": break;
+						case "e": {
+							int[] attributes = new int[1];
+							attributes[0] = recipeFile.nextInt();
+							outputs[outputIndex] = ItemFactory.createItem("e", attributes);
+							break;
+						}
 						// InventoryTile //
 						case "b": {
 							int[] attributes = new int[2];

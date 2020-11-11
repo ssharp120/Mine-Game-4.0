@@ -269,18 +269,8 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 		}
 		if (gameIn.player.inventory.getActiveItem() != null && gameIn.player.inventory.getActiveItem().getClass() == InventoryEntity.class) {
 			InventoryEntity j = ((InventoryEntity) gameIn.player.inventory.getActiveItem());
-			j.entity.level = gameIn.level;
-			j.entity.active = true;
-			j.entity.x = clickX >> 5;
-			j.entity.y = clickY >> 5;
-			if (j.entity.getClass() == Furniture.class) {
-				j.entity.x -= ((((Furniture) j.entity).width/2 - 1) >> 5);
-				if (((Furniture) j.entity).height > 32) j.entity.y -= ((((Furniture) j.entity).height - 32) >> 5);
-			}
-			if (!j.entity.checkConflict()) {
-				gameIn.level.addEntity(j.entity);
-				j.markedForDeletion = true;
-			}
+			gameIn.level.addEntity(j.generateEntity(gameIn.level, clickX >> 5, clickY >> 5));
+			gameIn.player.inventory.clearActiveItem();
 		}
 	}
 	

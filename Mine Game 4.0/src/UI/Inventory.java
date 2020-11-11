@@ -440,4 +440,9 @@ public class Inventory {
 	public void setActiveItem(InventoryItem activeItem) {
 		this.activeItem = activeItem;
 	}
+	
+	public void clearActiveItem() {
+		this.activeItem = null;
+		this.items[this.getSelectedHotbarSlot()] = null;
+	}
 }

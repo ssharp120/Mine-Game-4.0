@@ -5,8 +5,11 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Point;
 import java.awt.Stroke;
 import java.awt.image.ImageObserver;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Observer;
 
 import Frame.GameLoop;
@@ -47,6 +50,7 @@ public class Player extends Mob {
 	public boolean toggleCreativeIngredients;
 	public boolean toggleCreativeTools;
 	public boolean toggleCreativeFlying;
+	public boolean toggleCreativeEntities;
 	private boolean toggleRefresh;
 	
 	public boolean canJump = true;
@@ -56,6 +60,11 @@ public class Player extends Mob {
 	public double friction = 0;
 	
 	public double mass = 100;
+	
+	protected double oxygen = 100D;
+	
+	protected boolean oxygenConnected;
+	private List<Point> oxyPoints = new ArrayList<Point>();
 	
 	public final Font USERNAME = new Font("Comic Sans MS", Font.PLAIN, 16);
 	public final Font NormalFont = new Font("Console", Font.PLAIN, 12);
@@ -78,9 +87,19 @@ public class Player extends Mob {
 	}
 
 	public void tick() {
+		
+		for (int i = 0; i < oxyPoints.size(); i++) {
+			if (Math.pow(Math.abs(oxyPoints.get(i).x - x + 32)^2 + Math.abs(oxyPoints.get(i).y * 32 - oxyPoints.get(i).y + 64)^2, 0.5) > 22) {
+				oxyPoints.remove(i);
+			}
+		}
+		
 		if (health <= 0.0) health = 0.0;
 		if (health <= baseHealth) {
 			heal(0.005 + Math.random() * 0.002);
+		}
+		if (oxygen == 0) {
+			damage(0.010 + Math.random() * 0.002);
 		}
 		calculatePhysics();
 		if (controls.func3.isPressed()) {
@@ -143,6 +162,15 @@ public class Player extends Mob {
 			toggleCreativeFlying = false;
 		} else {
 			toggleCreativeFlying = true;
+		}
+		
+		if (controls.func9.isPressed()) {
+			if (toggleCreativeEntities) {
+				inventory.addItem(new InventoryEntity(0, 2));
+			}
+			toggleCreativeEntities = false;
+		} else {
+			toggleCreativeEntities = true;
 		}
 		
 		if (controls.func12.isPressed()) {
@@ -398,8 +426,27 @@ public class Player extends Mob {
 		drawInfo = b;
 	}
 	
+	public void addOxygenPoint(int x, int y) {
+		oxyPoints.add(new Point(x, y));
+	}
+	
+	public void connectOxygen() {
+		oxygenConnected = true;
+	}
+	
+	public void disconnectOxygen() {
+		oxygenConnected = false;
+	}
+	
+	public void setOxygenConnection(boolean oxygenConnected) {
+		this.oxygenConnected = oxygenConnected;
+	}
+	
+	public boolean connectedToOxygen() {
+		return oxygenConnected;
+	}
+	
 	public void draw(Graphics g) {
-		if (drawInfo) printMovementInfo(g, 64, 172);
 		if (inventory.isActive()) {
 			game.drawHUD = false;
 			inventory.draw(g, game.drawResolution.width, game.drawResolution.height, game);
@@ -411,8 +458,21 @@ public class Player extends Mob {
 		}		
 	}
 	
+	public void drawOxygenLine(Graphics g, int oxyX, int oxyY) {
+		if (connectedToOxygen()) {
+			Graphics2D g2 = (Graphics2D) g;
+			g2.setStroke(new BasicStroke(5));
+			g2.setColor(Color.CYAN);
+			g2.drawLine(x - game.xOffset + spriteWidth / 2, y - game.yOffset - 3 + spriteHeight / 3, oxyX  - game.xOffset + 20, oxyY - game.yOffset + 4);
+		}
+	}
+	
 	public void drawPlayerModel(Graphics g, int xOffset, int yOffset, ImageObserver observer) {
 		g.setColor(Color.GRAY);
+		
+		for (Point p : oxyPoints) {
+			drawOxygenLine(g, p.x, p.y);
+		}
 		
 		if (getMovingDir() == 2) {
 			g.drawImage(MediaLibrary.getImageFromLibrary(7500), x - game.xOffset + spriteWidth, y - game.yOffset - 3, -spriteWidth, spriteHeight, observer);
@@ -421,6 +481,16 @@ public class Player extends Mob {
 			g.drawImage(MediaLibrary.getImageFromLibrary(7500), x - game.xOffset, y - game.yOffset - 3, spriteWidth, spriteHeight, observer);
 			if (shouldFly) g.drawImage(MediaLibrary.getImageFromLibrary(7499), x - game.xOffset, y - game.yOffset - 3, spriteWidth, spriteHeight, observer);
 		}
+		
+		drawMeter(health, Color.RED, Color.getHSBColor((float) ((health%100)/100), 1F, 0.5F), g, observer, 0, 0);
+		drawMeter(oxygen, Color.CYAN, Color.CYAN, g, observer, 128 + 32, 0);
+		
+		g.setFont(MediaLibrary.getFontFromLibrary("INFOFont"));
+		if (drawInfo) printMovementInfo(g, 64, 172);
+	}
+	
+	public void drawMeter(double percent, Color color, Color blendedColor, Graphics g, ImageObserver observer, int xOffset, int yOffset) {
+		g.translate(xOffset, yOffset);
 		
 		g.setColor(Color.DARK_GRAY);
 		g.fillOval(32, 32, 128, 128);
@@ -440,12 +510,12 @@ public class Player extends Mob {
 		g2.setStroke(back1);
 		g2.setColor(Color.GRAY);
 		g2.drawArc(32, 32, 128, 128, 90, 360);
-		g2.setColor(Color.RED);
+		g2.setColor(color);
 		g2.setStroke(h3);
-		g2.drawArc(32, 32, 128, 128, 90, -(int) Math.round(3.6 * health));
+		g2.drawArc(32, 32, 128, 128, 90, -(int) Math.round(3.6 * percent));
 		if (health > 100) {
-			g2.setColor(Color.getHSBColor((float) ((health%100)/100), 1F, 0.5F));
-			g2.drawArc(32, 32, 128, 128, 90, -(int) Math.round(3.6 * (health%100)));
+			g2.setColor(blendedColor);
+			g2.drawArc(32, 32, 128, 128, 90, -(int) Math.round(3.6 * (percent%100)));
 		}
 		
 		g2.setStroke(h1);
@@ -458,12 +528,11 @@ public class Player extends Mob {
 		g2.setStroke(back1);
 		g2.drawArc(52, 52, 88, 88, 90, 360);
 		g2.setStroke(h2);
-		g2.setColor(Color.RED);
-		g2.drawArc(52, 52, 88, 88, 90 - ((int) Math.round(36 * (health % 10)) - 7), 14);
+		g2.setColor(color);
+		g2.drawArc(52, 52, 88, 88, 90 - ((int) Math.round(36 * (percent % 10)) - 7), 14);
 		
-		g.setColor(Color.RED);
-		int hr = (int) Math.round(health);
-		if (hr == 0) hr = 1;
+		g.setColor(color);
+		int hr = (int) Math.round(percent);
 		g.setFont(MediaLibrary.getFontFromLibrary("Health"));
 		String hrs = "" + hr;
 		if (hrs.length() == 1) {
@@ -472,6 +541,8 @@ public class Player extends Mob {
 			hrs = "0" + hr;
 		}
 		g.drawString(hrs, 69, 106);
+		
+		g.translate(-xOffset, -yOffset);
 	}
 	
 	public String getUsername() {
@@ -504,6 +575,24 @@ public class Player extends Mob {
 	
 	public double getHealth() {
 		return health;
+	}
+	
+	public void removeOxygen(double d) {
+		oxygen -= d;
+		if (oxygen < 0) oxygen = 0;
+	}
+	
+	public void addOxygen(double d) {
+		oxygen += d;
+		if (oxygen > 100D) oxygen = 100D;
+	}
+	
+	public void setOxygen(double d) {
+		oxygen = d;
+	}
+	
+	public double getOxygen() {
+		return oxygen;
 	}
 
 	public boolean checkConflict() {
