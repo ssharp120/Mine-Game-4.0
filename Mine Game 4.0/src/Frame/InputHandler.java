@@ -279,10 +279,13 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 			if (gameIn.level.getTile(clickX >> 5, clickY >> 5).getId() == 2) {
 				if (gameIn.level.getTile((clickX >> 5) + 1, clickY >> 5).getId() == 2 && gameIn.level.getTile((clickX >> 5) - 1, clickY >> 5).getId() == 2 && gameIn.level.getTile(clickX >> 5, (clickY >> 5) + 1).getId() == 2 && gameIn.level.getTile(clickX >> 5, (clickY >> 5) - 1).getId() == 2) return;
 				
+				int t = gameIn.player.inventory.getTileFromHotbar();
+				
 				//System.out.println("Player x: Left: " + gameIn.player.x + ", Right: " + (gameIn.player.x + gameIn.player.spriteWidth) + ", Tile x: Left: " + ((clickX >> 5) << 5) + ", Right: " + (((clickX >> 5) << 5) + 32));
 				if (((clickX >> 5) << 5) + 32 >= gameIn.player.x && (clickX >> 5) << 5 <= gameIn.player.x + gameIn.player.spriteWidth 
-						&& ((clickY >> 5) << 5) + 32 >= gameIn.player.y && (clickY >> 5) << 5 <= gameIn.player.y + gameIn.player.spriteHeight) return;
-				int t = gameIn.player.inventory.getTileFromHotbar();
+						&& ((clickY >> 5) << 5) + 32 >= gameIn.player.y && (clickY >> 5) << 5 <= gameIn.player.y + gameIn.player.spriteHeight
+						&& Tile.tiles[t].getClass() != BackgroundDestructibleTile.class) return;
+				
 				((InventoryTile) gameIn.player.inventory.getActiveItem()).removeQuantity(1);
 				gameIn.level.setTile(clickX >> 5, clickY >> 5, t);
 				if (Tile.tiles[t].getClass() == DestructibleTile.class) {

@@ -230,7 +230,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		audioManager = new AudioManager();
 		
 		Calendar.prepareCalendar(System.currentTimeMillis());
-		level = new Level(LevelFactory.generateLevel(0, this), "Generated", 0, this, (64 + 16) * 32, 516*32);
+		level = new Level(LevelFactory.generateLevel(0, this), "Generated", 0, this, (40 + 16) * 32, 526*32);
 		player = new Player(level, "Test", level.spawnX, level.spawnY, input);
 		level.addEntity(player);
 		
@@ -267,7 +267,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			if (level != null) {				
 				int xShift = 0, yShift = 0;
 				if (level.width << 5 < (int) drawResolution.getWidth()) xShift = ((int) drawResolution.getWidth() - (level.width << 5)) / 2; 
-				if (level.height << 5 < (int) drawResolution.getHeight()) yShift = ((int) drawResolution.getHeight() - (level.height << 5)) / 2; 
+				if (level.height << 5 < (int) drawResolution.getHeight()) yShift = ((int) drawResolution.getHeight() - (level.height << 5)) / 2;
 				xOffset += xShift;
 				yOffset += yShift;
 				

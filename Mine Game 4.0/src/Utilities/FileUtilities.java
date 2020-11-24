@@ -31,6 +31,7 @@ public class FileUtilities {
 	 static FileSystemView fsv = FileSystemView.getFileSystemView();
 	 static FileSystem fs = FileSystems.getDefault();
 	 static FileWriter logger;
+	 static FileWriter levelLogger;
 	
 	public static boolean isRunningAsJAR() {
 		return !DEBUG;
@@ -333,9 +334,23 @@ public class FileUtilities {
 		 
 	 }
 	 
+	 public static void logLevelGeneration(String msg) {
+		 
+		 try {
+		 if (levelLogger == null) levelLogger = new FileWriter(fsv.getHomeDirectory() + fs.getSeparator() + "Mine Game 4.0 Data" + fs.getSeparator() + "world_" + TIMESTAMP_AT_RUNTIME + ".txt");
+		 levelLogger.write(msg + "\n");
+		 } catch (Exception e) {
+			 System.out.println("Ironic... \nError when logging messages");
+			 e.printStackTrace();
+			 System.exit(120);
+		 }
+		 
+	 }
+	 
 	 public static void closeLog() {
 		 try {
 			if (logger != null) logger.close();
+			if (levelLogger != null) levelLogger.close();
 		} catch (IOException e) {
 			 System.out.println("Ironic... \nError when closing logger");
 			 e.printStackTrace();

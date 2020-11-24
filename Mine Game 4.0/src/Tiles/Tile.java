@@ -25,6 +25,9 @@ public class Tile {
     public static final Platform WOOD_PLATFORM = 		new Platform(13, 0xFFD86C00, "Wooden Platform", 0.7, true, 2.0, 50.0);
     public static final SolidTile SHIP_TILE =			new DestructibleTile(14, 0xFF405396, "Ship Tile", 0.2, false, 500.0, 12000000.0);
     public static final Tile SHIP_BACKGROUND = 	 		new BackgroundDestructibleTile(15, 0xFF697393, "Ship Background", false, 500.0, 12000000.0);
+    public static final Tile WOOD_WALL =				new BackgroundDestructibleTile(16, 0xFF9E7842, "Wood Wall", false, 2.0, 75.0);
+    public static final SolidTile COBBLESTONE =			new DestructibleTile(17, 0xFF6B6B6B, "Cobblestone", 0.92, true, 4.0, 200.0);
+    public static final Tile STONE_WALL =				new BackgroundDestructibleTile(18, 0xFF494949, "Stone Wall", false, 5.0, 300.0);
     
     public Tile(int id, int levelColour, String name) {
         this.id = id;

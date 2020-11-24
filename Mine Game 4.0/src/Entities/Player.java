@@ -9,6 +9,7 @@ import java.awt.Point;
 import java.awt.Stroke;
 import java.awt.image.ImageObserver;
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Observer;
 
@@ -19,57 +20,58 @@ import Frame.Level;
 import Libraries.MediaLibrary;
 import Tiles.Tile;
 import UI.*;
+import Utilities.FileUtilities;
 import Tiles.SolidTile;
 
 import static Utilities.PhysicsUtilities.*;
 import static Utilities.FileUtilities.*;
 
 public class Player extends Mob {
+	// Parent GameLoop and InputHandler
 	private GameLoop game;
 	private InputHandler controls;
+	
+	// Owned inventory
 	public Inventory inventory;
 	
+	// State variables
 	protected boolean shouldMove = true;
 	protected boolean shouldFly = false;
 	protected boolean isSwimming = false;
 	protected boolean ground = false;
 	protected boolean damaged = false;
+	protected boolean canJump = true;
+
 	private String username;
 	
 	public int spriteWidth = 64, spriteHeight = 128;
 	
+	// Position, velocity and acceleration stored as doubles
 	public double dX, dY;
 	public double vX, vY;
 	public double aX, aY;
 	
 	public boolean drawInfo;
-	public boolean toggleInfo;
-	public boolean toggleInventory;
-	public boolean toggleCrafting;
-	public boolean toggleCreativeBlocks;
-	public boolean toggleCreativeIngredients;
-	public boolean toggleCreativeTools;
-	public boolean toggleCreativeFlying;
-	public boolean toggleCreativeEntities;
+	
+	// Toggles for function keys and cheats
+	private boolean toggleInfo;
+	private boolean toggleInventory;
+	private boolean toggleCrafting;
+	private boolean toggleCreativeBlocks;
+	private boolean toggleCreativeIngredients;
+	private boolean toggleCreativeTools;
+	private boolean toggleCreativeFlying;
+	private boolean toggleCreativeEntities;
 	private boolean toggleRefresh;
 	
-	public boolean canJump = true;
+	// Physics variables
+	protected double airResistance = 0.001, friction = 0, mass = 100;
 	public double maxVelocityX = 3, maxVelocityY = 20;
 	
-	public double airResistance = 0.001;
-	public double friction = 0;
-	
-	public double mass = 100;
-	
+	// Oxygen variables
 	protected double oxygen = 100D;
-	
 	protected boolean oxygenConnected;
 	private List<Point> oxyPoints = new ArrayList<Point>();
-	
-	public final Font USERNAME = new Font("Comic Sans MS", Font.PLAIN, 16);
-	public final Font NormalFont = new Font("Console", Font.PLAIN, 12);
-	public final Color white = Color.decode("#FFFFFF");
-	public final Color text = Color.decode("#88FF77");
 	
 	public Player(Level level, String name, int x, int y, InputHandler input) {
 		super(level, name, x, y, 1, 100);
@@ -81,109 +83,31 @@ public class Player extends Mob {
 		inventory = new Inventory(100, 80, controls);
 	}
 
-	public boolean hasCollided(int deltaX, int deltaY) {
-		
-		return false;
-	}
-
 	public void tick() {
-		
+		// Iterate through all coordinates of connected oxygen generators
 		for (int i = 0; i < oxyPoints.size(); i++) {
+			// Disconnect oxygen generator if distance from player exceeds 22 tiles
 			if (Math.pow(Math.abs(oxyPoints.get(i).x - x + 32)^2 + Math.abs(oxyPoints.get(i).y * 32 - oxyPoints.get(i).y + 64)^2, 0.5) > 22) {
 				oxyPoints.remove(i);
 			}
 		}
 		
+		// Ensure health is never negative
 		if (health <= 0.0) health = 0.0;
-		if (health <= baseHealth) {
+		
+		if (oxygen == 0) {
+			// Suffocate if out of oxygen
+			damage(0.010 + Math.random() * 0.002);
+		} else if (health < 100){
+			// Heal the player if not actively taking damage
 			heal(0.005 + Math.random() * 0.002);
 		}
-		if (oxygen == 0) {
-			damage(0.010 + Math.random() * 0.002);
-		}
+		
 		calculatePhysics();
-		if (controls.func3.isPressed()) {
-			if (toggleInfo) toggleInfo();
-			toggleInfo = false;
-		} else {
-			toggleInfo = true;
-		}
-		if (controls.inventory.isPressed()) {
-			if (toggleInventory) inventory.toggleActive();
-			toggleInventory = false;
-		} else {
-			toggleInventory = true;
-		}
-		if (controls.esc.isPressed()) {
-			if (inventory.isActive()) inventory.setActive(false);
-			if (game.basicCraftingGUI.isActive()) game.basicCraftingGUI.setActive(false);
-		}
-		if (controls.crafting.isPressed() && !inventory.isActive()) {
-			if (toggleCrafting) game.basicCraftingGUI.toggleActive();
-			toggleCrafting = false;
-		} else {
-			toggleCrafting = true;
-		}
-		if (controls.func5.isPressed()) {
-			if (toggleCreativeBlocks) {
-				for (int i = 3; i <= 13; i++) {
-					inventory.addItem(new InventoryTile(i, inventory.getStackSize()/8));
-				}
-			}
-			toggleCreativeBlocks = false;
-		} else {
-			toggleCreativeBlocks = true;
-		}
-		if (controls.func6.isPressed()) {
-			if (toggleCreativeIngredients) {
-				for (int i = 0; i <= 1; i++) {
-					inventory.addItem(new Ingredient(i, inventory.getStackSize()/8));
-				}
-			}
-			toggleCreativeIngredients = false;
-		} else {
-			toggleCreativeIngredients = true;
-		}
-		if (controls.func7.isPressed()) {
-			if (toggleCreativeTools) {
-				inventory.addItem(new Pickaxe(10000, 25.0, 200000.0, 175000.0, "Steel Pickaxe"));
-				inventory.addItem(new Shovel(10001, 25.0, 200000.0, 175000.0, "Steel Shovel"));
-				inventory.addItem(new Axe(10002, 25.0, 200000.0, 175000.0, "Steel Shovel"));
-			}
-			toggleCreativeTools = false;
-		} else {
-			toggleCreativeTools = true;
-		}
 		
-		if (controls.func8.isPressed()) {
-			if (toggleCreativeFlying) {
-				shouldFly = !shouldFly;
-			}
-			toggleCreativeFlying = false;
-		} else {
-			toggleCreativeFlying = true;
-		}
+		handleToggles();
 		
-		if (controls.func9.isPressed()) {
-			if (toggleCreativeEntities) {
-				inventory.addItem(new InventoryEntity(0, 2));
-			}
-			toggleCreativeEntities = false;
-		} else {
-			toggleCreativeEntities = true;
-		}
-		
-		if (controls.func12.isPressed()) {
-			if (toggleRefresh) {
-				for (int i = 0; i <= 1; i++) {
-					game.resetWindow();
-				}
-			}
-			toggleRefresh = false;
-		} else {
-			toggleRefresh = true;
-		}
-		
+		// Modify the current control scheme with the inventory taking precedence over crafting
 		if (inventory.isActive()) {
 			controls.setControlScheme(InputHandler.ControlScheme.INVENTORY);
 			game.disableAllGUIs();
@@ -194,35 +118,40 @@ public class Player extends Mob {
 		
 		inventory.tick();
 		
+		// Handle tile destruction
 		if (controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY) {
 			if (controls.leftButtonHeld) {
-				//System.out.println("" + Math.abs((controls.lastDestructibleX << 5) - x) + ", " + Math.abs((controls.lastDestructibleY << 5) - y));
 				if (Math.abs((controls.lastDestructibleX << 5) - (x + 4)) < 128 && Math.abs((controls.lastDestructibleY << 5) - (y + spriteHeight / 3)) < 128 + 64 - 8) {
 					double j = 0.1;
 					if (inventory.getActiveItem() != null && inventory.getActiveItem().getClass().getSuperclass() == InventoryTool.class && level.getTile(controls.lastDestructibleX, controls.lastDestructibleY).getId() != Tile.SKY.getId()) {
 						j = ((InventoryTool) inventory.getActiveItem()).getHardness() / 2;
+						
+						// Check if the targeted tile is categorized as effective, neutral or ineffective based on the currently held tool
 						for (int i = 0; i < ((InventoryTool) inventory.getActiveItem()).getEffectiveTiles().length; i++) {
 							if (level.getTile(controls.lastDestructibleX, controls.lastDestructibleY).getId() == ((InventoryTool) inventory.getActiveItem()).getEffectiveTiles()[i]) {
+								// Effective hit
 								j = ((InventoryTool) inventory.getActiveItem()).getHardness(); 
-								//System.out.println("Effective Hit");
 							}
 						}
 						for (int i = 0; i < ((InventoryTool) inventory.getActiveItem()).getNeutralTiles().length; i++) {
 							if (level.getTile(controls.lastDestructibleX, controls.lastDestructibleY).getId() == ((InventoryTool) inventory.getActiveItem()).getNeutralTiles()[i]) {
+								// Neutral hit
 								j = ((InventoryTool) inventory.getActiveItem()).getHardness() / 2; 
-								//System.out.println("Neutral Hit");
 							}
 						}
 						for (int i = 0; i < ((InventoryTool) inventory.getActiveItem()).getIneffectiveTiles().length; i++) {
 							if (level.getTile(controls.lastDestructibleX, controls.lastDestructibleY).getId() == ((InventoryTool) inventory.getActiveItem()).getIneffectiveTiles()[i]) {
+								// Ineffective hit
 								j = ((InventoryTool) inventory.getActiveItem()).getHardness() / 10; 
-								//System.out.println("Ineffective Hit");
 							}
 						}
+						
+						// Damage the currently held tool
 						((InventoryTool) inventory.getActiveItem()).removeDurability(1 / j);
 					} else {
 						j = 0.1;
 					}
+					
 					level.destructible(controls.lastDestructibleX, controls.lastDestructibleY, j);
 					controls.updateTileInfo(controls.lastDestructibleX << 5, controls.lastDestructibleY << 5);
 				}
@@ -230,15 +159,16 @@ public class Player extends Mob {
 		}
 	}
 	
-	public int getMovingDir() {
-		return this.movingDir;
-	}
-	
 	public void calculatePhysics() {
+		// Reset acceleration each iteration
 		aY = 0;
 		aX = 0;
+		
+		// Initialize temporary direction variables
 		boolean dirL = false;
 		boolean dirR = false;
+		
+		// Set horizontal acceleration and temporary direction variables based on currently held direction
 		if (controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY && !collisionLeft(x, y, spriteWidth, spriteHeight, level) && controls.left.isPressed()) { 
 			aX = -.05;
 			dirL = true;
@@ -247,16 +177,18 @@ public class Player extends Mob {
 			aX = .05;
 			dirR = true;
 		}
+		
+		// Transfer temporary direction variable states to global variables, but not if both left and right are held
 		if (!(dirL && dirR) && dirL) {
 			this.movingDir = 2;
 		} else if (!(dirL && dirR) && dirR) {
 			this.movingDir = 3;
 		}
 		
-		dirL = false;
-		dirR = false;
-		
+		// Cancel horizontal acceleration if both left and right are held
 		if (controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY && controls.left.isPressed() && controls.right.isPressed()) aX = 0;
+		
+		// Use jet pack or jump if eligible and up is pressed
 		if (controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY && !collisionAbove(x, y, spriteWidth, spriteHeight, level) && (collisionBelow(x, y, spriteWidth, spriteHeight, level) || shouldFly) && controls.up.isPressed()) { 
 			if (shouldFly) {
 				vY -= 0.125;
@@ -266,7 +198,11 @@ public class Player extends Mob {
 				canJump = false;
 			}
 		}
+		
+		// Cancel vertical acceleration if both up and down are held (before gravity is applied)
 		if (controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY && controls.up.isPressed() && controls.down.isPressed()) aY = 0;
+		
+		// Handle climbing on platforms
 		if (!collisionBelow(x, y, spriteWidth, spriteHeight, level) || controls.down.isPressed() && arePlatformsBelow(x, y, spriteWidth, spriteHeight, level) 
 				|| (!controls.up.isPressed() && arePlatformsAbove(x, y, spriteWidth, spriteHeight, level) & vY < 0) ) { 
 			aY = .025;
@@ -279,6 +215,8 @@ public class Player extends Mob {
 				}
 			}
 		}
+		
+		// Apply effects of friction if neither left nor right are held
 		if (collisionBelow(x, y, spriteWidth, spriteHeight, level) && (controls.getControlScheme() != InputHandler.ControlScheme.GAMEPLAY || (!controls.left.isPressed() && !controls.right.isPressed()))) {
 			if (vX > 0) {
 				Tile t = findTile(x + 1, y + spriteHeight, level);
@@ -305,14 +243,17 @@ public class Player extends Mob {
 			friction = 0;
 		}
 		
+		// Round extremely small values of acceleration to zero
 		if (aX < 0.00001 && aX > -0.00001) aX = 0;
 		if (aY < 0.00001 && aY > -0.00001) aY = 0;
 		
+		// Given a lack of collision in the corresponding direction, apply the components of acceleration to the respective components of velocity
 		if ((aX < 0 && !collisionLeft(x, y, spriteWidth, spriteHeight, level)) || (aX > 0 && !collisionRight(x, y, spriteWidth, spriteHeight, level))) vX += aX;
 		if ((aY < 0 && !collisionAbove(x, y, spriteWidth, spriteHeight, level)) || (aY > 0 && (!collisionBelow(x, y, spriteWidth, spriteHeight, level) 
 				|| (controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY && controls.down.isPressed() && arePlatformsBelow(x, y, spriteWidth, spriteHeight, level) ))
 				|| (!controls.up.isPressed() && arePlatformsAbove(x, y, spriteWidth, spriteHeight, level) & vY < 0))) vY += aY;
 
+		// Handle horizontal collisions
 		if ((vX < 0 && collisionLeft(x, y, spriteWidth, spriteHeight, level)) || (vX > 0 && collisionRight(x, y, spriteWidth, spriteHeight, level))) {
 			if (vX > 0) {
 				if (controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY && controls.right.isPressed()) {
@@ -330,6 +271,8 @@ public class Player extends Mob {
 				}
 			}
 		}
+		
+		// Handle vertical collisions
 		if ((vY < 0 && collisionAbove(x, y, spriteWidth, spriteHeight, level)) || (vY > 0 && (collisionBelow(x, y, spriteWidth, spriteHeight, level) 
 				&& !controls.down.isPressed() || ( controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY && controls.down.isPressed() && !arePlatformsBelow(x, y, spriteWidth, spriteHeight, level))))) {
 			if (vY < 0) {
@@ -341,18 +284,22 @@ public class Player extends Mob {
 				vY = 0;
 			}
 		}
+		
+		// Smoothly limit horizontal acceleration that results in exceeding horizontal maximum velocity
 		if (vX > 0 && vX > maxVelocityX) {
-			if (controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY && controls.right.isPressed())	vX = Math.log(vX) + maxVelocityX;
+			if (controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY && controls.right.isPressed()) vX = Math.log(vX) + maxVelocityX;
 			else {
 				vX = maxVelocityX + ((vX - maxVelocityX) / 1.875);
 			}
 		}
 		if (vX < 0 && vX < -maxVelocityX) {
-			if (controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY && controls.left.isPressed())	vX = -Math.log(-vX) - maxVelocityX;
+			if (controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY && controls.left.isPressed()) vX = -Math.log(-vX) - maxVelocityX;
 			else {
 				vX = -maxVelocityX + ((vX + maxVelocityX) / 1.875);
 			}
 		}
+		
+		// Abruptly limit vertical acceleration that results in exceeding vertical maximum velocity
 		if (vY > 0 && vY > maxVelocityY) {
 			vY = maxVelocityY;
 		}
@@ -360,13 +307,16 @@ public class Player extends Mob {
 			vY = -maxVelocityY;
 		}
 		
+		// Round reasonably small values of velocity to zero		
 		if (vX < 0.001 && vX > -0.001) vX = 0;
 		if (vY < 0.001 && vY > -0.001) vY = 0;
 		
+		// Given a lack of collision in the corresponding direction, apply the components of velocity to the respective components of position
 		if ((vX < 0 && !collisionLeft(x, y, spriteWidth, spriteHeight, level)) || (vX > 0 && !collisionRight(x, y, spriteWidth, spriteHeight, level))) dX += vX;
 		if ((vY < 0 && !collisionAbove(x, y, spriteWidth, spriteHeight, level)) || (vY > 0 && (!collisionBelow(x, y, spriteWidth, spriteHeight, level) 
 				|| ( controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY && controls.down.isPressed() && arePlatformsBelow(x, y, spriteWidth, spriteHeight, level))))) dY += vY;
 		
+		// For each pixel in the delta between the new double position components and old integer position components, render the entire game and step one pixel in the corresponding direction
 		int deltaX = Math.toIntExact(Math.round(Math.floor(dX))) - x;
 		if (deltaX > 0) {
 			for (int i = 0; i < deltaX; i++) {
@@ -391,8 +341,6 @@ public class Player extends Mob {
 				y--;
 			}
 		}
-		//x = Math.toIntExact(Math.round(Math.floor(dX)));
-		//y = Math.toIntExact(Math.round(Math.floor(dY)));
 	}
 
 	public void printMovementInfo(Graphics g, int drawX, int drawY) {
@@ -416,34 +364,6 @@ public class Player extends Mob {
 		g.drawString("Position (round): " + x + "," + y, drawX, drawY += 16);
 		g.drawString("Position (tiles): " + x/32 + "," + y/32, drawX, drawY += 16);
 		g.drawString("Health: " + health + "/" + baseHealth, drawX, drawY += 16);
-	}
-	
-	public void toggleInfo() {
-		drawInfo = !drawInfo;
-	}
-	
-	public void setInfo(boolean b) {
-		drawInfo = b;
-	}
-	
-	public void addOxygenPoint(int x, int y) {
-		oxyPoints.add(new Point(x, y));
-	}
-	
-	public void connectOxygen() {
-		oxygenConnected = true;
-	}
-	
-	public void disconnectOxygen() {
-		oxygenConnected = false;
-	}
-	
-	public void setOxygenConnection(boolean oxygenConnected) {
-		this.oxygenConnected = oxygenConnected;
-	}
-	
-	public boolean connectedToOxygen() {
-		return oxygenConnected;
 	}
 	
 	public void draw(Graphics g) {
@@ -470,8 +390,14 @@ public class Player extends Mob {
 	public void drawPlayerModel(Graphics g, int xOffset, int yOffset, ImageObserver observer) {
 		g.setColor(Color.GRAY);
 		
-		for (Point p : oxyPoints) {
-			drawOxygenLine(g, p.x, p.y);
+		try {
+			for (Point p : oxyPoints) {
+				drawOxygenLine(g, p.x, p.y);
+			}
+		} catch (ConcurrentModificationException c) {
+			
+		} catch (Exception e) {
+			FileUtilities.log(e.getMessage());
 		}
 		
 		if (getMovingDir() == 2) {
@@ -545,6 +471,8 @@ public class Player extends Mob {
 		g.translate(-xOffset, -yOffset);
 	}
 	
+	// Utility functions, getters and setters	
+	
 	public String getUsername() {
 		return username;
 	}
@@ -597,5 +525,125 @@ public class Player extends Mob {
 
 	public boolean checkConflict() {
 		return false;
+	}
+
+	public boolean hasCollided(int deltaX, int deltaY) {
+		return false;
+	}
+	
+	public int getMovingDir() {
+		return this.movingDir;
+	}
+	
+	public void toggleInfo() {
+		drawInfo = !drawInfo;
+	}
+	
+	public void setInfo(boolean b) {
+		drawInfo = b;
+	}
+	
+	public void addOxygenPoint(int x, int y) {
+		oxyPoints.add(new Point(x, y));
+	}
+	
+	public void connectOxygen() {
+		oxygenConnected = true;
+	}
+	
+	public void disconnectOxygen() {
+		oxygenConnected = false;
+	}
+	
+	public void setOxygenConnection(boolean oxygenConnected) {
+		this.oxygenConnected = oxygenConnected;
+	}
+	
+	public boolean connectedToOxygen() {
+		return oxygenConnected;
+	}
+	
+	public void handleToggles() {
+		if (controls.func3.isPressed()) {
+			if (toggleInfo) toggleInfo();
+			toggleInfo = false;
+		} else {
+			toggleInfo = true;
+		}
+		if (controls.inventory.isPressed()) {
+			if (toggleInventory) inventory.toggleActive();
+			toggleInventory = false;
+		} else {
+			toggleInventory = true;
+		}
+		if (controls.esc.isPressed()) {
+			if (inventory.isActive()) inventory.setActive(false);
+			if (game.basicCraftingGUI.isActive()) game.basicCraftingGUI.setActive(false);
+		}
+		if (controls.crafting.isPressed() && !inventory.isActive()) {
+			if (toggleCrafting) game.basicCraftingGUI.toggleActive();
+			toggleCrafting = false;
+		} else {
+			toggleCrafting = true;
+		}
+		if (controls.func5.isPressed()) {
+			if (toggleCreativeBlocks) {
+				for (int i = 3; i <= 18; i++) {
+					inventory.addItem(new InventoryTile(i, inventory.getStackSize()/8));
+				}
+			}
+			toggleCreativeBlocks = false;
+		} else {
+			toggleCreativeBlocks = true;
+		}
+		if (controls.func6.isPressed()) {
+			if (toggleCreativeIngredients) {
+				for (int i = 0; i <= 1; i++) {
+					inventory.addItem(new Ingredient(i, inventory.getStackSize()/8));
+				}
+			}
+			toggleCreativeIngredients = false;
+		} else {
+			toggleCreativeIngredients = true;
+		}
+		if (controls.func7.isPressed()) {
+			if (toggleCreativeTools) {
+				inventory.addItem(new Pickaxe(10000, 25.0, 200000.0, 175000.0, "Steel Pickaxe"));
+				inventory.addItem(new Shovel(10001, 25.0, 200000.0, 175000.0, "Steel Shovel"));
+				inventory.addItem(new Axe(10002, 25.0, 200000.0, 175000.0, "Steel Shovel"));
+			}
+			toggleCreativeTools = false;
+		} else {
+			toggleCreativeTools = true;
+		}
+		
+		if (controls.func8.isPressed()) {
+			if (toggleCreativeFlying) {
+				shouldFly = !shouldFly;
+			}
+			toggleCreativeFlying = false;
+		} else {
+			toggleCreativeFlying = true;
+		}
+		
+		if (controls.func9.isPressed()) {
+			if (toggleCreativeEntities) {
+				inventory.addItem(new InventoryEntity(0, 2));
+			}
+			toggleCreativeEntities = false;
+		} else {
+			toggleCreativeEntities = true;
+		}
+		
+		if (controls.func12.isPressed()) {
+			if (toggleRefresh) {
+				for (int i = 0; i <= 1; i++) {
+					game.resetWindow();
+				}
+			}
+			toggleRefresh = false;
+		} else {
+			toggleRefresh = true;
+		}
 	}
 }

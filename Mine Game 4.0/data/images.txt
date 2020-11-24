@@ -14,10 +14,14 @@
 13 tile/woodplatform
 14 tile/ship_tile
 15 tile/ship_background
+16 tile/wood_wall
+17 tile/cobblestone
+18 tile/stone_wall
 5001 gui/arrow
 5002 gui/arrowsmall
 7001 entity/furniture/workbench
 7002 entity/furniture/oxygen_generator
+7003 entity/furniture/storage_container
 7499 entity/player/jetpack
 7500 entity/player/player1
 8190 tile/barrier

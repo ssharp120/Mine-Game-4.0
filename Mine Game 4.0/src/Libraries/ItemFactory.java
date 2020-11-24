@@ -17,6 +17,7 @@ public class ItemFactory {
 		case "e": if (attributes.length >= 1) {
 				switch (attributes[0]) {
 					case 0: return new InventoryEntity(0, 2); 
+					case 1: return new InventoryEntity(1, 2); 
 				}
 			}
 		}

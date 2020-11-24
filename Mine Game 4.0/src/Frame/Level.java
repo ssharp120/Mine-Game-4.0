@@ -226,7 +226,8 @@ public class Level {
 			double initialDurability = getDurability(targetX, targetY);
 			setDurability(targetX, targetY, initialDurability - damage);
 			if (getDurability(targetX, targetY) <= 0) {
-				game.player.inventory.addItem(new InventoryTile(tiles[targetX][targetY], 1));
+				if (tiles[targetX][targetY] == 8) game.player.inventory.addItem(new InventoryTile(17, 1));
+				else game.player.inventory.addItem(new InventoryTile(tiles[targetX][targetY], 1));
 				setTile(targetX, targetY, 2);
 			}
 		}
