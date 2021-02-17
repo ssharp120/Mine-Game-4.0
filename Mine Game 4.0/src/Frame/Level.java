@@ -5,6 +5,7 @@ import static Utilities.FileUtilities.*;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
+import java.awt.image.ImageObserver;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -12,14 +13,17 @@ import java.util.List;
 
 import javax.imageio.ImageIO;
 
+import Entities.Crop;
 import Entities.Entity;
 import Entities.OxygenGenerator;
+import Entities.Plant;
 import Entities.Player;
 import Tiles.BackgroundDestructibleTile;
 import Tiles.DestructibleTile;
 import Tiles.Platform;
 import Tiles.RandomizedTile;
 import Tiles.Tile;
+import UI.InventoryItem;
 import UI.InventoryTile;
 import Utilities.FileUtilities;
 
@@ -194,8 +198,60 @@ public class Level {
 		}
 	}
 	
-	public synchronized void draw(Graphics g) { 
-		drawEntities(g);
+	public void populatePlants() {
+		for (int y = 0; y < height - 2; y++) {
+			for (int x = 0; x < width; x++) {
+				if (tiles[x][y] == Tile.SAND.getId() && tiles[x][y - 1] == Tile.SKY.getId() && Math.random() < 0.20) {
+					placePlant(x, y);
+				}
+			}
+		}
+	}
+	
+	public void placePlant(int x, int y) {
+		// Create a positive or negative distance to randomly displace the crop up to half a tile
+		int horizontalDelta = (int) Math.round(16 - 32 * Math.random());
+		
+		// Cancel the horizontal offset if no room to the sides or if it will push the crop off the edge of the level
+		if ( (x << 5) + horizontalDelta <= 0 || (x << 5) + horizontalDelta >= (width - 2) << 5 
+		 || (!(tiles[x + 1][y] == Tile.SAND.getId() && tiles[x + 1][y - 1] == Tile.SKY.getId()) 
+		 &&  !(tiles[x - 1][y] == Tile.SAND.getId() && tiles[x - 1][y - 1] == Tile.SKY.getId()))) horizontalDelta = 0;					
+		
+		// If no room to the right, force horizontal delta to be negative
+		if (!(tiles[x + 1][y] == Tile.SAND.getId() && tiles[x + 1][y - 1] == Tile.SKY.getId()) && horizontalDelta > 0) horizontalDelta = -horizontalDelta;
+		
+		// If no room to the left, force horizontal delta to be positive
+		if (!(tiles[x - 1][y] == Tile.SAND.getId() && tiles[x - 1][y - 1] == Tile.SKY.getId()) && horizontalDelta < 0)  horizontalDelta = -horizontalDelta;
+		
+		entities.add(new Crop(this, true, 0, (x << 5) + horizontalDelta, (y - 1) << 5));
+	}
+	
+	public synchronized void checkPlantDestruction(int clickX, int clickY) {
+		for (Entity e : entities) {
+			if (e != null && e.getClass() == Crop.class) {
+				//System.out.println("x: " + clickX + " y: " + clickY + " target x: " + e.x + " target y " + e.y + " target width: " + ((Crop) e).cropWidth + " target height: " + ((Crop) e).cropHeight);
+				if (Utilities.PhysicsUtilities.checkIntersection(clickX, clickY, e.x, e.y, ((Crop) e).cropWidth, ((Crop) e).cropHeight, true)) {
+					e.markedForDeletion = true;
+					
+					for (InventoryItem i : ((Crop) e).returnDroppables()) {
+						((Player) entities.get(0)).inventory.addItem(i);
+					}
+				}
+			}
+		}
+	}
+	
+	public void explode(int x, int y) {
+		if (x <= 8 || x + 8 >= width || y <= 8 || y + 8 >= height) return;
+		for (int i = -8; i <= 8; i++) {
+			for (int j = -8; j <= 8; j++) {
+				if (i * i + j * j < 64) tiles[x + i][y + j] = 2;
+			}
+		}
+	}
+	
+	public synchronized void draw(Graphics g, ImageObserver observer) { 
+		drawEntities(g, observer);
 	}
 	
 	public void drawSky(Graphics g, Dimension resolution) {
@@ -210,9 +266,10 @@ public class Level {
         return this.entities;
     }
 	
-	public synchronized void drawEntities(Graphics g) {
+	public synchronized void drawEntities(Graphics g, ImageObserver observer) {
 		for (Entity e : getEntities()) {
-			e.draw(g);
+			if (e.getClass() == Crop.class) ((Crop) e).draw(g, observer);
+			else e.draw(g);
 		}
 	}
 	

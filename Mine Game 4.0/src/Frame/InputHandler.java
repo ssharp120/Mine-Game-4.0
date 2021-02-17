@@ -21,11 +21,13 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
+import Entities.Crop;
 import Entities.Furniture;
 import Libraries.MediaLibrary;
 import Tiles.BackgroundDestructibleTile;
 import Tiles.DestructibleTile;
 import Tiles.Tile;
+import UI.Ingredient;
 import UI.InventoryEntity;
 import UI.InventoryTile;
 import static Utilities.FileUtilities.*;
@@ -264,13 +266,28 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 	}
 
 	public void rightClickOrDrag(int clickX, int clickY) {
+		if (gameIn.level.getTile(clickX >> 5, clickY >> 5).getId() == Tile.TNT.getId()) {
+			gameIn.level.explode(clickX >> 5, clickY >> 5);
+		}
 		if (gameIn.player.inventory.getTileFromHotbar() != 2) {
 			placeTile(clickX, clickY);
 		}
-		if (gameIn.player.inventory.getActiveItem() != null && gameIn.player.inventory.getActiveItem().getClass() == InventoryEntity.class) {
-			InventoryEntity j = ((InventoryEntity) gameIn.player.inventory.getActiveItem());
-			gameIn.level.addEntity(j.generateEntity(gameIn.level, clickX >> 5, clickY >> 5));
-			gameIn.player.inventory.clearActiveItem();
+		if (gameIn.player.inventory.getActiveItem() != null) {			
+			// Place crop seeds
+			if (gameIn.player.inventory.getActiveItem().getClass() == Ingredient.class) {
+				Ingredient i = (Ingredient) gameIn.player.inventory.getActiveItem();
+				if (((Ingredient) i).getItemID() == 3 && gameIn.level.getTile(clickX >> 5, clickY >> 5).getId() == Tile.SAND.getId()) {
+					gameIn.level.placePlant(clickX >> 5, clickY >> 5);
+					i.removeQuantity(1);
+				}
+			}
+				
+			// Place entity
+			if (gameIn.player.inventory.getActiveItem().getClass() == InventoryEntity.class) {
+				InventoryEntity j = ((InventoryEntity) gameIn.player.inventory.getActiveItem());
+				gameIn.level.addEntity(j.generateEntity(gameIn.level, clickX >> 5, clickY >> 5));
+				gameIn.player.inventory.clearActiveItem();
+			}
 		}
 	}
 	
@@ -343,6 +360,7 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 				int clickY = clickLocation.height;
 				lastDestructibleX = clickX >> 5;
 				lastDestructibleY = clickY >> 5;
+				gameIn.level.checkPlantDestruction(clickX, clickY);
 			}
 		}
 		

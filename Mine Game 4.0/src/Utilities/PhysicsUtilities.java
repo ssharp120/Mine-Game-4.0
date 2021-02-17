@@ -140,4 +140,9 @@ public class PhysicsUtilities {
 		Tile tile = level.getTile(x >> 5, y >> 5);
 		return tile;
 	}
+	
+	public static boolean checkIntersection(int x, int y, int targetX, int targetY, int targetWidth, int targetHeight, boolean includeEdges) {
+		if (includeEdges) return (x >= targetX && x <= targetX + targetWidth && y >= targetY && y <= targetY + targetHeight);
+		else return (x > targetX && x < targetX + targetWidth && y > targetY && y < targetY + targetHeight);
+	}
 }

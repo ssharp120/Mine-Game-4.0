@@ -17,11 +17,13 @@
 16 tile/wood_wall
 17 tile/cobblestone
 18 tile/stone_wall
+19 tile/tnt
 5001 gui/arrow
 5002 gui/arrowsmall
 7001 entity/furniture/workbench
 7002 entity/furniture/oxygen_generator
 7003 entity/furniture/storage_container
+7401 entity/plant/crop/sugar_cane
 7499 entity/player/jetpack
 7500 entity/player/player1
 8190 tile/barrier
@@ -38,4 +40,5 @@
 10008 item/ironaxe
 12000 item/stick
 12001 item/iron
-12002 entity/furniture/oxygen_generator
+12002 item/sugar
+12003 item/sugarcane_seeds

@@ -84,13 +84,7 @@ public class Player extends Mob {
 	}
 
 	public void tick() {
-		// Iterate through all coordinates of connected oxygen generators
-		for (int i = 0; i < oxyPoints.size(); i++) {
-			// Disconnect oxygen generator if distance from player exceeds 22 tiles
-			if (Math.pow(Math.abs(oxyPoints.get(i).x - x + 32)^2 + Math.abs(oxyPoints.get(i).y * 32 - oxyPoints.get(i).y + 64)^2, 0.5) > 22) {
-				oxyPoints.remove(i);
-			}
-		}
+		oxyPoints.removeIf(i -> Math.pow(Math.abs(i.x - x + 32)^2 + Math.abs(i.y * 32 - y + 64)^2, 0.5) > 22);
 		
 		// Ensure health is never negative
 		if (health <= 0.0) health = 0.0;
@@ -156,6 +150,8 @@ public class Player extends Mob {
 					controls.updateTileInfo(controls.lastDestructibleX << 5, controls.lastDestructibleY << 5);
 				}
 			}
+			
+			
 		}
 	}
 	
@@ -395,7 +391,7 @@ public class Player extends Mob {
 				drawOxygenLine(g, p.x, p.y);
 			}
 		} catch (ConcurrentModificationException c) {
-			
+			// Do nothing
 		} catch (Exception e) {
 			FileUtilities.log(e.getMessage());
 		}
@@ -588,7 +584,7 @@ public class Player extends Mob {
 		}
 		if (controls.func5.isPressed()) {
 			if (toggleCreativeBlocks) {
-				for (int i = 3; i <= 18; i++) {
+				for (int i = 3; i <= 19; i++) {
 					inventory.addItem(new InventoryTile(i, inventory.getStackSize()/8));
 				}
 			}
@@ -598,7 +594,7 @@ public class Player extends Mob {
 		}
 		if (controls.func6.isPressed()) {
 			if (toggleCreativeIngredients) {
-				for (int i = 0; i <= 1; i++) {
+				for (int i = 0; i <= 3; i++) {
 					inventory.addItem(new Ingredient(i, inventory.getStackSize()/8));
 				}
 			}

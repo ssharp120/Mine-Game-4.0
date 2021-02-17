@@ -1,8 +1,5 @@
-/Frame/
-/Libraries/
-/Startup/
-/Structures/
-/Tiles/
-/UI/
-/Utilities/
 /Entities/
+/Frame/
+/Utilities/
+/UI/
+/Tiles/

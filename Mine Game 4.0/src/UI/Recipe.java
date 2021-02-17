@@ -23,11 +23,11 @@ public class Recipe {
 				for (int i = 0; i < in.length; i++) {
 					if (in[i] != null) {
 						if (in[i].getItemID() == j.getItemID()) {
-							if (in[i].getClass() == Ingredient.class) {
+							if (in[i].getClass() == j.getClass() && in[i].getClass() == Ingredient.class) {
 								if (!inputSatisfied) inputSatisfied = ((Ingredient) in[i]).getQuantity() >= ((Ingredient) j).getQuantity();
-							} else if (in[i].getClass() == InventoryTile.class) {
+							} else if (in[i].getClass() == j.getClass() && in[i].getClass() == InventoryTile.class) {
 								if (!inputSatisfied) inputSatisfied = ((InventoryTile) in[i]).getQuantity() >= ((InventoryTile) j).getQuantity();
-							} else if (in[i].getClass() == InventoryTool.class) {
+							} else if (in[i].getClass() == j.getClass() && in[i].getClass() == InventoryTool.class) {
 								if (!inputSatisfied) inputSatisfied = ((InventoryTool) in[i]).getDurability() == ((InventoryTool) in[i]).getMaxDurability();
 							}
 						}

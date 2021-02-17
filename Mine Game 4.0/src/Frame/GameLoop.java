@@ -134,6 +134,8 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	public GameLoop(Dimension resolution, boolean startFullscreen) {
 		FileUtilities.log("Initializing Mine Game 4.0" + "\n");
 		
+		// Set initial parameters
+		
 		this.resolution = resolution;
 		this.startFullscreen = startFullscreen;
 		this.fullscreen = startFullscreen;
@@ -143,11 +145,19 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		setPreferredSize(resolution);
 		setFocusable(true);
 		
+		/* Initialize the containing JFrame	and set its parameters	
+		 * The JFrame will remain active but will become invisible 
+		 * if the constructor starts in fullscreen mode.		 
+		 */
 		frame = new JFrame("Mine Game 4.0");
         frame.setIconImage(loadImage("icon.png"));
 		frame.setResizable(true);
 		frame.setMinimumSize(new Dimension(800, 600));
+		
+		// Set the default close event to do nothing so we can run a custom dialog
 		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		
+		// Set a custom dialog confirming exit intention
 		frame.addWindowListener(new java.awt.event.WindowAdapter() {
 		    public void windowClosing(java.awt.event.WindowEvent windowEvent) {
 		    	Runtime.getRuntime().gc();
@@ -160,14 +170,17 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		        }
 		    }
 		});
+		
+		// Set the background to blue for debugging purposes
 		frame.setBackground(Color.BLUE);
+		
+		// Finally add the game panel to the frame
 		frame.add(this);
 		
 		checkDisplayMode();
 		
 		initializeGUIs();
 		initializeGameElements();
-		
 	}
 	
 	public void exitSequence() {
@@ -234,6 +247,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		player = new Player(level, "Test", level.spawnX, level.spawnY, input);
 		level.addEntity(player);
 		
+		level.populatePlants();
 		level.addEntity(new OxygenGenerator(level, true, 60, 528));
 	}
 	
@@ -248,8 +262,9 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	}
 	
 	public void render(Graphics g) {
-
+		// Globalize the graphics object
 		gStorage = g;
+		
 		if (fullscreen) {
 			drawResolution = new Dimension(window.manager.getWidth(), window.manager.getHeight());
 		} else {
@@ -304,7 +319,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	                }
 	            }
 				
-				level.draw(g);
+				level.draw(g, this);
 			}
 		} catch (NullPointerException e) {
 			FileUtilities.log("Null tile");
@@ -318,7 +333,6 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			xOffset = (int) (player.x - (drawResolution.getWidth()/2));
 			yOffset = (int) (player.y - (drawResolution.getHeight()/2));	
 		}
-		
 		
 		if (xOffset <= 0) {
 			xOffset = 0;

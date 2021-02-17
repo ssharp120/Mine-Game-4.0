@@ -6,6 +6,7 @@ import java.awt.Font;
 import java.awt.Window;
 
 public class FullscreenWindow {
+	// Define possible resolutions
 	private static DisplayMode modes[] = {
 			new DisplayMode(3840, 2160, 32, 0),
 			new DisplayMode(3840, 2160, 24, 0),
@@ -51,10 +52,14 @@ public class FullscreenWindow {
 	protected ScreenManager manager;
 	
 	public void init() {
+		// Initialize screen manager object
 		manager = new ScreenManager();
+		
+		// Find the highest compatible resolution and set the fullscreen resolution to it
 		DisplayMode dMode = manager.findFirstCompatibleMode(modes);
 		manager.setFullScreen(dMode);
 		
+		// Set the default font and screen color
 		Window window = manager.getFSWindow();
 		window.setFont(new Font("Consolas", Font.PLAIN, 36));
 		window.setBackground(Color.BLUE);

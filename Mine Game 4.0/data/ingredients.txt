@@ -2,3 +2,7 @@ Stick
 80
 Iron
 80
+Sugar
+800
+Sugarcane Seeds
+80

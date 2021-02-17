@@ -20,6 +20,13 @@ public abstract class Entity {
 		this.active = active;
 	}
 	
+	public Entity(Level level, boolean active, int x, int y) {
+		initialize(level);
+		this.active = active;
+		this.x = x;
+		this.y = y;
+	}
+	
 	public final void initialize(Level level) {
 		this.level = level;
 	}
