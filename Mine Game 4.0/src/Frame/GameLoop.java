@@ -67,6 +67,8 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	public double tileDurability;
 	
 	public boolean drawHUD;
+	public boolean drawMiniMap = true;
+	public int miniMapScale = 4;
 
 	public Graphics gStorage;
 	
@@ -311,7 +313,9 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		            	    		}
 		            	    	}
 		            	    }
-		            	    if (im0 == null) {
+		            	    
+		            	    if (x > 0 && y > 0 && y > level.getHorizon() && x < level.width && y < level.width && (!level.isExplored(x, y) || im0 == null)) {
+		            	    	// Draw fog
 		            	    	im0 = MediaLibrary.getImageFromLibrary(1);
 		            	    }
 		            	    g.drawImage(im0, (x << 5) - xOffset, (y << 5) - yOffset, this);
@@ -356,6 +360,98 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			FileUtilities.log(e.getMessage());
 			new PreloadDialog();
 			this.setEnabled(false);
+		}
+		
+		if (drawMiniMap) {
+			Image miniMap;
+			int shiftX = 256;
+			int shiftY = 256;
+			if (miniMapScale > 2) {
+				shiftX = 64;
+				shiftY = 64;
+			}
+			
+			if (miniMapScale == 1) {
+				miniMap = (Image) level.drawMiniMap(miniMapScale, miniMapScale);
+				g.drawImage(miniMap, (int) drawResolution.getWidth() - miniMap.getWidth(this) - shiftX, shiftY, this);
+				g.setColor(Color.RED);
+				g.drawOval((int) drawResolution.getWidth() - miniMap.getWidth(this) - shiftX - 2 + (player.x >> 5), shiftY - 2 + (player.y >> 5), 4, 4);
+			}
+			else {
+				int playerX;
+				int playerY;
+				boolean isCenteredX = true;
+				boolean isCenteredY = true;
+				int drawTrackerX = 128;
+				int drawTrackerY = 128;
+				int modifier;
+				
+				if (miniMapScale == 4) modifier = 2;
+				else modifier = 1;
+				
+				// Determine whether the minimap will be within the bounds
+				if (player.x >> 5 + level.width / (miniMapScale * miniMapScale * 2) * modifier < level.width && player.x >> 5 > level.width / (miniMapScale * miniMapScale * 2) * modifier) {
+					playerX = player.x >> 5;
+				} else if (player.x >> 5 + level.width / (miniMapScale * miniMapScale * 2) * modifier >= level.width) {
+					playerX = level.width - level.width / (miniMapScale * miniMapScale * 2) * modifier - 1;
+				}
+				else {
+					playerX = level.width / (miniMapScale * miniMapScale * 2) * modifier + 1;
+					isCenteredX = false;
+				}
+				
+				if (player.y >> 5 + level.height / (miniMapScale * miniMapScale * 2) * modifier < level.height && player.y >> 5 > level.height / (miniMapScale * miniMapScale * 2) * modifier) {
+					playerY = player.y >> 5;
+				} else if (player.y >> 5 + level.height / (miniMapScale * miniMapScale * 2) * modifier >= level.height) {
+					playerY = level.height - level.height / (miniMapScale * miniMapScale * 2) * modifier - 1;
+				}
+				else {
+					playerY = level.height / (miniMapScale * miniMapScale * 2) * modifier + 1;
+					isCenteredY = false;
+				}
+				
+				miniMap = null;
+				try {
+					miniMap = (Image) level.drawMiniMap(miniMapScale, miniMapScale).getSubimage(
+							(playerX - level.width / (miniMapScale * miniMapScale * 2) * modifier)/miniMapScale, 
+							(playerY - level.height / (miniMapScale * miniMapScale * 2) * modifier)/miniMapScale, 
+							level.width / (miniMapScale * miniMapScale * miniMapScale) * modifier, 
+							level.height / (miniMapScale * miniMapScale * miniMapScale) * modifier);
+					drawMiniMap = true;
+				} catch (Exception e) {
+					FileUtilities.log(e.getMessage());
+					drawMiniMap = false;
+				}
+				
+				if (drawMiniMap) {
+					if (miniMapScale == 2) {
+						if (isCenteredX) drawTrackerX = (int) drawResolution.getWidth() - miniMap.getWidth(this) - drawResolution.width / 10 + miniMap.getWidth(this);
+						else {
+							drawTrackerX = (int) drawResolution.getWidth() - miniMap.getWidth(this) - drawResolution.width / 10 + (player.x >> 5);
+						}
+						if (isCenteredY) drawTrackerY = drawResolution.height / 80 + miniMap.getHeight(this);
+						else {
+							drawTrackerY = drawResolution.height / 80 + (player.y >> 5);
+						}
+						g.drawImage(miniMap, (int) drawResolution.getWidth() - miniMap.getWidth(this) - drawResolution.width / 10, drawResolution.height / 80, 2 * miniMap.getWidth(this), 2 * miniMap.getHeight(this), this);
+					}
+					if (miniMapScale == 4) {
+						if (isCenteredX) drawTrackerX = (int) drawResolution.getWidth() - miniMap.getWidth(this) * 4 - drawResolution.width / 10 + 4 * miniMap.getWidth(this);
+						else {
+							drawTrackerX = (int) drawResolution.getWidth() - miniMap.getWidth(this) * 4 - drawResolution.width / 10 + 4 * (player.x >> 6);
+						}
+						if (isCenteredY) drawTrackerY = drawResolution.height / 80 + 4 * miniMap.getHeight(this);
+						else {
+							drawTrackerY = drawResolution.height / 80 + 4 * (player.y >> 6);
+						}
+						g.drawImage(miniMap, (int) drawResolution.getWidth() - miniMap.getWidth(this) * 4 - drawResolution.width / 10, drawResolution.height / 80, 8 * miniMap.getWidth(this), 8 * miniMap.getHeight(this), this);
+					}
+					if (miniMapScale == 2 || miniMapScale == 4) {
+						g.setColor(Color.RED);
+						g.drawOval(drawTrackerX - 2, drawTrackerY - 2, 4, 4);
+					}
+				}
+			}
 		}
 		
 		if (basicCraftingGUI.isActive()){

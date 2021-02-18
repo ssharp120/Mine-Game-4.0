@@ -1,5 +1,5 @@
 0 icon
-1 tile/test
+1 tile/overlay
 2 tile/sky
 3 tile/wood
 4 tile/naturalwood

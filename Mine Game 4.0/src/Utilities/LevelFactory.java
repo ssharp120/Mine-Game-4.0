@@ -182,6 +182,14 @@ public class LevelFactory {
 			FileUtilities.logLevelGeneration("\t\tx = "  + startX);
 			FileUtilities.logLevelGeneration("\t\t and");
 			FileUtilities.logLevelGeneration("\t\ty = "  + (512 - 8));
+			
+			FileUtilities.logLevelGeneration("Saving level horizon");
+			String levelHorizonPath = "level_" + FileUtilities.TIMESTAMP_AT_RUNTIME + "_horizon";
+			FileUtilities.createFile(levelHorizonPath);
+			FileUtilities.writeToPosition(levelHorizonPath, terrainHeights.length, 0);
+			for (int j = 1; j <= terrainHeights.length; j++) {
+				FileUtilities.writeToPosition(levelHorizonPath, terrainHeights[j - 1], j*4);
+			}
 		}
 		
 		FileUtilities.log("Level generation complete\n");

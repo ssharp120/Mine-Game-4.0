@@ -2,6 +2,7 @@ package Frame;
 
 import static Utilities.FileUtilities.*;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
@@ -34,6 +35,9 @@ public class Level {
 	public String name;
 	private int[][] tiles;
 	private int[][] tileData;
+	private boolean[][] exploredTiles;
+	private double percentExplored;
+	private int horizon;
 	private double[][] durabilities;
 	public int width, height;
 	public int xOffset, yOffset;
@@ -52,6 +56,7 @@ public class Level {
 		this.name = name;
 		this.loadLevelFromImage(image);
 		game = mg;
+		loadHorizon();
 	}
 	
 	public Level(String path, String name, int i, GameLoop mg, int x, int y) {
@@ -66,6 +71,70 @@ public class Level {
             this.loadLevelFromFile(filePath);
             game = mg;
         }
+	}
+	
+	private void loadHorizon() {
+		horizon = 480;
+		exploredTiles = new boolean[width][height];
+		
+		FileUtilities.log("Removing fog...\n");
+		// Remove fog up to horizon
+		/*for (int j = 0; j < width; j++) {
+			for (int k = 0; k <= horizon; k++) {
+				exploredTiles[j][k] = true;
+			}
+		}*/
+		
+		for (int i = 0; i < 128; i++) {
+			for (int j = horizon; j < horizon + 128; j++) {
+				if (i < 64 || i - 64 + j - horizon < 72) exploredTiles[i][j] = true;
+			}
+		}
+		
+		// Add teaser fog
+		int p = (int) (Math.round(Math.random() * (double) (width - 16)) + 8);
+		for (int n = p; n < 8; n++) {
+			if (height > 16 && horizon > 16)
+			tiles[n][14] = Tile.IRON_TILE.getId();
+			tiles[p][15] = Tile.IRON_TILE.getId();
+			tiles[p + 7][15] = Tile.IRON_TILE.getId();
+			tiles[n][16] = Tile.IRON_TILE.getId();
+			if (n > p && n < p + 7) {
+				exploredTiles[n][16] = false;
+			}
+		}
+		
+		String levelHorizonPath = "level_" + FileUtilities.TIMESTAMP_AT_RUNTIME + "_horizon";
+		int arrayLength = FileUtilities.readFromPositionInt(levelHorizonPath, 0);
+		// Loop through vertical slices of the map
+		for (int i = 0; i < arrayLength; i++) {
+			if (i >= 0 && i < width) {
+				// Remove fog up to 5 tiles beneath the ground
+				int currentLimit = FileUtilities.readFromPositionInt(levelHorizonPath, (i + 1)*4) + 5;
+				for (int j = horizon; j < currentLimit; j++) {
+					if (j < currentLimit) {
+						exploredTiles[i][j] = true;
+					}
+				}
+				if (i % (width / 4) == 0) {
+					for (int k = 0; k < 3 * Math.round((double) i/width * 4); k++) {
+						FileUtilities.log("|");
+					}
+					for (int k = 0; k < 3 * (4 - Math.round((double) i/width * 4)); k++) {
+						FileUtilities.log("-");
+					}
+					FileUtilities.log("\t" + (i * 100) / width + "%\n");
+				}
+				if (i == width - 1) {
+					FileUtilities.log("||||||||||||\t100&\n");
+				}
+			}
+		}
+		
+	}
+	
+	protected int getHorizon() {
+		return horizon;
 	}
 	
 	private void loadLevelFromImage(BufferedImage image) {
@@ -175,6 +244,26 @@ public class Level {
 			((Player) entities.get(0)).disconnectOxygen();
 			((Player) entities.get(0)).removeOxygen(0.01);
 		}
+		for (int i = -16; i < 16; i++) {
+			for (int j = -8; j < 8; j++) {
+				if (((Player) entities.get(0)).x >= -16 * 32 && ((Player) entities.get(0)).x >> 5 < width + 16 * 32 && ((Player) entities.get(0)).y >= -8 * 32 && ((Player) entities.get(0)).y >> 5 < height + 8 * 32
+					&& i * i + j * j <= 64 && (((Player) entities.get(0)).x >> 5) + i >= 0 && (((Player) entities.get(0)).x >> 5) + i < width
+					&& (((Player) entities.get(0)).y >> 5) + j >= 0 && (((Player) entities.get(0)).y >> 5) + j < height) 
+					
+					exploredTiles[(((Player) entities.get(0)).x >> 5) + i][(((Player) entities.get(0)).y >> 5) + j] = true;
+			}
+		}
+		int exploredArea = 0;
+		for (int m = 0; m < width; m++) {
+			for (int n = 0; n < height; n++) {
+				if (exploredTiles[m][n]) exploredArea++;
+			}
+		}
+		percentExplored = (double) exploredArea / (width * height) * 100;
+	}
+	
+	public boolean isExplored(int x, int y) {
+		return exploredTiles[x][y];
 	}
 		
 	public void checkLeafDecay(int x, int y) {
@@ -242,12 +331,42 @@ public class Level {
 	}
 	
 	public void explode(int x, int y) {
+		// Remove tiles and replace with air
 		if (x <= 8 || x + 8 >= width || y <= 8 || y + 8 >= height) return;
 		for (int i = -8; i <= 8; i++) {
 			for (int j = -8; j <= 8; j++) {
-				if (i * i + j * j < 64) tiles[x + i][y + j] = 2;
+				if (i * i + j * j < 64) {
+					tiles[x + i][y + j] = 2;
+					
+					// Remove fog horizontally
+					if (i < 0) exploredTiles[x + i - 1][y + j] = true;
+					else exploredTiles[x + i + 1][y + j] = true;
+					
+					// Remove fog vertically
+					if (j < 0) exploredTiles[x + i][y + j - 1] = true;
+					else exploredTiles[x + i][y + j + 1] = true;
+				}
 			}
 		}
+		
+		// Damage player based on proximity
+		if (Math.pow(Math.abs(((Player) entities.get(0)).x >> 5 - x), 2) + Math.pow(Math.abs(((Player) entities.get(0)).y >> 5 - y), 2) < 32) {
+			((Player) entities.get(0)).damage(128);
+		}
+	}
+	
+	public BufferedImage drawMiniMap(int scaleX, int scaleY) {
+		BufferedImage image = new BufferedImage(width / scaleX, height / scaleY, BufferedImage.TYPE_INT_ARGB);
+		for (int i = 0; i < width; i += scaleX) {
+			for (int j = 0; j < height; j += scaleY) {
+				if (exploredTiles[i + scaleX / 2][j + scaleY / 2]) image.setRGB(i / scaleX, j / scaleY, Tile.tiles[tiles[i + scaleX / 2][j + scaleY / 2]].getLevelColour());
+				else {
+					if ((i % 2 == 0 && j % 2 == 1) || (i % 2 == 1 && j % 2 == 0)) image.setRGB(i / scaleX, j / scaleY, Color.LIGHT_GRAY.getRGB());
+					else image.setRGB(i / scaleX, j / scaleY, Color.DARK_GRAY.getRGB());
+				}
+			}
+		}
+		return image;
 	}
 	
 	public synchronized void draw(Graphics g, ImageObserver observer) { 
@@ -266,6 +385,10 @@ public class Level {
         return this.entities;
     }
 	
+	public double getPercentExplored() {
+		return percentExplored;
+	}
+
 	public synchronized void drawEntities(Graphics g, ImageObserver observer) {
 		for (Entity e : getEntities()) {
 			if (e.getClass() == Crop.class) ((Crop) e).draw(g, observer);

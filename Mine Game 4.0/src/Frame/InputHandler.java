@@ -88,6 +88,7 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 	public Key esc = new Key();
 	public Key inventory = new Key();
 	public Key crafting = new Key();
+	public Key miniMap = new Key();
 	
 	public Key func1 = new Key();
 	public Key func2 = new Key();
@@ -162,7 +163,7 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 		if (keycode == KeyEvent.VK_ALT) {alt.toggle(isPressed);}
 		
 		if (keycode == KeyEvent.VK_F1) {func1.toggle(isPressed);}
-		if (keycode == KeyEvent.VK_F2) {new KeyRebindWindow();}
+		if (keycode == KeyEvent.VK_F2) {func2.toggle(isPressed);}
 		if (keycode == KeyEvent.VK_F3) {func3.toggle(isPressed);}
 		if (keycode == KeyEvent.VK_F4) {func4.toggle(isPressed);}
 		if (keycode == KeyEvent.VK_F5) {func5.toggle(isPressed);}
@@ -181,6 +182,8 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 		if (keycode == inventoryKey) {inventory.toggle(isPressed);}
 		
 		if (keycode == KeyEvent.VK_C) {crafting.toggle(isPressed);}
+		
+		if (keycode == KeyEvent.VK_M) {miniMap.toggle(isPressed);}
 	}
 	
 	public class KeyRebindWindow extends JPanel implements ActionListener, KeyListener {

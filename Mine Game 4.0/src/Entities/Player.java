@@ -51,6 +51,8 @@ public class Player extends Mob {
 	public double vX, vY;
 	public double aX, aY;
 	
+	protected double localGravity = 0.025;
+	
 	public boolean drawInfo;
 	
 	// Toggles for function keys and cheats
@@ -63,6 +65,7 @@ public class Player extends Mob {
 	private boolean toggleCreativeFlying;
 	private boolean toggleCreativeEntities;
 	private boolean toggleRefresh;
+	private boolean toggleMiniMap;
 	
 	// Physics variables
 	protected double airResistance = 0.001, friction = 0, mass = 100;
@@ -201,7 +204,7 @@ public class Player extends Mob {
 		// Handle climbing on platforms
 		if (!collisionBelow(x, y, spriteWidth, spriteHeight, level) || controls.down.isPressed() && arePlatformsBelow(x, y, spriteWidth, spriteHeight, level) 
 				|| (!controls.up.isPressed() && arePlatformsAbove(x, y, spriteWidth, spriteHeight, level) & vY < 0) ) { 
-			aY = .025;
+			aY = localGravity;
 			canJump = true;
 			if (controls.getControlScheme() != InputHandler.ControlScheme.GAMEPLAY || (!controls.left.isPressed() && !controls.right.isPressed())) {
 				if (vX > 0) {
@@ -406,6 +409,7 @@ public class Player extends Mob {
 		
 		drawMeter(health, Color.RED, Color.getHSBColor((float) ((health%100)/100), 1F, 0.5F), g, observer, 0, 0);
 		drawMeter(oxygen, Color.CYAN, Color.CYAN, g, observer, 128 + 32, 0);
+		drawMeter(level.getPercentExplored(), Color.GREEN, Color.PINK, g, observer, 0, 128 + 32);
 		
 		g.setFont(MediaLibrary.getFontFromLibrary("INFOFont"));
 		if (drawInfo) printMovementInfo(g, 64, 172);
@@ -479,10 +483,27 @@ public class Player extends Mob {
 
 	public void damage() {
 		health -= 1.0;
+		checkDeath();
 	}
 	
 	public void damage(double d) {
 		health -= d;
+		checkDeath();
+	}
+	
+	public void checkDeath() {
+		if (health <= 0) {
+			x = level.spawnX;
+			y = level.spawnY;
+			dX = level.spawnX;
+			dY = level.spawnY;
+			vX = 0;
+			vY = 0;
+			aX = 0;
+			aY = 
+			health = 100.0;
+			inventory = new Inventory(100, 80, controls);
+		}
 	}
 	
 	public void heal() {
@@ -560,6 +581,23 @@ public class Player extends Mob {
 	}
 	
 	public void handleToggles() {
+		if (controls.func1.isPressed()) {
+			game.miniMapScale = 1;
+		}
+		if (controls.func2.isPressed()) {
+			game.miniMapScale = 2;
+		}
+		if (controls.func4.isPressed()) {
+			game.miniMapScale = 4;
+		}
+		if (controls.miniMap.isPressed()) {
+			if (toggleMiniMap) {
+				game.drawMiniMap = !game.drawMiniMap;
+			}
+			toggleMiniMap = false;
+		} else {
+			toggleMiniMap = true;
+		}
 		if (controls.func3.isPressed()) {
 			if (toggleInfo) toggleInfo();
 			toggleInfo = false;

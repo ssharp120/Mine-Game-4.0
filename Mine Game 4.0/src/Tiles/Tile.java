@@ -10,7 +10,7 @@ public class Tile {
     
     public static final SolidTile BARRIER = 			new SolidTile(8190, 0xFF000001, "Barrier", 1.0);
     public static final Tile VOID = 					new Tile(8191, 0xFFFFFFFF, "Void");
-    public static final Tile TEST = 					new Tile(1, 0xFF000000, "Test");
+    public static final Tile OVERLAY = 					new Tile(1, 0xFF000000, "Overlay");
     public static final Tile SKY = 						new Tile(2, 0xFF71C9DD, "Sky");
     public static final SolidTile WOOD = 				new DestructibleTile(3, 0XFF5B2F00, "Wooden Planks", 0.7, true, 2.0, 50.0);
     public static final Tile NATURAL_WOOD =     		new BackgroundDestructibleTile(4, 0xFFAF833C, "Log", true, 2.0, 50.0);
