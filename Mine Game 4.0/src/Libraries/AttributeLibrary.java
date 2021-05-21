@@ -54,7 +54,12 @@ private static String[] levelLibrary = new String[16384];
 	}
 	
 	public static String getIngredientNameFromLibrary(int ingredientIndex) {
-		if (ingredientNames[ingredientIndex] == null) return "Null ingredient " + ingredientIndex;
+		if (ingredientIndex < 0 || ingredientIndex >= ingredientStackSizes.length || ingredientNames[ingredientIndex] == null) return "Null ingredient " + ingredientIndex;
 		else return ingredientNames[ingredientIndex];
+	}
+	
+	public static int getIngredientStackSizeFromLibrary(int ingredientIndex) {
+		if (ingredientIndex < 0 || ingredientIndex >= ingredientStackSizes.length) return 80;
+		else return ingredientStackSizes[ingredientIndex];
 	}
 }

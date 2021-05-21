@@ -46,12 +46,14 @@ public class Crop extends Plant {
 	}
 
 	public void draw(Graphics g, ImageObserver observer) {
-		switch (plantIdentifier) {
-			case 0: {
-				for (int i = 0; i < growthStage; i++) {
-					g.drawImage(MediaLibrary.getImageFromLibrary(dispTexture), x - level.getGameLoop().xOffset, y - level.getGameLoop().yOffset + 32 * i, observer);
+		if (!level.isExplored(x >> 5, y >> 5)) {
+			switch (plantIdentifier) {
+				case 0: {
+					for (int i = 0; i < growthStage; i++) {
+						g.drawImage(MediaLibrary.getImageFromLibrary(dispTexture), x - level.getGameLoop().xOffset, y - level.getGameLoop().yOffset + 32 * i, observer);
+					}
+					break;
 				}
-				break;
 			}
 		}
 	}

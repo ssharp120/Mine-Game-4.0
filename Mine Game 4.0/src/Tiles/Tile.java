@@ -28,7 +28,9 @@ public class Tile {
     public static final Tile WOOD_WALL =				new BackgroundDestructibleTile(16, 0xFF9E7842, "Wood Wall", false, 2.0, 75.0);
     public static final SolidTile COBBLESTONE =			new DestructibleTile(17, 0xFF6B6B6B, "Cobblestone", 0.92, true, 4.0, 200.0);
     public static final Tile STONE_WALL =				new BackgroundDestructibleTile(18, 0xFF494949, "Stone Wall", false, 5.0, 300.0);
-    public static final SolidTile TNT = 				new DestructibleTile(19, 0xFF0000, "TNT", 0.6, true, 1.0, 40.0);
+    public static final SolidTile TNT = 				new DestructibleTile(19, 0xFFFF0000, "TNT", 0.6, true, 1.0, 40.0);
+    public static final SolidTile COPPER_ORE =			new DestructibleTile(20, 0xFFBFFBFF, "Copper Ore", 0.8, true, 15.0, 1500.0);
+    public static final SolidTile COAL_ORE = 			new DestructibleTile(21, 0xFF010101, "Coal Ore", 0.8, true, 15.0, 110.0);
     
     public Tile(int id, int levelColour, String name) {
         this.id = id;

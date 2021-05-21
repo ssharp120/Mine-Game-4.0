@@ -9,9 +9,7 @@ import Libraries.MediaLibrary;
 
 public class OxygenGenerator extends Entity {
 	public OxygenGenerator(Level level, boolean active, int x, int y) {
-		super(level, active);
-		this.x = x;
-		this.y = y;
+		super(0, level, active, x, y);
 	}
 
 	public void tick() {

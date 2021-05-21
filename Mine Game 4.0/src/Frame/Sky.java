@@ -22,6 +22,7 @@ public class Sky {
 	public long time;
 	public long finetime;
 	public int day;
+	public long currentTime;
 	public int[] data = new int[4];
 	public double[] ratios = new double[1];
 	public Image[] images = new Image[4];
@@ -95,7 +96,7 @@ public class Sky {
 		}
 	}
 	
-	public void draw(Graphics g, Dimension screen, ImageObserver observer) {
+	public void draw(Graphics g, Dimension screen, ImageObserver observer, boolean updateTime) {
 		g.drawImage(MediaLibrary.getImageFromLibrary(6001), 20, 20, observer);
 		for (int i = 0; i < 16; i++) {
 			for (int j = 0; j < 8; j++) {
@@ -107,19 +108,21 @@ public class Sky {
 		g.setColor(Color.WHITE);
 		g.drawLine((int) (time/totalDayTime) + 32, 64, (int) (time/totalDayTime) + 32, 64 + 160);
 		g.drawLine(((int) (time/totalDayTime) + 48)%1000, 64, ((int) (time/totalDayTime) + 48)%1000, 64 + 160);*/
-		
-		time = Calendar.timeElapsed() % totalDayTime;
-		finetime = Calendar.timeElapsedMillis() % (totalDayTime * 1000);
+		if (updateTime) {
+			time = Calendar.timeElapsed() % totalDayTime;
+			finetime = Calendar.timeElapsedMillis() % (totalDayTime * 1000);
+			currentTime = Calendar.timeElapsedMillis();
+		}
 		
 		double xFactor = screen.getWidth()/2560;
 		double yFactor = screen.getHeight()/1440;
 		
-		g.drawImage(images[1], (int) Math.round(xFactor * (3300 - ((double) ((double) ((double) ((Calendar.timeElapsedMillis() % (totalDayTime * 1000)) - (data[0] - data[1]) * 1000))/((double) (data[2] * 1000)) * 2200)))), (int) Math.round(yFactor * (Math.pow(((double) ((double) ((double) ((Calendar.timeElapsedMillis() % (totalDayTime * 1000)) - (data[0] - data[1]) * 1000))/((double) (data[2] * 1000)) * 500)), 1.05) - 300)), 256, 256,  observer);
+		g.drawImage(images[1], (int) Math.round(xFactor * (3300 - ((double) ((double) ((double) ((currentTime % (totalDayTime * 1000)) - (data[0] - data[1]) * 1000))/((double) (data[2] * 1000)) * 2200)))), (int) Math.round(yFactor * (Math.pow(((double) ((double) ((double) ((currentTime % (totalDayTime * 1000)) - (data[0] - data[1]) * 1000))/((double) (data[2] * 1000)) * 500)), 1.05) - 300)), 256, 256,  observer);
 		
 		if (time <= data[0] / 2 || time >= data[0] + data[1] + data[2] + data[3]/2) {
 			Graphics2D g1 = (Graphics2D) g;
-			int xpos2 = -3000 + (int) Math.round(xFactor * (3300 - ((double) ((double) ((double) (((Calendar.timeElapsedMillis() + (0.7 * data[0] * 1000)) % (totalDayTime * 1000))))/((double) (data[0] * 1000)) * 2200))));
-			int ypos2 = -1800 + (int) Math.round(yFactor * (Math.pow(((double) ((double) ((double) (((Calendar.timeElapsedMillis() + (0.7 * data[0] * 1000)) % (totalDayTime * 1000))))/((double) (data[0] * 1000)) * 600)), 1.05) - 300));
+			int xpos2 = -3000 + (int) Math.round(xFactor * (3300 - ((double) ((double) ((double) (((currentTime + (0.7 * data[0] * 1000)) % (totalDayTime * 1000))))/((double) (data[0] * 1000)) * 2200))));
+			int ypos2 = -1800 + (int) Math.round(yFactor * (Math.pow(((double) ((double) ((double) (((currentTime + (0.7 * data[0] * 1000)) % (totalDayTime * 1000))))/((double) (data[0] * 1000)) * 600)), 1.05) - 300));
 			float opacity = 1.0f;
 			if (Math.random() > 0.88) opacity = Math.max(0.565f, (float) (1.0 - Math.pow(Math.random(), 8.95)));
 			g1.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
@@ -131,8 +134,8 @@ public class Sky {
 			BufferedImage translucentStars = stars;
 			Graphics2D g2 = (Graphics2D) g;
 			float opacity = Math.min(1.0f, 1.2f - 1.2f * (float) (((float) (finetime - data[0] * 1000/2))/((float) (data[0] * 1000/4))));
-			int xpos2 = -3000 + (int) Math.round(xFactor * (3300 - ((double) ((double) ((double) (((Calendar.timeElapsedMillis() + (0.7 * data[0] * 1000)) % (totalDayTime * 1000))))/((double) (data[0] * 1000)) * 2200))));
-			int ypos2 = -1800 + (int) Math.round(yFactor * (Math.pow(((double) ((double) ((double) (((Calendar.timeElapsedMillis() + (0.7 * data[0] * 1000)) % (totalDayTime * 1000))))/((double) (data[0] * 1000)) * 600)), 1.05) - 300));
+			int xpos2 = -3000 + (int) Math.round(xFactor * (3300 - ((double) ((double) ((double) (((currentTime + (0.7 * data[0] * 1000)) % (totalDayTime * 1000))))/((double) (data[0] * 1000)) * 2200))));
+			int ypos2 = -1800 + (int) Math.round(yFactor * (Math.pow(((double) ((double) ((double) (((currentTime + (0.7 * data[0] * 1000)) % (totalDayTime * 1000))))/((double) (data[0] * 1000)) * 600)), 1.05) - 300));
 			g2.drawImage(images[3], 3150 - (1024/6) + xpos2, 1800 - (1024/6) + ypos2, 1024/3, 1024/3, observer);
 			g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
 			g2.drawImage(stars, xpos2, ypos2, observer);
@@ -142,8 +145,8 @@ public class Sky {
 			BufferedImage translucentStars = stars;
 			Graphics2D g3 = (Graphics2D) g;
 			float opacity = Math.max(0, Math.min(1.0f, 1.2f * (float) (((float) (finetime - (data[0] + data[1] + data[2]) * 1000))/((float) (data[3] * 1000/2)))));
-			int xpos3 = -3000 + (int) Math.round(xFactor * (3300 - ((double) ((double) ((double) (((Calendar.timeElapsedMillis() + (0.7 * data[0] * 1000)) % (totalDayTime * 1000))))/((double) (data[0] * 1000)) * 2200))));
-			int ypos3 = -1800 + (int) Math.round(yFactor * (Math.pow(((double) ((double) ((double) (((Calendar.timeElapsedMillis() + (0.7 * data[0] * 1000)) % (totalDayTime * 1000))))/((double) (data[0] * 1000)) * 600)), 1.05) - 300));
+			int xpos3 = -3000 + (int) Math.round(xFactor * (3300 - ((double) ((double) ((double) (((currentTime + (0.7 * data[0] * 1000)) % (totalDayTime * 1000))))/((double) (data[0] * 1000)) * 2200))));
+			int ypos3 = -1800 + (int) Math.round(yFactor * (Math.pow(((double) ((double) ((double) (((currentTime + (0.7 * data[0] * 1000)) % (totalDayTime * 1000))))/((double) (data[0] * 1000)) * 600)), 1.05) - 300));
 			g3.drawImage(images[3], 3150 - (1024/6) + xpos3, 1800 - (1024/6) + ypos3, 1024/3, 1024/3, observer);
 			g3.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
 			g3.drawImage(stars, xpos3, ypos3, observer);

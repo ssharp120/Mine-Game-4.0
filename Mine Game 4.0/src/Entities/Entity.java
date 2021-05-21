@@ -10,6 +10,7 @@ public abstract class Entity {
 	public boolean markedForDeletion;
 	public int dispTexture;
 	public boolean active = true;
+	public int entityIndex;
 	
 	public Entity(Level level) {
 		initialize(level);
@@ -27,6 +28,14 @@ public abstract class Entity {
 		this.y = y;
 	}
 	
+	public Entity(int entityIndex, Level level, boolean active, int x, int y) {
+		initialize(level);
+		this.active = active;
+		this.entityIndex = entityIndex;
+		this.x = x;
+		this.y = y;
+	}
+	
 	public final void initialize(Level level) {
 		this.level = level;
 	}
@@ -38,6 +47,10 @@ public abstract class Entity {
 	public void resetPosition(int x, int y) {
 		this.x = x;
 		this.y = y;
+	}
+	
+	public int getEntityIndex() {
+		return entityIndex;
 	}
 	
 	public abstract void tick();

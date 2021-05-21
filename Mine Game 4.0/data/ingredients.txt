@@ -6,3 +6,21 @@ Sugar
 800
 Sugarcane Seeds
 80
+Paper
+800
+Map
+80
+Sapling
+80
+Rotor
+80
+Stator
+80
+Motor
+80
+Copper
+80
+Copper Wire
+80
+Coal
+80

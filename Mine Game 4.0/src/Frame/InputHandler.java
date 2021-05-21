@@ -22,6 +22,7 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
 import Entities.Crop;
+import Entities.Entity;
 import Entities.Furniture;
 import Libraries.MediaLibrary;
 import Tiles.BackgroundDestructibleTile;
@@ -30,6 +31,8 @@ import Tiles.Tile;
 import UI.Ingredient;
 import UI.InventoryEntity;
 import UI.InventoryTile;
+import Utilities.FileUtilities;
+
 import static Utilities.FileUtilities.*;
 
 public class InputHandler implements KeyListener, MouseListener, MouseMotionListener, MouseWheelListener {
@@ -38,7 +41,7 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 	private int inventoryKey = KeyEvent.VK_I;
 	
 	public enum ControlScheme {
-		GAMEPLAY, MENU, INVENTORY, BASIC_CRAFTING;
+		GAMEPLAY, MENU, INVENTORY, BASIC_CRAFTING, PAUSE_MENU;
 	}
 	
 	public GameLoop gameIn;
@@ -74,8 +77,10 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 		}
 	}
 	
-	public boolean leftButtonHeld;
+	public boolean leftButtonHeld, rightButtonHeld;
 	public int lastDestructibleX, lastDestructibleY;
+	
+	public boolean toggleUIs;
 	
 	public Key up = new Key();
 	public Key down = new Key();
@@ -107,6 +112,9 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 	public Key ctrl = new Key();
 	public Key alt = new Key();
 	
+	public Key home = new Key();
+	public Key end = new Key();
+	
 	public Key num1 = new Key();
 	public Key num2 = new Key();
 	public Key num3 = new Key();
@@ -126,10 +134,12 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 		if (arg0.getKeyCode() == KeyEvent.VK_S) {down.inc();}
 		if (arg0.getKeyCode() == KeyEvent.VK_A) {left.inc();}
 		if (arg0.getKeyCode() == KeyEvent.VK_D) {right.inc();}
+		if (arg0.getKeyCode() == KeyEvent.VK_ESCAPE) esc.toggle(false);
 	}
 
 	public void keyReleased(KeyEvent arg0) {
 		toggleKey(arg0.getKeyCode(), false);
+		if (arg0.getKeyCode() == KeyEvent.VK_ESCAPE) esc.toggle(true);
 	}
 
 	public void keyTyped(KeyEvent arg0) {
@@ -160,7 +170,16 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 		
 		if (keycode == KeyEvent.VK_SHIFT) {shift.toggle(isPressed);}
 		if (keycode == KeyEvent.VK_CONTROL) {ctrl.toggle(isPressed);}
-		if (keycode == KeyEvent.VK_ALT) {alt.toggle(isPressed);}
+		if (keycode == KeyEvent.VK_ALT) {
+			alt.toggle(isPressed);
+			if (toggleUIs) {
+				gameIn.toggleDisplayUIs();
+				toggleUIs = false;
+			} else if (!alt.isPressed()) {
+				gameIn.toggleDisplayUIs();
+				toggleUIs = true;
+			}
+		}
 		
 		if (keycode == KeyEvent.VK_F1) {func1.toggle(isPressed);}
 		if (keycode == KeyEvent.VK_F2) {func2.toggle(isPressed);}
@@ -175,7 +194,8 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 		if (keycode == KeyEvent.VK_F11) {func11.toggle(isPressed);}
 		if (keycode == KeyEvent.VK_F12) {func12.toggle(isPressed);}
 		
-		if (keycode == KeyEvent.VK_ESCAPE) {esc.toggle(isPressed);}
+		if (keycode == KeyEvent.VK_HOME) {home.toggle(isPressed);}
+		if (keycode == KeyEvent.VK_END) {end.toggle(isPressed);}
 		
 		if (keycode == KeyEvent.VK_Q) {dispose.toggle(isPressed);}
 		
@@ -258,6 +278,8 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 		if (arg0.getButton() == MouseEvent.BUTTON1) {
 			if (controlScheme == ControlScheme.BASIC_CRAFTING) {
 				gameIn.basicCraftingGUI.handleClick(arg0.getX(), arg0.getY());
+			} else if (controlScheme == ControlScheme.PAUSE_MENU) {
+				gameIn.pauseMenuGUI.handleClick(arg0.getX(), arg0.getY());
 			}
 		}
 		if (arg0.getButton() == MouseEvent.BUTTON2) {
@@ -276,20 +298,35 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 			placeTile(clickX, clickY);
 		}
 		if (gameIn.player.inventory.getActiveItem() != null) {			
-			// Place crop seeds
 			if (gameIn.player.inventory.getActiveItem().getClass() == Ingredient.class) {
 				Ingredient i = (Ingredient) gameIn.player.inventory.getActiveItem();
+				// Place crop seeds
 				if (((Ingredient) i).getItemID() == 3 && gameIn.level.getTile(clickX >> 5, clickY >> 5).getId() == Tile.SAND.getId()) {
 					gameIn.level.placePlant(clickX >> 5, clickY >> 5);
 					i.removeQuantity(1);
 				}
+				// Place tree
+				if (((Ingredient) i).getItemID() == 6 && gameIn.level.getTile(clickX >> 5, clickY >> 5).getId() == Tile.GRASS.getId()) {
+					gameIn.level.generateTree(clickX >> 5, clickY >> 5);
+					i.removeQuantity(1);
+				}
 			}
-				
+			
 			// Place entity
 			if (gameIn.player.inventory.getActiveItem().getClass() == InventoryEntity.class) {
 				InventoryEntity j = ((InventoryEntity) gameIn.player.inventory.getActiveItem());
-				gameIn.level.addEntity(j.generateEntity(gameIn.level, clickX >> 5, clickY >> 5));
-				gameIn.player.inventory.clearActiveItem();
+				int x = clickX >> 5;
+				int y = clickY >> 5;
+				if (x > 0 && x < gameIn.level.width && y > 0 && y < gameIn.level.height - 1 && j.checkGenerationConditions(gameIn.level, x, y)) {
+					for (Entity e : gameIn.level.getEntities()) {
+						if (x == e.x && y == e.y) {
+							FileUtilities.log("Attempted to place an electrical device on an existing device at x = " + x + ", y = " + y, false);
+							return;
+						}
+					}
+					gameIn.level.addEntity(j.generateEntity(gameIn.level, x, y));
+					gameIn.player.inventory.clearActiveItem();
+				}
 			}
 		}
 	}
@@ -307,6 +344,29 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 						&& Tile.tiles[t].getClass() != BackgroundDestructibleTile.class) return;
 				
 				((InventoryTile) gameIn.player.inventory.getActiveItem()).removeQuantity(1);
+				gameIn.level.setTile(clickX >> 5, clickY >> 5, t);
+				if (Tile.tiles[t].getClass() == DestructibleTile.class) {
+					gameIn.level.setDurability(clickX >> 5, clickY >> 5, ((DestructibleTile) Tile.tiles[t]).getBaseDurability());
+				}
+				if (Tile.tiles[t].getClass() == BackgroundDestructibleTile.class) {
+					gameIn.level.setDurability(clickX >> 5, clickY >> 5, ((BackgroundDestructibleTile) Tile.tiles[t]).getBaseDurability());
+				}
+			}
+		}
+	}
+	
+	public void placeTile(int clickX, int clickY, int tileID) {
+		if (gameIn.player != null && gameIn.level != null) {
+			if (gameIn.level.getTile(clickX >> 5, clickY >> 5).getId() == 2) {
+				if (gameIn.level.getTile((clickX >> 5) + 1, clickY >> 5).getId() == 2 && gameIn.level.getTile((clickX >> 5) - 1, clickY >> 5).getId() == 2 && gameIn.level.getTile(clickX >> 5, (clickY >> 5) + 1).getId() == 2 && gameIn.level.getTile(clickX >> 5, (clickY >> 5) - 1).getId() == 2) return;
+				
+				int t = tileID;
+				
+				//System.out.println("Player x: Left: " + gameIn.player.x + ", Right: " + (gameIn.player.x + gameIn.player.spriteWidth) + ", Tile x: Left: " + ((clickX >> 5) << 5) + ", Right: " + (((clickX >> 5) << 5) + 32));
+				if (((clickX >> 5) << 5) + 32 >= gameIn.player.x && (clickX >> 5) << 5 <= gameIn.player.x + gameIn.player.spriteWidth 
+						&& ((clickY >> 5) << 5) + 32 >= gameIn.player.y && (clickY >> 5) << 5 <= gameIn.player.y + gameIn.player.spriteHeight
+						&& Tile.tiles[t].getClass() != BackgroundDestructibleTile.class) return;
+				
 				gameIn.level.setTile(clickX >> 5, clickY >> 5, t);
 				if (Tile.tiles[t].getClass() == DestructibleTile.class) {
 					gameIn.level.setDurability(clickX >> 5, clickY >> 5, ((DestructibleTile) Tile.tiles[t]).getBaseDurability());
@@ -357,17 +417,20 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 			clickY = arg0.getY();
 			gameIn.player.inventory.setMouseLocation(new Dimension(clickX, clickY));
 		} else if (controlScheme == ControlScheme.GAMEPLAY) {
-			if (arg0.getButton() == MouseEvent.BUTTON1) {
-				Dimension clickLocation = gameIn.convertCoordinates(arg0.getX(), arg0.getY());
-				int clickX = clickLocation.width;
-				int clickY = clickLocation.height;
+			Dimension clickLocation = gameIn.convertCoordinates(arg0.getX(), arg0.getY());
+			int clickX = clickLocation.width;
+			int clickY = clickLocation.height;
+			if (SwingUtilities.isLeftMouseButton(arg0)) {
 				lastDestructibleX = clickX >> 5;
 				lastDestructibleY = clickY >> 5;
-				gameIn.level.checkPlantDestruction(clickX, clickY);
+				gameIn.level.checkLeftClickEntityCollision(clickX, clickY);
+			} else if (SwingUtilities.isRightMouseButton(arg0)) {
+				gameIn.level.checkRightClickEntityCollision(clickX, clickY);
 			}
 		}
 		
-		if (arg0.getButton() == MouseEvent.BUTTON1) leftButtonHeld = true;
+		if (SwingUtilities.isLeftMouseButton(arg0)) leftButtonHeld = true;
+		if (SwingUtilities.isRightMouseButton(arg0)) rightButtonHeld = true;
 	}
 
 	public void mouseReleased(MouseEvent arg0) {
@@ -389,7 +452,8 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 			}
 		}
 		
-		leftButtonHeld = false;
+		if (SwingUtilities.isLeftMouseButton(arg0)) leftButtonHeld = false;
+		if (SwingUtilities.isRightMouseButton(arg0)) leftButtonHeld = false;
 	}
 
 	public void mouseDragged(MouseEvent arg0) {
@@ -422,6 +486,8 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 			int clickY = clickLocation.height;
 	
 			updateTileInfo(clickX, clickY);
+			
+			gameIn.level.setMousePositionOnPanel(arg0.getX(), arg0.getY());
 		}
 		if (controlScheme == ControlScheme.INVENTORY) {
 			int clickX = arg0.getX();
@@ -431,11 +497,14 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 	}
 
 	public void mouseWheelMoved(MouseWheelEvent arg0) {
+		int scrollDelta = arg0.getWheelRotation();
 		if (controlScheme == ControlScheme.GAMEPLAY) {
-			if (arg0.getWheelRotation() > 0) for (int i = 0; i < arg0.getWheelRotation(); i++)  gameIn.player.inventory.incrementHotbarSlot();
-			if (arg0.getWheelRotation() < 0) for (int i = 0; i < -arg0.getWheelRotation(); i++) gameIn.player.inventory.decrementHotbarSlot();
+			if (scrollDelta > 0) for (int i = 0; i < scrollDelta; i++)  gameIn.player.inventory.incrementHotbarSlot();
+			if (scrollDelta < 0) for (int i = 0; i < -scrollDelta; i++) gameIn.player.inventory.decrementHotbarSlot();
 		} else if (controlScheme == ControlScheme.BASIC_CRAFTING) {
-			gameIn.basicCraftingGUI.handleScroll(arg0.getWheelRotation());
+			gameIn.basicCraftingGUI.handleScroll(scrollDelta);
+		} else if (controlScheme == ControlScheme.PAUSE_MENU) {
+			gameIn.pauseMenuGUI.handleScroll(scrollDelta);
 		}
 	}
 }

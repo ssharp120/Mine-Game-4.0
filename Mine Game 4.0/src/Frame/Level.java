@@ -1,10 +1,13 @@
 package Frame;
 
 import static Utilities.FileUtilities.*;
+import static Utilities.PhysicsUtilities.collisionLeft;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
 import java.io.File;
@@ -15,15 +18,22 @@ import java.util.List;
 import javax.imageio.ImageIO;
 
 import Entities.Crop;
+import Entities.ElectricalDevice;
 import Entities.Entity;
 import Entities.OxygenGenerator;
 import Entities.Plant;
 import Entities.Player;
+import Entities.PowerGenerator;
+import Entities.StoneFurnace;
+import Libraries.ItemFactory;
+import Libraries.MediaLibrary;
 import Tiles.BackgroundDestructibleTile;
 import Tiles.DestructibleTile;
 import Tiles.Platform;
 import Tiles.RandomizedTile;
 import Tiles.Tile;
+import UI.Ingredient;
+import UI.InventoryEntity;
 import UI.InventoryItem;
 import UI.InventoryTile;
 import Utilities.FileUtilities;
@@ -42,9 +52,12 @@ public class Level {
 	public int width, height;
 	public int xOffset, yOffset;
 	public int spawnX, spawnY;
+	public int currentMouseXOnPanel, currentMouseYOnPanel;
 	public int index;
 	protected BufferedImage image;
 	public Sky sky;
+	public ElectricalDevice floatingElectricalDevice = null;
+	private boolean potentialConnection = false;
 	
 	private List<Entity> entities = new ArrayList<Entity>();
 	
@@ -87,13 +100,13 @@ public class Level {
 		
 		for (int i = 0; i < 128; i++) {
 			for (int j = horizon; j < horizon + 128; j++) {
-				if (i < 64 || i - 64 + j - horizon < 72) exploredTiles[i][j] = true;
+				if (i - 64 + j - horizon < 72) exploredTiles[i][j] = true;
 			}
 		}
 		
 		// Add teaser fog
 		int p = (int) (Math.round(Math.random() * (double) (width - 16)) + 8);
-		for (int n = p; n < 8; n++) {
+		for (int n = p; n < width - 8; n++) {
 			if (height > 16 && horizon > 16)
 			tiles[n][14] = Tile.IRON_TILE.getId();
 			tiles[p][15] = Tile.IRON_TILE.getId();
@@ -131,10 +144,21 @@ public class Level {
 			}
 		}
 		
+		for (int i = 128; i < width; i++) {
+			for (int j = horizon; j < horizon + 128; j++) {
+				if (i - 64 - 128+ j - horizon > 72) exploredTiles[i][j] = false;
+			}
+		}
 	}
 	
-	protected int getHorizon() {
+	public int getHorizon() {
 		return horizon;
+	}
+	
+	public void exploreTile(int x, int y) {
+		if (x >= 0 && x < width && y >= 0 && y < height) {
+			exploredTiles[x][y] = true;
+		}
 	}
 	
 	private void loadLevelFromImage(BufferedImage image) {
@@ -221,6 +245,7 @@ public class Level {
 	public synchronized void tick() {
 		boolean oxygenConnected = false;
 		for (Entity e : getEntities()) {
+			if (e == null) continue;
 			e.tick();
 			if (e.getClass() == OxygenGenerator.class) {
 				if (Math.pow(Math.abs(e.x * 32 - entities.get(0).x + 32)^2 + Math.abs(e.y * 32 - entities.get(0).y + 64)^2, 0.5) < 22) {
@@ -239,7 +264,7 @@ public class Level {
 				}
 			}
 		}
-		sky.tick();
+		if (game != null && game.pauseMenuGUI != null && !game.pauseMenuGUI.isActive()) sky.tick();
 		if (!oxygenConnected) {
 			((Player) entities.get(0)).disconnectOxygen();
 			((Player) entities.get(0)).removeOxygen(0.01);
@@ -260,6 +285,13 @@ public class Level {
 			}
 		}
 		percentExplored = (double) exploredArea / (width * height) * 100;
+		
+		potentialConnection = floatingElectricalDevice != null;
+	}
+	
+	public void setMousePositionOnPanel(int x, int y) {
+		currentMouseXOnPanel = x;
+		currentMouseYOnPanel = y;
 	}
 	
 	public boolean isExplored(int x, int y) {
@@ -280,9 +312,29 @@ public class Level {
 			if (!woodFound) {
 				for (int i = 0; i < 5; i++) {
 					for (int j = 0; j < 3; j++) {
-						if (tiles[x + i][y + j] == Tile.LEAVES.getId()) tiles[x + i][y + j] = Tile.VOID.getId();
+						if (tiles[x + i][y + j] == Tile.LEAVES.getId()) tiles[x + i][y + j] = Tile.SKY.getId();
+						if (Math.random() < 0.25) ((Player) entities.get(0)).inventory.addItem(ItemFactory.createItem("i", new int[] {6, 1}));
 					}
 				}
+			}
+		}
+	}
+	
+	public void generateTree(int x, int baseY) {
+		int treeTop = (int) (baseY - Math.round(Math.random() * 8) - 5);
+		if (x >= 8 && x < width - 8 && baseY >= 16 && baseY < height) {
+			for (int i = -2; i <= 2; i++) {
+				for (int j = -2; j <= 2; j++) {
+					if(!(Math.abs(i) == 2 && Math.abs(j) == 2)) {
+						setTile(x + i, treeTop + j, Tile.LEAVES.getId());
+						setDurability(x + i, treeTop + j, ((BackgroundDestructibleTile) Tile.LEAVES).getDurability());
+					}
+				}
+			}
+			
+			for (int j = treeTop; j < baseY; j++) {
+				setTile(x, j, Tile.NATURAL_WOOD.getId());
+				setDurability(x, j, ((BackgroundDestructibleTile) Tile.NATURAL_WOOD).getDurability());
 			}
 		}
 	}
@@ -315,7 +367,7 @@ public class Level {
 		entities.add(new Crop(this, true, 0, (x << 5) + horizontalDelta, (y - 1) << 5));
 	}
 	
-	public synchronized void checkPlantDestruction(int clickX, int clickY) {
+	public synchronized void checkLeftClickEntityCollision(int clickX, int clickY) {
 		for (Entity e : entities) {
 			if (e != null && e.getClass() == Crop.class) {
 				//System.out.println("x: " + clickX + " y: " + clickY + " target x: " + e.x + " target y " + e.y + " target width: " + ((Crop) e).cropWidth + " target height: " + ((Crop) e).cropHeight);
@@ -326,8 +378,130 @@ public class Level {
 						((Player) entities.get(0)).inventory.addItem(i);
 					}
 				}
+			} else if (e != null && ElectricalDevice.class.isAssignableFrom(e.getClass())) {
+				//System.out.println("x: " + clickX + " y: " + clickY + " target x: " + ((e.x << 5) - 1) + " target y " + ((e.y << 5) - 16) + " target width: " + 36 + " target height: " + 48);
+				if (Utilities.PhysicsUtilities.checkIntersection(clickX, clickY, (e.x << 5) - 1, (e.y << 5) - 16, 36, 48, true)) {
+					if (!game.input.ctrl.isPressed() && game.input.shift.isPressed()) {
+						FileUtilities.log("Picked up an electrical device\n");
+						((ElectricalDevice) e).clearAllConnections();
+						((Player) entities.get(0)).inventory.addItem(new InventoryEntity(e));
+						e.markedForDeletion = true;
+						e = null;
+					} else if (game.input.ctrl.isPressed()) {
+						if (e.getClass() == PowerGenerator.class) {
+							if (((Player) entities.get(0)).inventory.getActiveItem() != null 
+									&& ((Player) entities.get(0)).inventory.getActiveItem().getClass() == Ingredient.class 
+									&& ((Ingredient) (((Player) entities.get(0)).inventory.getActiveItem())).getItemID() == 12)	{
+								FileUtilities.log("Fueled up power generator ");
+								int totalPower = 0;
+								int quantity = 0;
+								if (game.input.shift.isPressed()) {
+									while (((Ingredient) (((Player) entities.get(0)).inventory.getActiveItem())).getQuantity() >= 1) {
+										((Ingredient) (((Player) entities.get(0)).inventory.getActiveItem())).removeQuantity(1);
+										
+										double energy = 2000 + Math.floor(Math.random() * 1000);
+										
+										((PowerGenerator) e).insertFuel(energy);
+										quantity++;
+										totalPower += energy;
+									}
+								} else {
+									((Ingredient) (((Player) entities.get(0)).inventory.getActiveItem())).removeQuantity(1);
+									
+									double energy = 2000 + Math.floor(Math.random() * 1000);
+									
+									((PowerGenerator) e).insertFuel(energy);
+									quantity++;
+									totalPower += energy;
+								}
+								FileUtilities.log(String.format("Inserted " + quantity + " x coal into power generator [%.3f kW]\n", totalPower / 1000D));
+							}
+						}
+					} else {
+						FileUtilities.log("Clicked on an electrical device\n");
+						((ElectricalDevice) e).clearAllConnections();
+					}
+				}
+			} else if (e != null && e.getClass() == StoneFurnace.class) {
+				//System.out.println("x: " + clickX + " y: " + clickY + " target x: " + ((e.x << 5) - 1) + " target y " + ((e.y << 5) - 16) + " target width: " + 36 + " target height: " + 48);
+				if (Utilities.PhysicsUtilities.checkIntersection(clickX, clickY, (e.x << 5), (e.y << 5), 32, 32, true)) {
+					if (((Player) entities.get(0)).inventory.getActiveItem() != null 
+							&& ((Player) entities.get(0)).inventory.getActiveItem().getClass() == Ingredient.class 
+							&& ((Ingredient) (((Player) entities.get(0)).inventory.getActiveItem())).getItemID() == 12)	{
+						FileUtilities.log("Fueled up stone furnace with ");
+						int coal = 0;
+						if (!game.input.shift.isPressed()) {
+							coal = 1;
+							if (!((StoneFurnace) e).fuel()) coal = 0;
+						} else {
+							for(int i = 0; i <= ((Ingredient) (((Player) entities.get(0)).inventory.getActiveItem())).getQuantity(); i++) {
+								if (!((StoneFurnace) e).fuel()) break;
+								coal++;
+							}
+						}
+						FileUtilities.log(coal + " coal\n");
+						if (coal > 0) ((Ingredient) (((Player) entities.get(0)).inventory.getActiveItem())).removeQuantity(coal);
+					} else if (((Player) entities.get(0)).inventory.getActiveItem() != null 
+							&& ((Player) entities.get(0)).inventory.getActiveItem().getClass() == InventoryTile.class 
+							&& (((InventoryTile) (((Player) entities.get(0)).inventory.getActiveItem())).getTileID() == Tile.IRON_ORE.getId()
+							|| ((InventoryTile) (((Player) entities.get(0)).inventory.getActiveItem())).getTileID() == Tile.COPPER_ORE.getId()
+							|| ((InventoryTile) (((Player) entities.get(0)).inventory.getActiveItem())).getTileID() == Tile.COBBLESTONE.getId()))	{
+						((StoneFurnace) e).setStoredItem(((Player) entities.get(0)).inventory.getActiveItem(), game.input.shift.isPressed());
+					}
+				}
 			}
 		}
+	}
+	
+	public synchronized void checkRightClickEntityCollision(int clickX, int clickY) {
+		for (Entity e : entities) {
+			if (e != null && ElectricalDevice.class.isAssignableFrom(e.getClass())) {
+				//System.out.println("x: " + clickX + " y: " + clickY + " target x: " + ((e.x << 5) - 1) + " target y " + ((e.y << 5) - 16) + " target width: " + 36 + " target height: " + 48);
+				
+				
+				if (Utilities.PhysicsUtilities.checkIntersection(clickX, clickY, (e.x << 5) - 1, (e.y << 5) - 16, 36, 48, true)) {
+					if (game.input.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY) {
+						FileUtilities.log("Right clicked on an electrical device\n");
+							if (floatingElectricalDevice == null) floatingElectricalDevice = (ElectricalDevice) e;
+							else if (!floatingElectricalDevice.equals(e)) {
+								double wireDistance = Math.sqrt((floatingElectricalDevice.x - e.x) * (floatingElectricalDevice.x - e.x) + (floatingElectricalDevice.y - e.y) * (floatingElectricalDevice.y - e.y));
+								// Check to see if the player has enough copper wire in their active item slot
+								if (((Player) entities.get(0)).inventory.getActiveItem() != null 
+										&& ((Player) entities.get(0)).inventory.getActiveItem().getClass() == Ingredient.class 
+										&& ((Ingredient) (((Player) entities.get(0)).inventory.getActiveItem())).getItemID() == 11
+										&& ((Ingredient) (((Player) entities.get(0)).inventory.getActiveItem())).getQuantity() > Math.ceil(wireDistance)) {
+									((Ingredient) (((Player) entities.get(0)).inventory.getActiveItem())).removeQuantity((int) Math.ceil(wireDistance));
+									FileUtilities.log((int) Math.ceil(wireDistance) + " wire consumed\n");
+									if (floatingElectricalDevice.connectDevice((ElectricalDevice) e, (int) Math.ceil(wireDistance))
+											&& ((ElectricalDevice) e).connectDevice(floatingElectricalDevice, (int) Math.ceil(wireDistance))) FileUtilities.log("Connected two electrical devices\n");
+									else {
+										FileUtilities.log("Connection failed: one or more devices refused connection ");
+										((ElectricalDevice) e).removeConnection(floatingElectricalDevice);
+										floatingElectricalDevice.removeConnection(((ElectricalDevice) e));
+										FileUtilities.log("\n");
+									}
+								} else {
+									FileUtilities.log("Connection failed: not enough wire (" + (int) Math.ceil(wireDistance) + " required)\n");
+									return;
+								}
+								
+								floatingElectricalDevice = null;
+							}
+							return;
+						}
+					}
+				} else if (e != null && e.getClass() == StoneFurnace.class) {
+					//System.out.println("x: " + clickX + " y: " + clickY + " target x: " + ((e.x << 5) - 1) + " target y " + ((e.y << 5) - 16) + " target width: " + 36 + " target height: " + 48);
+					if (Utilities.PhysicsUtilities.checkIntersection(clickX, clickY, (e.x << 5), (e.y << 5), 32, 32, true)) {
+						((StoneFurnace) e).removeItem(((Player) entities.get(0)).inventory, game.input.shift.isPressed());
+					}
+				}
+			}
+		
+		// Clear the selected device if the click does not occur on another device
+		if (floatingElectricalDevice != null) FileUtilities.log("Connection canceled\n");
+		floatingElectricalDevice = null;
+		return;
 	}
 	
 	public void explode(int x, int y) {
@@ -371,10 +545,35 @@ public class Level {
 	
 	public synchronized void draw(Graphics g, ImageObserver observer) { 
 		drawEntities(g, observer);
+		
+		Graphics2D g2 = (Graphics2D) g;
+		
+		if (potentialConnection) {
+			drawPotentialConnection(g2, floatingElectricalDevice);
+		}
+	}
+	
+	public void drawPotentialConnection(Graphics2D g2, ElectricalDevice d) {
+		double wireDistance = Math.sqrt((d.getLevelX() - currentMouseXOnPanel) * (d.getLevelX() - currentMouseXOnPanel)
+				+ (d.getLevelY() - currentMouseYOnPanel) * (d.getLevelY() - currentMouseYOnPanel));
+		
+		if (((Player) entities.get(0)).inventory.getActiveItem() != null 
+				&& ((Player) entities.get(0)).inventory.getActiveItem().getClass() == Ingredient.class 
+				&& ((Ingredient) (((Player) entities.get(0)).inventory.getActiveItem())).getItemID() == 11
+				&& ((Ingredient) (((Player) entities.get(0)).inventory.getActiveItem())).getQuantity() > Math.ceil(wireDistance / 32)) g2.setColor(Color.GREEN);
+		else g2.setColor(Color.RED);
+		
+		g2.setStroke(new BasicStroke(4));
+		g2.drawLine(currentMouseXOnPanel, currentMouseYOnPanel, d.getLevelX(), d.getLevelY());
+		
+		g2.setColor(Color.WHITE);
+		
+		g2.setFont(MediaLibrary.getFontFromLibrary("INFOFont"));
+		g2.drawString("Required wire: " + (int) Math.ceil(wireDistance / 32), d.getLevelX(), d.getLevelY() - 64);
 	}
 	
 	public void drawSky(Graphics g, Dimension resolution) {
-		sky.draw(g, resolution, game);
+		sky.draw(g, resolution, game, !game.isPaused());
 	}
 	
 	public GameLoop getGameLoop() {
@@ -407,6 +606,7 @@ public class Level {
 			setDurability(targetX, targetY, initialDurability - damage);
 			if (getDurability(targetX, targetY) <= 0) {
 				if (tiles[targetX][targetY] == 8) game.player.inventory.addItem(new InventoryTile(17, 1));
+				else if (tiles[targetX][targetY] == 21) game.player.inventory.addItem(new Ingredient(12, 3 + (int) Math.ceil(8 * Math.random())));
 				else game.player.inventory.addItem(new InventoryTile(tiles[targetX][targetY], 1));
 				setTile(targetX, targetY, 2);
 			}

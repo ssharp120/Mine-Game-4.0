@@ -14,12 +14,7 @@ public class ItemFactory {
 		switch (itemType) {
 		case "i": if (attributes.length > 1) return new Ingredient(attributes[0], attributes[1]);
 		case "b": if (attributes.length > 1) return new InventoryTile(attributes[0], attributes[1]);
-		case "e": if (attributes.length >= 1) {
-				switch (attributes[0]) {
-					case 0: return new InventoryEntity(0, 2); 
-					case 1: return new InventoryEntity(1, 2); 
-				}
-			}
+		case "e": if (attributes.length >= 1 && attributes[0] >= 0) return new InventoryEntity(attributes[0], 2);
 		}
 		
 		return null;

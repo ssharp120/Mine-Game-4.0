@@ -11,9 +11,7 @@ public class StorageContainer extends Entity {
 	public InventoryItem[] inventory;
 	
 	public StorageContainer(Level level, boolean active, int x, int y, int capacity) {
-		super(level, active);
-		this.x = x;
-		this.y = y;
+		super(3, level, active, x, y);
 		inventory = new InventoryItem[capacity];
 	}
 

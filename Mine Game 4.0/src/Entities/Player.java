@@ -59,9 +59,9 @@ public class Player extends Mob {
 	private boolean toggleInfo;
 	private boolean toggleInventory;
 	private boolean toggleCrafting;
-	private boolean toggleCreativeBlocks;
-	private boolean toggleCreativeIngredients;
+	private boolean toggleCreativeCrafting;
 	private boolean toggleCreativeTools;
+	private boolean toggleCreativeView;
 	private boolean toggleCreativeFlying;
 	private boolean toggleCreativeEntities;
 	private boolean toggleRefresh;
@@ -91,6 +91,9 @@ public class Player extends Mob {
 		
 		// Ensure health is never negative
 		if (health <= 0.0) health = 0.0;
+		
+		// Java...
+		if (controls.esc.isPressed() && controls.getControlScheme() == ControlScheme.GAMEPLAY) controls.setControlScheme(ControlScheme.PAUSE_MENU); 
 		
 		if (oxygen == 0) {
 			// Suffocate if out of oxygen
@@ -395,6 +398,8 @@ public class Player extends Mob {
 			}
 		} catch (ConcurrentModificationException c) {
 			// Do nothing
+		} catch (NullPointerException n) {
+			// Do nothing
 		} catch (Exception e) {
 			FileUtilities.log(e.getMessage());
 		}
@@ -583,12 +588,15 @@ public class Player extends Mob {
 	public void handleToggles() {
 		if (controls.func1.isPressed()) {
 			game.miniMapScale = 1;
+			game.drawMiniMap = true;
 		}
 		if (controls.func2.isPressed()) {
 			game.miniMapScale = 2;
+			game.drawMiniMap = true;
 		}
 		if (controls.func4.isPressed()) {
 			game.miniMapScale = 4;
+			game.drawMiniMap = true;
 		}
 		if (controls.miniMap.isPressed()) {
 			if (toggleMiniMap) {
@@ -621,24 +629,16 @@ public class Player extends Mob {
 			toggleCrafting = true;
 		}
 		if (controls.func5.isPressed()) {
-			if (toggleCreativeBlocks) {
-				for (int i = 3; i <= 19; i++) {
-					inventory.addItem(new InventoryTile(i, inventory.getStackSize()/8));
-				}
-			}
-			toggleCreativeBlocks = false;
+			if (toggleCreativeCrafting) game.basicCraftingGUI.toggleFreeCrafting();
+			toggleCreativeCrafting = false;
 		} else {
-			toggleCreativeBlocks = true;
+			toggleCreativeCrafting = true;
 		}
 		if (controls.func6.isPressed()) {
-			if (toggleCreativeIngredients) {
-				for (int i = 0; i <= 3; i++) {
-					inventory.addItem(new Ingredient(i, inventory.getStackSize()/8));
-				}
-			}
-			toggleCreativeIngredients = false;
+			if (toggleCreativeView) game.toggleFog();
+			toggleCreativeView = false;
 		} else {
-			toggleCreativeIngredients = true;
+			toggleCreativeView = true;
 		}
 		if (controls.func7.isPressed()) {
 			if (toggleCreativeTools) {

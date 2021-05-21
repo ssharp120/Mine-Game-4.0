@@ -22,6 +22,7 @@ import javax.swing.JPanel;
 
 import Entities.OxygenGenerator;
 import Entities.Player;
+import Frame.InputHandler.ControlScheme;
 import Libraries.AttributeLibrary;
 import Libraries.MediaLibrary;
 import Libraries.RecipeLibrary;
@@ -31,6 +32,9 @@ import Tiles.BackgroundDestructibleTile;
 import Tiles.DestructibleTile;
 import Tiles.Tile;
 import UI.BasicCraftingGUI;
+import UI.Ingredient;
+import UI.InventoryItem;
+import UI.PauseMenuGUI;
 import UI.WorkbenchGUI;
 import Utilities.AudioManager;
 import Utilities.Calendar;
@@ -66,6 +70,9 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	public Tile displayTile;
 	public double tileDurability;
 	
+	public boolean displayFog = true;
+	public boolean displayUIs = false;
+	
 	public boolean drawHUD;
 	public boolean drawMiniMap = true;
 	public int miniMapScale = 4;
@@ -74,15 +81,31 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	
 	public BasicCraftingGUI basicCraftingGUI;
 	public WorkbenchGUI workbenchGUI;
+	public PauseMenuGUI pauseMenuGUI;
 	
 	public static void main(String[] args) {
 		new PreloadDialog();
 	}
 
 	public void tick() {
+		if (pauseMenuGUI != null && pauseMenuGUI.isActive()) {input.setControlScheme(ControlScheme.PAUSE_MENU); pauseMenuGUI.tick(); return;}
+		if (input != null && input.esc.isPressed()) {pauseMenuGUI.setActive(true); input.esc.toggle(false); return;}
+		
 		ticks++;
 		checkFullscreenFocus();
 		level.tick();
+		
+		if (input.getControlScheme() == ControlScheme.BASIC_CRAFTING && basicCraftingGUI != null) {
+			if (input.up.isPressed() && input.down.isPressed()) {
+				// Do nothing
+			} else if (input.up.isPressed()) {
+				basicCraftingGUI.handleScroll(-1);
+			} else if (input.down.isPressed()) {
+				basicCraftingGUI.handleScroll(1);
+			}
+			if (input.home.isPressed()) basicCraftingGUI.returnToTop();
+			if (input.end.isPressed()) basicCraftingGUI.scrollToBottom();
+		}
 	}
 	
 	public void resetWindow() {
@@ -181,8 +204,8 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		
 		checkDisplayMode();
 		
-		initializeGUIs();
 		initializeGameElements();
+		initializeGUIs();
 	}
 	
 	public void exitSequence() {
@@ -256,11 +279,28 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	public void initializeGUIs() {
 		workbenchGUI = new WorkbenchGUI();
 		basicCraftingGUI = new BasicCraftingGUI(this);
+		pauseMenuGUI = new PauseMenuGUI(this, input);
 	}
 	
 	public void disableAllGUIs() {
 		workbenchGUI.setActive(false);
 		basicCraftingGUI.setActive(false);
+	}
+	
+	public void toggleFog() {
+		displayFog = !displayFog;
+	}
+	
+	public boolean shouldDisplayUIs() {
+		return displayUIs;
+	}
+	
+	public void toggleDisplayUIs() {
+		displayUIs = !displayUIs;
+	}
+	
+	public boolean isPaused() {
+		return (pauseMenuGUI != null && pauseMenuGUI.isActive());
 	}
 	
 	public void render(Graphics g) {
@@ -280,55 +320,14 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			level.drawSky(g, drawResolution);
 		}
 		
-		try {
-			if (level != null) {				
-				int xShift = 0, yShift = 0;
-				if (level.width << 5 < (int) drawResolution.getWidth()) xShift = ((int) drawResolution.getWidth() - (level.width << 5)) / 2; 
-				if (level.height << 5 < (int) drawResolution.getHeight()) yShift = ((int) drawResolution.getHeight() - (level.height << 5)) / 2;
-				xOffset += xShift;
-				yOffset += yShift;
-				
-				// Draw tile Images //
-				for (int y = (yOffset >> 5) - 1; y < ((yOffset + ((int) drawResolution.getHeight())) >> 5) + 1; y++) {
-					for (int x = (xOffset >> 5) - 1; x < ((xOffset + ((int) drawResolution.getWidth())) >> 5) + 1; x++) {
-			            	boolean ds = false;
-		            	    int id0 = level.getTile(x, y).getId();
-		            	    Image im0 = null;
-		            	    for (Tile t : Tile.tiles) {
-		            	    	if (t != null) {
-		            	    		if (id0 == t.getId()) {
-		            	    			im0 = MediaLibrary.getImageFromLibrary(t.getId());
-		            	    			if (t.getClass() == DestructibleTile.class) {
-		            	    				double d = level.getDurability(x, y);
-		            	    				if (d != ((DestructibleTile) t).durability) {
-		            	    					ds = true;
-		            	    				}
-		            	    			}
-		            	    			if (t.getClass() == BackgroundDestructibleTile.class) {
-		            	    				double d = level.getDurability(x, y);
-		            	    				if (d != ((BackgroundDestructibleTile) t).durability) {
-		            	    					ds = true;
-		            	    				}
-		            	    			}
-		            	    		}
-		            	    	}
-		            	    }
-		            	    
-		            	    if (x > 0 && y > 0 && y > level.getHorizon() && x < level.width && y < level.width && (!level.isExplored(x, y) || im0 == null)) {
-		            	    	// Draw fog
-		            	    	im0 = MediaLibrary.getImageFromLibrary(1);
-		            	    }
-		            	    g.drawImage(im0, (x << 5) - xOffset, (y << 5) - yOffset, this);
-		            	    if (ds) g.drawImage(MediaLibrary.getImageFromLibrary(8192), (x << 5) - xOffset, (y << 5) - yOffset, this);
-	                }
-	            }
-				
-				level.draw(g, this);
-			}
-		} catch (NullPointerException e) {
-			FileUtilities.log("Null tile");
-		} catch (Exception e) {
-			e.printStackTrace();
+		if (pauseMenuGUI != null && pauseMenuGUI.isActive()) {
+			renderTiles(g, false);
+			
+			// What is this language? Imagine not casting every function input inline...
+			pauseMenuGUI.draw((Graphics2D) g, (int) drawResolution.getWidth(), (int) drawResolution.getHeight());
+			return;
+		} else {
+			renderTiles(g, true);
 		}
 		
 		if (drawHUD) drawHUD(g);
@@ -363,105 +362,171 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		}
 		
 		if (drawMiniMap) {
-			Image miniMap;
-			int shiftX = 256;
-			int shiftY = 256;
-			if (miniMapScale > 2) {
-				shiftX = 64;
-				shiftY = 64;
-			}
-			
-			if (miniMapScale == 1) {
-				miniMap = (Image) level.drawMiniMap(miniMapScale, miniMapScale);
-				g.drawImage(miniMap, (int) drawResolution.getWidth() - miniMap.getWidth(this) - shiftX, shiftY, this);
-				g.setColor(Color.RED);
-				g.drawOval((int) drawResolution.getWidth() - miniMap.getWidth(this) - shiftX - 2 + (player.x >> 5), shiftY - 2 + (player.y >> 5), 4, 4);
-			}
-			else {
-				int playerX;
-				int playerY;
-				boolean isCenteredX = true;
-				boolean isCenteredY = true;
-				int drawTrackerX = 128;
-				int drawTrackerY = 128;
-				int modifier;
-				
-				if (miniMapScale == 4) modifier = 2;
-				else modifier = 1;
-				
-				// Determine whether the minimap will be within the bounds
-				if (player.x >> 5 + level.width / (miniMapScale * miniMapScale * 2) * modifier < level.width && player.x >> 5 > level.width / (miniMapScale * miniMapScale * 2) * modifier) {
-					playerX = player.x >> 5;
-				} else if (player.x >> 5 + level.width / (miniMapScale * miniMapScale * 2) * modifier >= level.width) {
-					playerX = level.width - level.width / (miniMapScale * miniMapScale * 2) * modifier - 1;
-				}
-				else {
-					playerX = level.width / (miniMapScale * miniMapScale * 2) * modifier + 1;
-					isCenteredX = false;
-				}
-				
-				if (player.y >> 5 + level.height / (miniMapScale * miniMapScale * 2) * modifier < level.height && player.y >> 5 > level.height / (miniMapScale * miniMapScale * 2) * modifier) {
-					playerY = player.y >> 5;
-				} else if (player.y >> 5 + level.height / (miniMapScale * miniMapScale * 2) * modifier >= level.height) {
-					playerY = level.height - level.height / (miniMapScale * miniMapScale * 2) * modifier - 1;
-				}
-				else {
-					playerY = level.height / (miniMapScale * miniMapScale * 2) * modifier + 1;
-					isCenteredY = false;
-				}
-				
-				miniMap = null;
-				try {
-					miniMap = (Image) level.drawMiniMap(miniMapScale, miniMapScale).getSubimage(
-							(playerX - level.width / (miniMapScale * miniMapScale * 2) * modifier)/miniMapScale, 
-							(playerY - level.height / (miniMapScale * miniMapScale * 2) * modifier)/miniMapScale, 
-							level.width / (miniMapScale * miniMapScale * miniMapScale) * modifier, 
-							level.height / (miniMapScale * miniMapScale * miniMapScale) * modifier);
-					drawMiniMap = true;
-				} catch (Exception e) {
-					FileUtilities.log(e.getMessage());
-					drawMiniMap = false;
-				}
-				
-				if (drawMiniMap) {
-					if (miniMapScale == 2) {
-						if (isCenteredX) drawTrackerX = (int) drawResolution.getWidth() - miniMap.getWidth(this) - drawResolution.width / 10 + miniMap.getWidth(this);
-						else {
-							drawTrackerX = (int) drawResolution.getWidth() - miniMap.getWidth(this) - drawResolution.width / 10 + (player.x >> 5);
-						}
-						if (isCenteredY) drawTrackerY = drawResolution.height / 80 + miniMap.getHeight(this);
-						else {
-							drawTrackerY = drawResolution.height / 80 + (player.y >> 5);
-						}
-						g.drawImage(miniMap, (int) drawResolution.getWidth() - miniMap.getWidth(this) - drawResolution.width / 10, drawResolution.height / 80, 2 * miniMap.getWidth(this), 2 * miniMap.getHeight(this), this);
-					}
-					if (miniMapScale == 4) {
-						if (isCenteredX) drawTrackerX = (int) drawResolution.getWidth() - miniMap.getWidth(this) * 4 - drawResolution.width / 10 + 4 * miniMap.getWidth(this);
-						else {
-							drawTrackerX = (int) drawResolution.getWidth() - miniMap.getWidth(this) * 4 - drawResolution.width / 10 + 4 * (player.x >> 6);
-						}
-						if (isCenteredY) drawTrackerY = drawResolution.height / 80 + 4 * miniMap.getHeight(this);
-						else {
-							drawTrackerY = drawResolution.height / 80 + 4 * (player.y >> 6);
-						}
-						g.drawImage(miniMap, (int) drawResolution.getWidth() - miniMap.getWidth(this) * 4 - drawResolution.width / 10, drawResolution.height / 80, 8 * miniMap.getWidth(this), 8 * miniMap.getHeight(this), this);
-					}
-					if (miniMapScale == 2 || miniMapScale == 4) {
-						g.setColor(Color.RED);
-						g.drawOval(drawTrackerX - 2, drawTrackerY - 2, 4, 4);
-					}
-				}
-			}
+			renderMiniMap(g);
 		}
 		
 		if (basicCraftingGUI.isActive()){
-			basicCraftingGUI.draw(g, drawResolution.width, drawResolution.height, this);
+			basicCraftingGUI.draw(g, drawResolution.width, drawResolution.height, this, input);
 		}
 		
 		g.setFont(MediaLibrary.getFontFromLibrary("INFOFont"));
-		g.drawString("FPS: " + FPS, (int) drawResolution.getWidth() - 100, (int) drawResolution.getHeight() - 32);
+		//g.drawString("FPS: " + FPS, (int) drawResolution.getWidth() - 100, (int) drawResolution.getHeight() - 32);
+		g.drawString("UPS: " + FPS, (int) drawResolution.getWidth() - 100, (int) drawResolution.getHeight() - 32);
 	}
 	
+	public void renderTiles(Graphics g, boolean renderLevel) {
+		try {
+			if (level != null) {				
+				int xShift = 0, yShift = 0;
+				if (level.width << 5 < (int) drawResolution.getWidth()) xShift = ((int) drawResolution.getWidth() - (level.width << 5)) / 2; 
+				if (level.height << 5 < (int) drawResolution.getHeight()) yShift = ((int) drawResolution.getHeight() - (level.height << 5)) / 2;
+				xOffset += xShift;
+				yOffset += yShift;
+				
+				// Draw tile Images //
+				for (int y = (yOffset >> 5) - 1; y < ((yOffset + ((int) drawResolution.getHeight())) >> 5) + 1; y++) {
+					for (int x = (xOffset >> 5) - 1; x < ((xOffset + ((int) drawResolution.getWidth())) >> 5) + 1; x++) {
+			            	boolean ds = false;
+		            	    int id0 = level.getTile(x, y).getId();
+		            	    Image im0 = null;
+		            	    for (Tile t : Tile.tiles) {
+		            	    	if (t != null) {
+		            	    		if (id0 == t.getId()) {
+		            	    			im0 = MediaLibrary.getImageFromLibrary(t.getId());
+		            	    			if (t.getClass() == DestructibleTile.class) {
+		            	    				double d = level.getDurability(x, y);
+		            	    				if (d != ((DestructibleTile) t).durability) {
+		            	    					ds = true;
+		            	    				}
+		            	    			}
+		            	    			if (t.getClass() == BackgroundDestructibleTile.class) {
+		            	    				double d = level.getDurability(x, y);
+		            	    				if (d != ((BackgroundDestructibleTile) t).durability) {
+		            	    					ds = true;
+		            	    				}
+		            	    			}
+		            	    		}
+		            	    	}
+		            	    }
+		            	    
+		            	    if (displayFog && x > 0 && y > 0 && y > level.getHorizon() && x < level.width && y < level.width && (!level.isExplored(x, y) || im0 == null)) {
+		            	    	im0 = MediaLibrary.getImageFromLibrary(1);
+		            	    }
+		            	    g.drawImage(im0, (x << 5) - xOffset, (y << 5) - yOffset, this);
+		            	    if (ds) g.drawImage(MediaLibrary.getImageFromLibrary(8192), (x << 5) - xOffset, (y << 5) - yOffset, this);
+	                }
+	            }
+				
+				if (renderLevel) level.draw(g, this);
+			}
+		} catch (NullPointerException e) {
+			FileUtilities.log("\t[Null tile]", true);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void renderMiniMap(Graphics g) {
+		boolean hasMap = false;
+		// Check if the player has a map
+		InventoryItem[] currentItems = player.inventory.getItems();
+		for (InventoryItem item : currentItems) {
+			if (item != null && item.getClass() == Ingredient.class && ((Ingredient) item).getItemID() == 5) hasMap = true;
+		}
+		
+		if (!hasMap) miniMapScale = 4;
+		
+		Image miniMap;
+		int shiftX = 256;
+		int shiftY = 256;
+		if (miniMapScale > 2) {
+			shiftX = 64;
+			shiftY = 64;
+		}
+		
+		if (miniMapScale == 1) {
+			miniMap = (Image) level.drawMiniMap(miniMapScale, miniMapScale);
+			g.drawImage(miniMap, (int) drawResolution.getWidth() - miniMap.getWidth(this) - shiftX, shiftY, this);
+			g.setColor(Color.RED);
+			g.drawOval((int) drawResolution.getWidth() - miniMap.getWidth(this) - shiftX - 2 + (player.x >> 5), shiftY - 2 + (player.y >> 5), 4, 4);
+		}
+		else {
+			int playerX;
+			int playerY;
+			boolean isCenteredX = true;
+			boolean isCenteredY = true;
+			int drawTrackerX = 128;
+			int drawTrackerY = 128;
+			int modifier;
+			
+			if (miniMapScale == 4) modifier = 2;
+			else modifier = 1;
+			
+			// Determine whether the minimap will be within the bounds
+			if (player.x >> 5 + level.width / (miniMapScale * miniMapScale * 2) * modifier < level.width && player.x >> 5 > level.width / (miniMapScale * miniMapScale * 2) * modifier) {
+				playerX = player.x >> 5;
+			} else if (player.x >> 5 + level.width / (miniMapScale * miniMapScale * 2) * modifier >= level.width) {
+				playerX = level.width - level.width / (miniMapScale * miniMapScale * 2) * modifier - 1;
+			}
+			else {
+				playerX = level.width / (miniMapScale * miniMapScale * 2) * modifier + 1;
+				isCenteredX = false;
+			}
+			
+			if (player.y >> 5 + level.height / (miniMapScale * miniMapScale * 2) * modifier < level.height && player.y >> 5 > level.height / (miniMapScale * miniMapScale * 2) * modifier) {
+				playerY = player.y >> 5;
+			} else if (player.y >> 5 + level.height / (miniMapScale * miniMapScale * 2) * modifier >= level.height) {
+				playerY = level.height - level.height / (miniMapScale * miniMapScale * 2) * modifier - 1;
+			}
+			else {
+				playerY = level.height / (miniMapScale * miniMapScale * 2) * modifier + 1;
+				isCenteredY = false;
+			}
+			
+			miniMap = null;
+			try {
+				miniMap = (Image) level.drawMiniMap(miniMapScale, miniMapScale).getSubimage(
+						(playerX - level.width / (miniMapScale * miniMapScale * 2) * modifier)/miniMapScale, 
+						(playerY - level.height / (miniMapScale * miniMapScale * 2) * modifier)/miniMapScale, 
+						level.width / (miniMapScale * miniMapScale * miniMapScale) * modifier, 
+						level.height / (miniMapScale * miniMapScale * miniMapScale) * modifier);
+				drawMiniMap = true;
+			} catch (Exception e) {
+				FileUtilities.log(e.getMessage());
+				drawMiniMap = false;
+			}
+			
+			if (drawMiniMap) {
+				if (miniMapScale == 2) {
+					if (isCenteredX) drawTrackerX = (int) drawResolution.getWidth() - miniMap.getWidth(this) - drawResolution.width / 10 + miniMap.getWidth(this);
+					else {
+						drawTrackerX = (int) drawResolution.getWidth() - miniMap.getWidth(this) - drawResolution.width / 10 + (player.x >> 5);
+					}
+					if (isCenteredY) drawTrackerY = drawResolution.height / 80 + miniMap.getHeight(this);
+					else {
+						drawTrackerY = drawResolution.height / 80 + (player.y >> 5);
+					}
+					g.drawImage(miniMap, (int) drawResolution.getWidth() - miniMap.getWidth(this) - drawResolution.width / 10, drawResolution.height / 80, 2 * miniMap.getWidth(this), 2 * miniMap.getHeight(this), this);
+				}
+				if (miniMapScale == 4) {
+					if (isCenteredX) drawTrackerX = (int) drawResolution.getWidth() - miniMap.getWidth(this) * 4 - drawResolution.width / 10 + 4 * miniMap.getWidth(this);
+					else {
+						drawTrackerX = (int) drawResolution.getWidth() - miniMap.getWidth(this) * 4 - drawResolution.width / 10 + 4 * (player.x >> 6);
+					}
+					if (isCenteredY) drawTrackerY = drawResolution.height / 80 + 4 * miniMap.getHeight(this);
+					else {
+						drawTrackerY = drawResolution.height / 80 + 4 * (player.y >> 6);
+					}
+					g.drawImage(miniMap, (int) drawResolution.getWidth() - miniMap.getWidth(this) * 4 - drawResolution.width / 10, drawResolution.height / 80, 8 * miniMap.getWidth(this), 8 * miniMap.getHeight(this), this);
+				}
+				if (miniMapScale == 2 || miniMapScale == 4) {
+					g.setColor(Color.RED);
+					g.drawOval(drawTrackerX - 2, drawTrackerY - 2, 4, 4);
+				}
+			}
+		}
+	}
+	 
 	public void drawHUD(Graphics g) {
 		FontMetrics metr = getFontMetrics(MediaLibrary.getFontFromLibrary("HUDFont"));
 		

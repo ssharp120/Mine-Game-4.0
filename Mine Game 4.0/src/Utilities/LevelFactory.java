@@ -99,9 +99,10 @@ public class LevelFactory {
 					// Iron ore
 					if (Math.random() < 0.15) {
 						int ironWidth = (int) Math.round(10 * Math.random() + 1);
-						int depth = (int) Math.round(100 * Math.random());
+						int ironHeight = 6;
+						int depth = (int) Math.round(256 * Math.random());
 						for (int k = 0; k <= ironWidth; k++) {
-							for (int l = 0; l <= (int) Math.round(6 * Math.random() + 1); l++) {
+							for (int l = 0; l <= (int) Math.round(ironHeight * Math.random() + 1); l++) {
 								if (!(j - k >= i.getWidth() || j - k <= 0 || 512 + 17 + 32 + l + depth >= i.getHeight())) {
 									if (Math.random() > 0.15) i.setRGB(j - k, 512 + 17 + 32 + l + depth, Tile.IRON_ORE.getLevelColour());
 								}
@@ -110,6 +111,46 @@ public class LevelFactory {
 						
 						FileUtilities.logLevelGeneration("\tIron ore patch of width " + ironWidth + " generated between:");
 						FileUtilities.logLevelGeneration("\t\tx = "  + (j - ironWidth));
+						FileUtilities.logLevelGeneration("\t\t and");
+						FileUtilities.logLevelGeneration("\t\tx = "  + j);
+						FileUtilities.logLevelGeneration("\t\tat depth y = " + (512 + 17 + 32 + depth));
+					}
+					
+					// Copper ore
+					if (Math.random() < 0.05) {
+						int copperWidth = (int) Math.round(30 * Math.random() + 1);
+						int copperHeight = 4;
+						int depth = (int) Math.round(312 * Math.random());
+						for (int k = 0; k <= copperWidth; k++) {
+							for (int l = 0; l <= (int) Math.round(copperHeight * Math.random() + 1); l++) {
+								if (!(j - k >= i.getWidth() || j - k <= 0 || 512 + 17 + 32 + l + depth >= i.getHeight())) {
+									if (Math.random() > 0.15) i.setRGB(j - k, 512 + 17 + 32 + l + depth, Tile.COPPER_ORE.getLevelColour());
+								}
+							}
+						}
+						
+						FileUtilities.logLevelGeneration("\tCopper ore patch of width " + copperWidth + " generated between:");
+						FileUtilities.logLevelGeneration("\t\tx = "  + (j - copperWidth));
+						FileUtilities.logLevelGeneration("\t\t and");
+						FileUtilities.logLevelGeneration("\t\tx = "  + j);
+						FileUtilities.logLevelGeneration("\t\tat depth y = " + (512 + 17 + 32 + depth));
+					}
+					
+					// Coal ore
+					if (Math.random() < 0.25) {
+						int coalWidth = (int) Math.round(8 * Math.random() + 1);
+						int coalHeight = 8;
+						int depth = (int) Math.round(128 * Math.random());
+						for (int k = 0; k <= coalWidth; k++) {
+							for (int l = 0; l <= (int) Math.round(coalHeight * Math.random() + 1); l++) {
+								if (!(j - k >= i.getWidth() || j - k <= 0 || 512 + 17 + 32 + l + depth >= i.getHeight())) {
+									if (Math.random() > 0.25) i.setRGB(j - k, 512 + 17 + 32 + l + depth, Tile.COAL_ORE.getLevelColour());
+								}
+							}
+						}
+						
+						FileUtilities.logLevelGeneration("\tCoal ore patch of width " + coalWidth + " generated between:");
+						FileUtilities.logLevelGeneration("\t\tx = "  + (j - coalWidth));
 						FileUtilities.logLevelGeneration("\t\t and");
 						FileUtilities.logLevelGeneration("\t\tx = "  + j);
 						FileUtilities.logLevelGeneration("\t\tat depth y = " + (512 + 17 + 32 + depth));

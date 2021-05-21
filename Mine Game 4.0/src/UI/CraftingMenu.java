@@ -3,6 +3,8 @@ package UI;
 import java.awt.Graphics;
 import java.awt.image.ImageObserver;
 
+import Frame.InputHandler;
+
 public abstract class CraftingMenu {
 	private boolean isActive;
 	public int[] possibleRecipes;
@@ -24,5 +26,5 @@ public abstract class CraftingMenu {
 		isActive = !isActive;
 	}
 	
-	public abstract void draw(Graphics g, int screenWidth, int screenHeight, ImageObserver observer);
+	public abstract void draw(Graphics g, int screenWidth, int screenHeight, ImageObserver observer, InputHandler controls);
 }
