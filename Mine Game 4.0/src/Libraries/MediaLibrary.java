@@ -2,6 +2,7 @@ package Libraries;
 
 import static Utilities.FileUtilities.*;
 
+import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -52,6 +53,34 @@ public class MediaLibrary {
 		return b;
 	}
 	
+	public static BufferedImage rotateClockwise90(BufferedImage image) {
+		int height = image.getHeight();
+		int width = image.getWidth();
+		
+	    BufferedImage b = new BufferedImage(image.getHeight(), image.getWidth(), image.getType());
+
+	    Graphics2D g = b.createGraphics();
+	    g.translate((height - width) / 2, (height - width) / 2);
+	    g.rotate(Math.PI / 2, height / 2, width / 2);
+	    g.drawRenderedImage(image, null);
+
+	    return b;
+	}
+	
+	public static BufferedImage rotateClockwise90(Image image) {
+		int height = image.getHeight(null);
+		int width = image.getWidth(null);
+		
+	    BufferedImage b = new BufferedImage(image.getHeight(null), image.getWidth(null), BufferedImage.TYPE_INT_ARGB);
+
+	    Graphics2D g = b.createGraphics();
+	    g.translate((height - width) / 2, (height - width) / 2);
+	    g.rotate(Math.PI / 2, height / 2, width / 2);
+	    g.drawRenderedImage((BufferedImage) image, null);
+
+	    return b;
+	}
+	
 	public static void populateImageLibrary() {
 		Scanner imageFile = FileUtilities.getFileInternal("images.txt");
 		FileUtilities.log("Loading images..." + "\n");
@@ -85,11 +114,18 @@ public class MediaLibrary {
 		fontLibrary.put("Offset Numbering", new Font("Georgia", Font.PLAIN, 32));
 		fontLibrary.put("Monospace Numbering XL", new Font("Courier", Font.PLAIN, 128));
 		fontLibrary.put("Offset Numbering XL", new Font("Georgia", Font.PLAIN, 128));
+		fontLibrary.put("StatisticFont", new Font("Copperplate Gothic", Font.BOLD, 64));
+		fontLibrary.put("TechTreeFont", new Font("Copperplate Gothic", Font.PLAIN, 64));
 	}
 	
 	public static Font getFontFromLibrary(String fontIndex) {
 		if (!System.getProperty("os.name").startsWith("Windows")) return fontLibrary.get("OSFriendlyFont");
 		return fontLibrary.get(fontIndex);
+	}
+	
+	public static Font getFontFromLibrary(String fontIndex, int size) {
+		if (!System.getProperty("os.name").startsWith("Windows")) return fontLibrary.get("OSFriendlyFont");
+		return fontLibrary.get(fontIndex).deriveFont(size);
 	}
 }
 	

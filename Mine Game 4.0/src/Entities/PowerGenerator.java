@@ -55,7 +55,7 @@ public class PowerGenerator extends ElectricalDevice {
 		g.drawString("Fuel: " + String.format("%.3f", fuel / 1000) + "/" + (int) fuelCapacity / 1000 + " kWh", x * 32 - level.getGameLoop().xOffset - 32, y * 32 - level.getGameLoop().yOffset - 48 - 8);
 		drawConnections(g);
 	}
-
+	
 	public boolean checkConflict() {
 		return false;
 	}

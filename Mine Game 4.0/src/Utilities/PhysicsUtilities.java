@@ -15,7 +15,7 @@ public class PhysicsUtilities {
 		if (Math.abs((x + 32)/32) >= level.width || Math.abs((y + hitboxHeight)/32) >= level.height || y < 0) {
 			return false;
 		}
-		for (int i = 1; i < (hitboxWidth / 2) - 5; i++) {
+		for (int i = 1; i < (hitboxWidth / 2) - (hitboxWidth / 8); i++) {
 			Tile tile = level.getTile((5 + x + 2*i)/32, (y+1)/32);
 			// Resolve other tile interactions //
 			if(tile.isSolid() && tile.getClass() != Platform.class) {
@@ -35,8 +35,11 @@ public class PhysicsUtilities {
 		if (Math.abs((x + 32)/32) >= level.width || x < 0 || y < 0) {
 			return false;
 		}
-		for (int i = 1; i < (hitboxWidth / 2) - 5; i++) {
-			Tile tile = level.getTile((5 + x + 2*i)/32, (y + hitboxHeight - 8)/32);
+		int delta = 0;
+		if (hitboxHeight > 32) delta = (hitboxHeight) / 8 - 4;
+		if (delta > 8) delta = 8;
+		for (int i = 1; i < (hitboxWidth / 2) - (hitboxWidth / 8); i++) {
+			Tile tile = level.getTile((5 + x + 2*i)/32, (y + hitboxHeight - delta)/32);
 			// Resolve other tile interactions //
 			if(tile.isSolid()) {
 				if (tile.getClass() == Platform.class) {
@@ -60,7 +63,7 @@ public class PhysicsUtilities {
 		if (Math.abs((x + 32)/32) >= level.width || Math.abs((y + hitboxHeight)/32) >= level.height || y < 0) {
 			return false;
 		}
-		for (int i = 1; i < (hitboxWidth / 2) - 5; i++) {
+		for (int i = 1; i < (hitboxWidth / 2) - (hitboxWidth / 8); i++) {
 			Tile tile = level.getTile((5 + x + 2*i)/32, (y+1)/32);
 			// Resolve other tile interactions //
 			if(tile.isSolid() && tile.getClass() != Platform.class) {
@@ -80,8 +83,11 @@ public class PhysicsUtilities {
 		if (Math.abs((x + 32)/32) >= level.width || x < 0 || y < 0) {
 			return false;
 		}
-		for (int i = 1; i < (hitboxWidth / 2) - 5; i++) {
-			Tile tile = level.getTile((5 + x + 2*i)/32, (y + hitboxHeight - 8)/32);
+		int delta = 0;
+		if (hitboxHeight > 32) delta = (hitboxHeight) / 8 - 4;
+		if (delta > 8) delta = 8;
+		for (int i = 1; i < (hitboxWidth / 2) - (hitboxWidth / 8); i++) {
+			Tile tile = level.getTile((5 + x + 2*i)/32, (y + hitboxHeight - delta)/32);
 			// Resolve other tile interactions //
 			if(tile.isSolid() && tile.getClass() != Platform.class) {
 				return false;
@@ -100,7 +106,7 @@ public class PhysicsUtilities {
 		if (Math.abs((y + hitboxHeight)/32) >= level.height || x < 0 || y < 0) {
 			return false;
 		}
-		for (int i = 1; i < (hitboxHeight / 4) - 2; i++) {
+		for (int i = 1; i < (hitboxHeight / 4) - (hitboxHeight / 32); i++) {
 			Tile tile = level.getTile((x + hitboxWidth - 2)/32, (y + 4*i)/32);
 			// Resolve other tile interactions //
 			if(tile.isSolid() && tile.getClass() != Platform.class) {
@@ -120,7 +126,7 @@ public class PhysicsUtilities {
 		if (Math.abs((x + 32)/32) >= level.width || Math.abs((y + hitboxHeight)/32) >= level.height || x < 0) {
 			return false;
 		}
-		for (int i = 1; i < (hitboxHeight / 4) - 2; i++) {
+		for (int i = 1; i < (hitboxHeight / 4) - (hitboxHeight / 32); i++) {
 			Tile tile = level.getTile((x + 2)/32, (y + 4*i)/32);
 			// Resolve other tile interactions //
 			if(tile.isSolid() && tile.getClass() != Platform.class) {

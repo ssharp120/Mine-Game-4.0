@@ -20,10 +20,14 @@ import javax.imageio.ImageIO;
 import Entities.Crop;
 import Entities.ElectricalDevice;
 import Entities.Entity;
+import Entities.Mob;
 import Entities.OxygenGenerator;
+import Entities.PhysicalItem;
 import Entities.Plant;
 import Entities.Player;
 import Entities.PowerGenerator;
+import Entities.ProductionDevice;
+import Entities.Projectile;
 import Entities.StoneFurnace;
 import Libraries.ItemFactory;
 import Libraries.MediaLibrary;
@@ -31,12 +35,17 @@ import Tiles.BackgroundDestructibleTile;
 import Tiles.DestructibleTile;
 import Tiles.Platform;
 import Tiles.RandomizedTile;
+import Tiles.SolidTile;
 import Tiles.Tile;
+import UI.InventoryTile;
+import UI.InventoryTool;
+import UI.ColorSelector;
 import UI.Ingredient;
 import UI.InventoryEntity;
 import UI.InventoryItem;
-import UI.InventoryTile;
+import Utilities.AudioManager;
 import Utilities.FileUtilities;
+import Utilities.PhysicsUtilities;
 
 public class Level {
 	
@@ -49,6 +58,9 @@ public class Level {
 	private double percentExplored;
 	private int horizon;
 	private double[][] durabilities;
+	private double[][] baseDurabilities;
+	private byte[][] discreteLightLevels;
+	private byte skyLightLevel = -120;
 	public int width, height;
 	public int xOffset, yOffset;
 	public int spawnX, spawnY;
@@ -58,11 +70,17 @@ public class Level {
 	public Sky sky;
 	public ElectricalDevice floatingElectricalDevice = null;
 	private boolean potentialConnection = false;
+	private boolean leftButtonHeld;
+	private int maxProjectiles = 65536;
+	private int currentProjectiles;
+	private double[][] conveyorSpeeds;
+	private int[][] tileColors;
 	
 	private List<Entity> entities = new ArrayList<Entity>();
+	private List<Entity> queuedEntities = new ArrayList<Entity>();
 	
-	public Level(BufferedImage image, String name, int i, GameLoop mg, int x, int y) {
-		index = i;
+	public Level(BufferedImage image, String name, int index, GameLoop mg, int x, int y) {
+		this.index = index;
 		spawnX = x;
 		spawnY = y;
 		sky = new Sky("sky1", game);
@@ -70,10 +88,21 @@ public class Level {
 		this.loadLevelFromImage(image);
 		game = mg;
 		loadHorizon();
+		
+		discreteLightLevels = new byte[width][height];
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				discreteLightLevels[i][j] = -100;
+			}
+		}
+		
+		initDiscreteLightLevels();
+		initConveyorSpeeds();
+		initTileColors();
 	}
 	
-	public Level(String path, String name, int i, GameLoop mg, int x, int y) {
-		index = i;
+	public Level(String path, String name, int indes, GameLoop mg, int x, int y) {
+		this.index = index;
 		spawnX = x;
 		spawnY = y;
 		sky = new Sky("sky1", game);
@@ -84,7 +113,110 @@ public class Level {
             this.loadLevelFromFile(filePath);
             game = mg;
         }
+		
+		initDiscreteLightLevels();
+		initConveyorSpeeds();
+		initTileColors();
 	}
+	
+	public void initDiscreteLightLevels() {
+		discreteLightLevels = new byte[width][height];
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				discreteLightLevels[i][j] = 0;
+			}
+		}
+	}
+	
+	public void initConveyorSpeeds() {
+		conveyorSpeeds = new double[width][height];
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				conveyorSpeeds[i][j] = 0;
+			}
+		}
+	}
+	
+	public void initTileColors() {
+		tileColors = new int[width][height];
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				tileColors[i][j] = -1;
+			}
+		}
+	}
+	
+	public boolean hasTileColor(int x, int y) {
+		return (inBounds(x, y));
+	}
+	
+	public boolean inBounds(int x, int y) {
+		return x >= 0 && y >= 0 && x < width && y < height;
+	}
+	
+	public Color getTileColor(int x, int y) {
+		if (hasTileColor(x, y)) return new Color(tileColors[x][y]);
+		else return null;
+	}
+	
+	public void setTileColor(int x, int y, int color) {
+		tileColors[x][y] = color;
+	}
+	
+	public double getConveyorSpeed(int x, int y) {
+		if (x > 0 && y > 0 && x < width && y < height) {
+			return conveyorSpeeds[x][y];
+		} else return 0;
+	}
+	
+	public void flipConveyor(int x, int y) {
+		int i = x;
+		
+		// Expand left
+		while (i > 0 && tiles[i][y] >= Tile.CONVEYOR.getId() && tiles[i][y] <= Tile.CONVEYOR_MIDDLE.getId()) {
+			conveyorSpeeds[i][y] = -conveyorSpeeds[i][y];
+			i--;
+		}
+		
+		// Expand right
+		i = x + 1;
+		while (i < width && tiles[i][y] >= Tile.CONVEYOR.getId() && tiles[i][y] <= Tile.CONVEYOR_MIDDLE.getId()) {
+			conveyorSpeeds[i][y] = -conveyorSpeeds[i][y];
+			i++;
+		}
+	}
+	
+	public void setConveyor(int x, int y, double speed) {
+		int i = x;
+		
+		// Expand left
+		while (i > 0 && tiles[i][y] >= Tile.CONVEYOR.getId() && tiles[i][y] <= Tile.CONVEYOR_MIDDLE.getId()) {
+			conveyorSpeeds[i][y] = speed;
+			i--;
+		}
+		
+		// Expand right
+		i = x + 1;
+		while (i < width && tiles[i][y] >= Tile.CONVEYOR.getId() && tiles[i][y] <= Tile.CONVEYOR_MIDDLE.getId()) {
+			conveyorSpeeds[i][y] = speed;
+			i++;
+		}
+	}
+	
+	public void checkConveyor(int x, int y) {
+		if (x > 0 && y >= 0 && x < width && y <= height) {
+			if (tiles[x][y] >= Tile.CONVEYOR.getId() && tiles[x][y] <= Tile.CONVEYOR_MIDDLE.getId()) {
+				if (tiles[x - 1][y] >= Tile.CONVEYOR.getId() && tiles[x - 1][y] <= Tile.CONVEYOR_MIDDLE.getId()) {
+					setConveyor(x, y, conveyorSpeeds[x - 1][y]);
+				} else if (tiles[x + 1][y] >= Tile.CONVEYOR.getId() && tiles[x + 1][y] <= Tile.CONVEYOR_MIDDLE.getId()) {
+					setConveyor(x, y, conveyorSpeeds[x + 1][y]);
+				}
+			}
+		}
+	}
+	
+	/*	for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) { */
 	
 	private void loadHorizon() {
 		horizon = 480;
@@ -171,6 +303,7 @@ public class Level {
             tiles = new int[width][height];
             tileData = new int[width][height];
             durabilities = new double[width][height];
+            baseDurabilities = new double[width][height];
             this.loadTiles();
             FileUtilities.log("Level " + index + ", " + name + ", loaded from " + filePath + ":\n"
             		+ "\tSize: " + width + "x" + height + ", " + width * height + " tiles\n"
@@ -187,6 +320,7 @@ public class Level {
             this.height = this.image.getHeight();
             tiles = new int[width][height];
             durabilities = new double[width][height];
+            baseDurabilities = new double[width][height];
             this.loadTiles();
             FileUtilities.log("Level " + index + ", " + name + ", loaded from " + filePath + ":\n"
             		+ "\tSize: " + width + "x" + height + ", " + width * height + " tiles\n"
@@ -216,9 +350,11 @@ public class Level {
 	    		}
 	    		if (Tile.tiles[tiles[x][y]].getClass() == DestructibleTile.class) {
 	    			durabilities[x][y] = ((DestructibleTile) Tile.tiles[tiles[x][y]]).baseDurability;
+	    			baseDurabilities[x][y] = ((DestructibleTile) Tile.tiles[tiles[x][y]]).baseDurability;
 	    		}
 	    		if (Tile.tiles[tiles[x][y]].getClass() == BackgroundDestructibleTile.class) {
 	    			durabilities[x][y] = ((BackgroundDestructibleTile) Tile.tiles[tiles[x][y]]).baseDurability;
+	    			baseDurabilities[x][y] = ((BackgroundDestructibleTile) Tile.tiles[tiles[x][y]]).baseDurability;
 	    		}
             }
         }
@@ -230,7 +366,15 @@ public class Level {
 	}
 	
 	public void setTile(int x, int y, int id) {
-		if (!(0 > x || x >= width || 0 > y || y >= height)) tiles[x][y] = id;
+		if (!(0 > x || x >= width || 0 > y || y >= height) && id > 0 && id < Tile.tiles.length) {
+			tiles[x][y] = id;
+			if (Tile.tiles[id].getClass() == DestructibleTile.class) {
+				baseDurabilities[x][y] = ((DestructibleTile) Tile.tiles[tiles[x][y]]).baseDurability;
+			}
+			if (Tile.tiles[id].getClass() == BackgroundDestructibleTile.class) {
+				baseDurabilities[x][y] = ((BackgroundDestructibleTile) Tile.tiles[tiles[x][y]]).baseDurability;
+			}
+		}
 	}
 	
 	public double getDurability(int x, int y) {
@@ -243,16 +387,44 @@ public class Level {
 	}
 	
 	public synchronized void tick() {
+		if (queuedEntities != null && queuedEntities.size() > 0) {
+			entities.addAll(queuedEntities);
+			queuedEntities.clear();
+		}
+		
+		currentProjectiles = 0;
+		
+		updateTiles();
+		
 		boolean oxygenConnected = false;
 		for (Entity e : getEntities()) {
 			if (e == null) continue;
 			e.tick();
 			if (e.getClass() == OxygenGenerator.class) {
-				if (Math.pow(Math.abs(e.x * 32 - entities.get(0).x + 32)^2 + Math.abs(e.y * 32 - entities.get(0).y + 64)^2, 0.5) < 22) {
+				if (entities.get(0).x > (e.x << 5) - 128 - 64 && entities.get(0).x < (e.x << 5) + 128 + 32
+						&& entities.get(0).y > (e.y << 5) - 128 - 128 && entities.get(0).y < (e.y << 5) + 128) {
 					((Player) entities.get(0)).connectOxygen();
 					((Player) entities.get(0)).addOxygen(0.025);
 					((Player) entities.get(0)).addOxygenPoint(e.x * 32, e.y * 32);
 					oxygenConnected = true;
+					//drawLightCircle(e.x, e.y, 4, 16);
+				}
+			}
+			if (e.getClass() == Projectile.class) {
+				currentProjectiles++;
+				if (((Projectile) e).getDamagePotential() > 0) {
+					for (Entity i : getEntities()) {
+						if (i != null && Mob.class.isAssignableFrom(i.getClass())
+								&& PhysicsUtilities.checkIntersection(e.x, e.y, i.x, i.y, ((Mob) i).getHitboxWidth(), ((Mob) i).getHitboxHeight(), true)) {
+							((Mob) i).damage(((Projectile) e).getDamagePotential() * ((Projectile) e).getSpeed());
+						}
+					}
+				}
+			}
+
+			if (e.getClass() == PhysicalItem.class) {
+				if (((PhysicalItem) e).getItemTileID() == Tile.LAMP.getId() || ((PhysicalItem) e).getItemTileID() == Tile.TORCH.getId()) {
+					//drawLightCircle(e.x >> 5, e.y >> 5, 4, 16);
 				}
 			}
 		}
@@ -264,7 +436,11 @@ public class Level {
 				}
 			}
 		}
-		if (game != null && game.pauseMenuGUI != null && !game.pauseMenuGUI.isActive()) sky.tick();
+		if (game != null && game.pauseMenuGUI != null && !game.pauseMenuGUI.isActive()) {
+			//if (game.input.pageUp.isPressed()) sky.tick(33);
+			//else if (game.input.pageDown.isPressed()) sky.tick(7);
+			/*else*/ sky.tick(1);
+		}
 		if (!oxygenConnected) {
 			((Player) entities.get(0)).disconnectOxygen();
 			((Player) entities.get(0)).removeOxygen(0.01);
@@ -287,6 +463,172 @@ public class Level {
 		percentExplored = (double) exploredArea / (width * height) * 100;
 		
 		potentialConnection = floatingElectricalDevice != null;
+		
+		if (game.input.drop.isPressed() && game.ticks % 16 == 0) {
+			int verticalDelta = game.convertCoordinates(currentMouseXOnPanel, currentMouseYOnPanel).height - ((Player) entities.get(0)).y;
+			
+			double vY = Math.log(Math.sqrt(Math.abs(verticalDelta))) * Math.signum(verticalDelta);
+			double vX = 0;
+			int x = ((Player) entities.get(0)).x;
+			if (((Player) entities.get(0)).getMovingDir() == 3) {
+				x += game.player.spriteWidth;
+				vX = 3.5 - Math.abs(vY);
+			} else {
+				vX = -3.5 + Math.abs(vY);
+			}
+			
+			if (((Player) entities.get(0)).inventory.getActiveItem() != null) {
+				if (((Player) entities.get(0)).inventory.getActiveItem().getClass() == Ingredient.class) {
+					addEntity(new PhysicalItem(1000 + ((Player) entities.get(0)).inventory.getActiveItem().getItemID(), this, true, 
+							x, ((Player) entities.get(0)).y + ((Player) entities.get(0)).spriteHeight / 4, vX, vY, new Ingredient(((Ingredient) ((Player) entities.get(0)).inventory.getActiveItem()).getItemID(), 1)));
+					((Ingredient) ((Player) entities.get(0)).inventory.getActiveItem()).removeQuantity(1);
+				} else if (((Player) entities.get(0)).inventory.getActiveItem().getClass() == InventoryTile.class) {
+					addEntity(new PhysicalItem(1000 + ((Player) entities.get(0)).inventory.getActiveItem().getItemID(), this, true, 
+							x, ((Player) entities.get(0)).y + ((Player) entities.get(0)).spriteHeight / 4, vX, vY, new InventoryTile(((InventoryTile) ((Player) entities.get(0)).inventory.getActiveItem()).getTileID(), 1)));
+					((InventoryTile) ((Player) entities.get(0)).inventory.getActiveItem()).removeQuantity(1);
+				} else {
+					addEntity(new PhysicalItem(1000 + ((Player) entities.get(0)).inventory.getActiveItem().getItemID(), this, true, 
+							x, ((Player) entities.get(0)).y + ((Player) entities.get(0)).spriteHeight / 4, vX, vY, ((Player) entities.get(0)).inventory.getActiveItem()));
+					((Player) entities.get(0)).inventory.getActiveItem().markedForDeletion = true;
+				}
+			}
+		}
+		
+		if (currentProjectiles > maxProjectiles) {
+			int projectilesToRemove = currentProjectiles - maxProjectiles;
+			for (Entity e : entities) {
+				if (e.getClass() == Projectile.class) {
+					e.markedForDeletion = true;
+					projectilesToRemove--;
+				}
+				if (projectilesToRemove <= 0) return;
+			}
+		}
+	}
+	
+	public synchronized void queueEntity(Entity e) {
+		if (e != null) queuedEntities.add(e);
+	}
+	
+	public void updateTiles() {
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				if (tiles != null) {
+					// Apply gravity to sand not supported from the bottom
+					if (tiles[i][j] == Tile.SAND.getId()) {
+						if (j < height - 1 && tiles[i][j + 1] <= 2) {
+							tiles[i][j] = tiles[i][j + 1];
+							durabilities[i][j + 1] = ((DestructibleTile) Tile.SAND).baseDurability;
+							tiles[i][j + 1] = Tile.SAND.getId();
+						}
+					} else { // Apply gravity to tiles not supported on any side
+						if (i > 1 && i < width - 1 && j > 1 && j < height - 1) {
+							if (tiles[i - 1][j] <= 2 && tiles[i + 1][j] <= 2 && tiles[i][j - 1] <= 2 && tiles[i][j + 1] <= 2) {
+								int replacementID = tiles[i][j + 1];
+								int tileID = tiles[i][j];
+								if (Tile.tiles[tileID].getClass() == DestructibleTile.class) {
+									durabilities[i][j + 1] = ((DestructibleTile) Tile.tiles[tileID]).getBaseDurability();
+									baseDurabilities[i][j + 1] = ((DestructibleTile) Tile.tiles[tileID]).getBaseDurability();
+								} else if (Tile.tiles[tileID].getClass() == BackgroundDestructibleTile.class) {
+									durabilities[i][j + 1] = ((BackgroundDestructibleTile) Tile.tiles[tileID]).getBaseDurability();
+									baseDurabilities[i][j + 1] = ((BackgroundDestructibleTile) Tile.tiles[tileID]).getBaseDurability();
+								}
+								tiles[i][j] = replacementID;
+								tiles[i][j + 1] = tileID;
+							}
+						}
+					}
+					
+					// Determine conveyor position
+					if (tiles[i][j] >= Tile.CONVEYOR.getId() && tiles[i][j] <= Tile.CONVEYOR_MIDDLE.getId()) {
+						if (i > 0 && tiles[i - 1][j] >= Tile.CONVEYOR.getId() && tiles[i - 1][j] <= Tile.CONVEYOR_MIDDLE.getId()) {
+							if (i < width && tiles[i + 1][j] >= Tile.CONVEYOR.getId() && tiles[i + 1][j] <= Tile.CONVEYOR_MIDDLE.getId()) {
+								tiles[i][j] = Tile.CONVEYOR_MIDDLE.getId();
+							} else {
+								tiles[i][j] = Tile.CONVEYOR_RIGHT_END.getId();
+							}
+						} else if (i < width && tiles[i + 1][j] >= Tile.CONVEYOR.getId() && tiles[i + 1][j] <= Tile.CONVEYOR_MIDDLE.getId()) {
+							tiles[i][j] = Tile.CONVEYOR_LEFT_END.getId();
+						} else {
+							tiles[i][j] = Tile.CONVEYOR.getId();
+						}
+					}
+					
+					// Causes inconsistent performance
+					/*if (!(i == game.input.lastDestructibleX && j == game.input.lastDestructibleY) && durabilities[i][j] < baseDurabilities[i][j]) {
+						durabilities[i][j] = baseDurabilities[i][j];
+					}
+					
+					if (i == game.input.lastDestructibleX && j == game.input.lastDestructibleY && !leftButtonHeld && durabilities[i][j] < baseDurabilities[i][j]) {
+						durabilities[i][j] = baseDurabilities[i][j];
+					}*/
+				}
+			}
+		}
+	}
+	
+	public void resetDestructibleTile(int x, int y) {
+		durabilities[x][y] = baseDurabilities[x][y];
+	}
+	
+	public void calculateDiscreteLighting() {
+		if (discreteLightLevels == null) discreteLightLevels = new byte[width][height];
+		
+		//System.out.println((byte) Math.ceil(-127 * Math.sin(2 * Math.PI * (sky.time - (sky.totalDayTime / 3)) / (sky.totalDayTime * 1000))));
+		
+		double skySineFunction = Math.sin(2 * Math.PI * (sky.time + (sky.totalDayTime * 1000 / 4)) / (sky.totalDayTime * 1000));
+		double flattenedSine = Math.signum(skySineFunction) * Math.max(0, Math.min(1, 1.25 * Math.pow(Math.abs(skySineFunction), 0.5)));
+		
+		skyLightLevel = (byte) Math.ceil(-127 * flattenedSine);
+		
+		//System.out.println("Sky light level: " + skyLightLevel + " (Raw sine: " + skySineFunction + ")"  + " (Flattened sine: " + flattenedSine + ")");
+		
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				discreteLightLevels[i][j] = skyLightLevel;
+			}
+		}
+		
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				if (tiles != null && tiles[i][j] == Tile.LAMP.getId()) {
+					drawLightCircle(i, j, 16, 1);
+				} else if (tiles != null && tiles[i][j] == Tile.TORCH.getId()) {
+					drawLightCircle(i, j, 8, 3);
+				} else if (tiles != null && tiles[i][j] == Tile.SHIP_BACKGROUND_LAMP.getId()) {
+					drawLightCircle(i, j, 16, 2);
+				}
+			}
+		}
+		
+		if (game.input.light.isPressed()) {
+			if (entities != null && entities.get(0).getClass() == Player.class) {
+				if (((Player) entities.get(0)).getMovingDir() == 2)	drawLightCircle(((Player) entities.get(0)).x >> 5, ((Player) entities.get(0)).y >> 5, 2, 8);
+				else if (((Player) entities.get(0)).getMovingDir() == 3) drawLightCircle((((Player) entities.get(0)).x >> 5) + 3, ((Player) entities.get(0)).y >> 5, 2, 8);
+			}
+		}
+	}
+	
+	public void drawLightCircle(int i, int j, int radius, int linearFalloff) {
+		for (int k = 0; k < radius * 2; k++) {
+			for (int l = 0; l < radius * 2; l++) {
+				int distance = (((k - radius) * (k - radius)) + ((l - radius) * (l - radius))) * linearFalloff;
+				//System.out.print((byte) (127 - (transparencyDepth * distance)) + " ");
+				if (exploredTiles != null && exploredTiles[i + k - radius][j + l - radius] && discreteLightLevels != null 
+						&& i + k - radius > 0 && i + k - radius < width && j + l - radius > 0 && j + l - radius < height
+							&& distance <= 255 && distance >= 0
+								&& (byte) (127 - distance) > discreteLightLevels[i + k - radius][j + l - radius]) {
+					discreteLightLevels[i + k - radius][j + l - radius] = (byte) (127 - distance);
+				}
+			}
+			//System.out.println("");
+		}
+		//System.out.println("");
+	}
+	
+	public int getDiscreteLightLevel(int x, int y) {
+		if (discreteLightLevels == null || x < 0 || y < 0 || x >= width || y >= height) return 0;
+		return discreteLightLevels[x][y];
 	}
 	
 	public void setMousePositionOnPanel(int x, int y) {
@@ -381,13 +723,18 @@ public class Level {
 			} else if (e != null && ElectricalDevice.class.isAssignableFrom(e.getClass())) {
 				//System.out.println("x: " + clickX + " y: " + clickY + " target x: " + ((e.x << 5) - 1) + " target y " + ((e.y << 5) - 16) + " target width: " + 36 + " target height: " + 48);
 				if (Utilities.PhysicsUtilities.checkIntersection(clickX, clickY, (e.x << 5) - 1, (e.y << 5) - 16, 36, 48, true)) {
-					if (!game.input.ctrl.isPressed() && game.input.shift.isPressed()) {
+					if (game.input.ctrl.isPressed() && game.input.shift.isPressed()) {
 						FileUtilities.log("Picked up an electrical device\n");
+						game.audioManager.play(2);
 						((ElectricalDevice) e).clearAllConnections();
 						((Player) entities.get(0)).inventory.addItem(new InventoryEntity(e));
 						e.markedForDeletion = true;
 						e = null;
 					} else if (game.input.ctrl.isPressed()) {
+						FileUtilities.log("Ctrl + Clicked on an electrical device\n");
+						((ElectricalDevice) e).clearAllConnections();
+						game.audioManager.play(4);
+					} else {
 						if (e.getClass() == PowerGenerator.class) {
 							if (((Player) entities.get(0)).inventory.getActiveItem() != null 
 									&& ((Player) entities.get(0)).inventory.getActiveItem().getClass() == Ingredient.class 
@@ -395,31 +742,36 @@ public class Level {
 								FileUtilities.log("Fueled up power generator ");
 								int totalPower = 0;
 								int quantity = 0;
+								boolean fuelSuccessful = false;
 								if (game.input.shift.isPressed()) {
 									while (((Ingredient) (((Player) entities.get(0)).inventory.getActiveItem())).getQuantity() >= 1) {
-										((Ingredient) (((Player) entities.get(0)).inventory.getActiveItem())).removeQuantity(1);
-										
 										double energy = 2000 + Math.floor(Math.random() * 1000);
 										
-										((PowerGenerator) e).insertFuel(energy);
+										fuelSuccessful = ((PowerGenerator) e).insertFuel(energy);
+										
+										if (fuelSuccessful) {
+											((Ingredient) (((Player) entities.get(0)).inventory.getActiveItem())).removeQuantity(1);
+											quantity++;
+											totalPower += energy;
+										} else {
+											break;
+										}
+									}
+								} else {
+									double energy = 2000 + Math.floor(Math.random() * 1000);
+									
+									fuelSuccessful = ((PowerGenerator) e).insertFuel(energy);
+									
+									if (fuelSuccessful) {
+										((Ingredient) (((Player) entities.get(0)).inventory.getActiveItem())).removeQuantity(1);
 										quantity++;
 										totalPower += energy;
 									}
-								} else {
-									((Ingredient) (((Player) entities.get(0)).inventory.getActiveItem())).removeQuantity(1);
-									
-									double energy = 2000 + Math.floor(Math.random() * 1000);
-									
-									((PowerGenerator) e).insertFuel(energy);
-									quantity++;
-									totalPower += energy;
 								}
 								FileUtilities.log(String.format("Inserted " + quantity + " x coal into power generator [%.3f kW]\n", totalPower / 1000D));
+								if (fuelSuccessful) game.audioManager.play(0);
 							}
 						}
-					} else {
-						FileUtilities.log("Clicked on an electrical device\n");
-						((ElectricalDevice) e).clearAllConnections();
 					}
 				}
 			} else if (e != null && e.getClass() == StoneFurnace.class) {
@@ -450,6 +802,29 @@ public class Level {
 					}
 				}
 			}
+			
+			if (e != null && ProductionDevice.class.isAssignableFrom(e.getClass())) {
+				if (Utilities.PhysicsUtilities.checkIntersection(clickX, clickY, (e.x << 5) - 1, (e.y << 5) - 16, 36, 48, true)) {
+					FileUtilities.log("Clicked on production device: " + e.toString() + "\n");
+					if (game.input.alt.isPressed()) {
+						FileUtilities.log("Toggled output direction of production device: " + e.toString() + "\n");
+						((ProductionDevice) e).toggleOutputDirection();
+					} else if (((Player) entities.get(0)).inventory.getActiveItem() != null && ((ProductionDevice) e).isAcceptableInput(((Player) entities.get(0)).inventory.getActiveItem())) {
+						FileUtilities.log("Trying to insert " + ((Player) entities.get(0)).inventory.getActiveItem().toString() + " into " + e.toString() + "\n");
+						if (!((ProductionDevice) e).tryToPopulateInputWithClonedItems(new InventoryItem[] {((Player) entities.get(0)).inventory.getActiveItem()})) {
+							FileUtilities.log("\tInsertion failed");
+							System.out.print(" :(");
+							FileUtilities.log("\n");
+						} else {
+							FileUtilities.log("\tInsertion successful");
+							System.out.print(" ;)");
+							FileUtilities.log("\n");
+							System.out.println("Manually added item " + ((Player) entities.get(0)).inventory.getActiveItem().toString() + " to production device " + ((ProductionDevice) e).toString());
+							((Player) entities.get(0)).inventory.getActiveItem().markedForDeletion = true;
+						}
+					}
+				}
+			}
 		}
 	}
 	
@@ -473,7 +848,11 @@ public class Level {
 									((Ingredient) (((Player) entities.get(0)).inventory.getActiveItem())).removeQuantity((int) Math.ceil(wireDistance));
 									FileUtilities.log((int) Math.ceil(wireDistance) + " wire consumed\n");
 									if (floatingElectricalDevice.connectDevice((ElectricalDevice) e, (int) Math.ceil(wireDistance))
-											&& ((ElectricalDevice) e).connectDevice(floatingElectricalDevice, (int) Math.ceil(wireDistance))) FileUtilities.log("Connected two electrical devices\n");
+											&& ((ElectricalDevice) e).connectDevice(floatingElectricalDevice, (int) Math.ceil(wireDistance))) {
+										FileUtilities.log("Connected two electrical devices\n");
+										game.audioManager.play(3);
+									}
+		
 									else {
 										FileUtilities.log("Connection failed: one or more devices refused connection ");
 										((ElectricalDevice) e).removeConnection(floatingElectricalDevice);
@@ -502,6 +881,22 @@ public class Level {
 		if (floatingElectricalDevice != null) FileUtilities.log("Connection canceled\n");
 		floatingElectricalDevice = null;
 		return;
+	}
+	
+	public boolean checkLeftClickTileCollision(int clickX, int clickY) {
+		if (clickX > 0 && clickY > 0 && clickX < width && clickY < height) {
+			if ((((Player) entities.get(0)).inventory.getActiveItem() == null || !(((Player) entities.get(0)).inventory.getActiveItem().getClass().getSuperclass() == InventoryTool.class))
+					&& tiles[clickX][clickY] >= Tile.CONVEYOR.getId() && tiles[clickX][clickY] <= Tile.CONVEYOR_MIDDLE.getId()) {
+				if (conveyorSpeeds[clickX][clickY] == 0) setConveyor(clickX, clickY, 0.5);
+				else if (game.input.ctrl.isPressed()) setConveyor(clickX, clickY, 0);
+				else flipConveyor(clickX, clickY);
+				resetDestructibleTile(clickX, clickY);
+				return true;
+			} else if (!(((Player) entities.get(0)).inventory.getActiveItem() == null) && ColorSelector.class.isAssignableFrom(((Player) entities.get(0)).inventory.getActiveItem().getClass())) {
+				setTileColor(clickX, clickY, ((ColorSelector) ((Player) entities.get(0)).inventory.getActiveItem()).getColor().getRGB());
+			}
+		}
+		return false;
 	}
 	
 	public void explode(int x, int y) {
@@ -564,13 +959,13 @@ public class Level {
 		else g2.setColor(Color.RED);
 		
 		g2.setStroke(new BasicStroke(4));
-		g2.drawLine(currentMouseXOnPanel, currentMouseYOnPanel, d.getLevelX(), d.getLevelY());
+		g2.drawLine(currentMouseXOnPanel, currentMouseYOnPanel, d.getLevelX() + ((ElectricalDevice) d).getConnectionOffsetX(), d.getLevelY() + ((ElectricalDevice) d).getConnectionOffsetY());
 		
 		g2.setColor(Color.WHITE);
 		
 		g2.setFont(MediaLibrary.getFontFromLibrary("INFOFont"));
 		g2.drawString("Required wire: " + (int) Math.ceil(wireDistance / 32), d.getLevelX(), d.getLevelY() - 64);
-	}
+	} 
 	
 	public void drawSky(Graphics g, Dimension resolution) {
 		sky.draw(g, resolution, game, !game.isPaused());
@@ -609,7 +1004,12 @@ public class Level {
 				else if (tiles[targetX][targetY] == 21) game.player.inventory.addItem(new Ingredient(12, 3 + (int) Math.ceil(8 * Math.random())));
 				else game.player.inventory.addItem(new InventoryTile(tiles[targetX][targetY], 1));
 				setTile(targetX, targetY, 2);
+				if (game.tracker != null) game.tracker.incrementBasicStat("Tiles Mined");
 			}
 		}
+	}
+	
+	public void setLeftButtonHeld(boolean held) {
+		leftButtonHeld = held;
 	}
 }

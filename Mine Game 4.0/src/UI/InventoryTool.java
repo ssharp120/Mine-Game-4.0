@@ -16,6 +16,7 @@ public abstract class InventoryTool extends InventoryItem {
 		this.effectiveTiles = effectiveTiles;
 		this.neutralTiles = neutralTiles;
 		this.ineffectiveTiles = ineffectiveTiles;
+		System.out.println("Tool created");
 	}
 
 	private double hardness;
@@ -125,5 +126,6 @@ public abstract class InventoryTool extends InventoryItem {
 		g.setColor(new Color(255, 255, 255));
 		int offset = iconWidth / 8;
 		g.fillRect(x + offset, y + offset + (iconHeight - (2 * offset)), (int) Math.round((iconWidth - (2 * offset)) * (durability / maxDurability)), 4);
+		//System.out.println(toString());
 	}
 }

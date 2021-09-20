@@ -20,7 +20,10 @@ public class Ingredient extends InventoryItem {
 	}
 	
 	public void quantityCheck() {
-		if (quantity <= 0) markedForDeletion = true;
+		if (quantity <= 0) {
+			quantity = 0;
+			markedForDeletion = true;
+		}
 	}
 	
 	public int getQuantity() {

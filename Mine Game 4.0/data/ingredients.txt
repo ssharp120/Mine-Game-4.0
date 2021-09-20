@@ -24,3 +24,19 @@ Copper Wire
 80
 Coal
 80
+Iron Rod
+80
+Iron Plate
+80
+Copper Plate
+80
+Arrow
+80
+Paint Can
+80
+Paint
+1
+Bottle
+80
+Science
+80

@@ -2,6 +2,9 @@ package Utilities;
 
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.NoninvertibleTransformException;
+import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -23,6 +26,8 @@ import javax.sound.sampled.Clip;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.swing.ImageIcon;
 import javax.swing.filechooser.FileSystemView;
+
+import Libraries.MediaLibrary;
 
 public class FileUtilities {
 	private static final boolean DEBUG = true;
@@ -69,6 +74,32 @@ public class FileUtilities {
 		bg.dispose();
 		
 		return bimg;
+	}
+	
+	public static BufferedImage rotateImage(BufferedImage image, double angle) {
+		final double sin = Math.abs(Math.sin(angle));
+		final double cos = Math.abs(Math.cos(angle));
+		
+		final int width =  Math.abs((int) Math.floor(cos * image.getWidth() + sin * image.getHeight()));
+		final int height = Math.abs((int) Math.floor(sin * image.getWidth() + cos * image.getHeight()));
+		
+		if (width == 0 || height == 0) return null;
+		
+		final BufferedImage rotatedImage = new BufferedImage(width, height, image.getType());
+		
+		final AffineTransform transform = new AffineTransform();
+		
+		transform.translate(width / 2, height / 2);
+		
+		transform.rotate(angle, 0, 0);
+		
+		transform.translate(-image.getWidth() / 2, -image.getHeight() / 2);
+		
+		final AffineTransformOp rotateOp = new AffineTransformOp(transform, AffineTransformOp.TYPE_BILINEAR);
+		
+		rotateOp.filter(image, rotatedImage);
+		
+		return rotatedImage;
 	}
 	
 	 public static Scanner getFileInternal(String path) {

@@ -1,6 +1,7 @@
 package Entities;
 
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 
 import Frame.Level;
 

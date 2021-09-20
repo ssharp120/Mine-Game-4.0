@@ -159,4 +159,19 @@ public abstract class ElectricalDevice extends Entity implements Battery {
 			}
 		}
 	}
+	
+	public String toString() {
+		return "Electrical Device | (" + x + ", " + y + ")";
+	}
+	
+	public String toString(boolean verbose) {
+		if (verbose) {
+			String description = toString() + "\n";
+			
+			description += "\tCurrent Power Storage:" + Math.round(currentPowerStorage / 3600 * 100) + "kWh\n";
+			description += "\tCapacity:" + Math.round(powerStorageCapacity / 3600 * 100) + "kWh\n";		
+			
+			return description;
+		} else return toString();
+	}
 }

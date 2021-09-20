@@ -13,6 +13,7 @@ import UI.Ingredient;
 import UI.Inventory;
 import UI.InventoryItem;
 import UI.InventoryTile;
+import Utilities.FileUtilities;
 
 public class StoneFurnace extends Entity {
 	private int coal = 0;
@@ -20,34 +21,65 @@ public class StoneFurnace extends Entity {
 	private InventoryItem storedItem;
 	private int oreCapacity = 8;
 	private int imageID = 7008;
+	private InventoryItem output;
 
 	public StoneFurnace(Level level, boolean active, int x, int y) {
 		super(6, level, active, x, y);
 		storedItem = null;
+		output = null;
 	}
 
 	public void tick() {
 		checkState();
 		if (storedItem != null && storedItem.getClass() == InventoryTile.class && storedItem.markedForDeletion) storedItem = null; 
-		if (storedItem != null && coal > 0 && level.getGameLoop().ticks % level.getGameLoop().UPS == 0) {
+		if (output == null && storedItem != null && coal > 0 && level.getGameLoop().ticks % level.getGameLoop().UPS == 0) {
 			if (storedItem.getClass() == InventoryTile.class) {
 				if (((InventoryTile) storedItem).getTileID() == Tile.IRON_ORE.getId()) {
-					level.getGameLoop().player.inventory.addItem(new Ingredient(1, 3));
+					output = new Ingredient(1, 1);
 					((InventoryTile) storedItem).removeQuantity(1);
 					if (((InventoryTile) storedItem).getQuantity() <= 0)  {storedItem = null; coal--; return;}
 					if (coal > 0) coal--;
 				} else if (((InventoryTile) storedItem).getTileID() == Tile.COPPER_ORE.getId()) {
-					level.getGameLoop().player.inventory.addItem(new Ingredient(10, 3));
+					output = new Ingredient(10, 1);
 					((InventoryTile) storedItem).removeQuantity(1);
 					if (((InventoryTile) storedItem).getQuantity() <= 0)  {storedItem = null; coal--; return;}
 					if (coal > 0) coal--;
 				} else if (((InventoryTile) storedItem).getTileID() == Tile.COBBLESTONE.getId()) {
-					level.getGameLoop().player.inventory.addItem(new InventoryTile(Tile.STONE.getId(), 1));
+					output = new InventoryTile(Tile.STONE.getId(), 1);
 					((InventoryTile) storedItem).removeQuantity(1);
 					if (((InventoryTile) storedItem).getQuantity() <= 0)  {storedItem = null; coal--; return;}
 					if (coal > 0) coal--;
 				}
 			}
+		}
+		
+		try {
+			if (output != null && output.getItemID() > 0 && y < level.height) {
+				if (level.getTile(x, y + 1).getId() == Tile.FUNNEL.getId() || !level.getTile(x, y + 1).isSolid()) {
+					FileUtilities.log(toString() + " produced " + (InventoryItem) output.clone() + " 1 tile below\n", true);
+					level.queueEntity(new PhysicalItem(1000 + output.getItemID(), level, true, x << 5, (y + 1) << 5, (InventoryItem) output.clone()));
+					output = null;
+				} else if (!level.getTile(x - 1, y).isSolid() && !level.getTile(x + 1, y).isSolid()) {
+					if (Math.random() > 0.5) {
+						FileUtilities.log(toString() + " produced " + (InventoryItem) output.clone() + " 1 tile left\n", true);
+						level.queueEntity(new PhysicalItem(1000 + output.getItemID(), level, true, (x - 1) << 5, y << 5, (InventoryItem) output.clone()));
+					} else {
+						FileUtilities.log(toString() + " produced " + (InventoryItem) output.clone() + " 1 tile right\n", true);
+						level.queueEntity(new PhysicalItem(1000 + output.getItemID(), level, true, (x + 1) << 5, y << 5, (InventoryItem) output.clone()));
+					}
+					output = null;
+				} else if (!level.getTile(x + 1, y).isSolid()) {
+					FileUtilities.log(toString() + " produced " + (InventoryItem) output.clone() + " 1 tile right\n", true);
+					level.queueEntity(new PhysicalItem(1000 + output.getItemID(), level, true, (x + 1) << 5, y << 5, (InventoryItem) output.clone()));
+					output = null;
+				} else if (!level.getTile(x - 1, y).isSolid()) {
+					FileUtilities.log(toString() + " produced " + (InventoryItem) output.clone() + " 1 tile left\n", true);
+					level.queueEntity(new PhysicalItem(1000 + output.getItemID(), level, true, (x - 1) << 5, y << 5, (InventoryItem) output.clone()));
+					output = null;
+				}
+			}
+		} catch (CloneNotSupportedException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -56,14 +88,14 @@ public class StoneFurnace extends Entity {
 		g.setColor(Color.YELLOW);
 		g.setFont(MediaLibrary.getFontFromLibrary("INFOFont"));
 		if (level.getGameLoop() != null && level.getGameLoop().shouldDisplayUIs()) {
-			if (level.getGameLoop().input.ctrl.isPressed()) drawTextUI(g);
+			if (level.getGameLoop().input.ctrl.isPressed()) drawTextUI((Graphics2D) g);
 			else drawGUI((Graphics2D) g);
 		}
 	}
 	
-	public void drawTextUI(Graphics g) {
+	public void drawTextUI(Graphics2D g) {
 		g.drawString("Coal : " + coal + " / " + coalCapacity, (x << 5) - level.getGameLoop().xOffset, (y << 5) - level.getGameLoop().yOffset - 16);
-		if (storedItem.getClass() == InventoryTile.class) {
+		if (storedItem != null && storedItem.getClass() == InventoryTile.class) {
 			if (((InventoryTile) storedItem).getTileID() == Tile.IRON_ORE.getId()) g.drawString("Iron ore: " + ((InventoryTile) storedItem).getQuantity() + " / " + oreCapacity,
 					(x << 5) - level.getGameLoop().xOffset, (y << 5) - level.getGameLoop().yOffset - 36);
 			if (((InventoryTile) storedItem).getTileID() == Tile.COPPER_ORE.getId()) g.drawString("Copper ore: " + ((InventoryTile) storedItem).getQuantity() + " / " + oreCapacity,
@@ -219,5 +251,9 @@ public class StoneFurnace extends Entity {
 				imageID = 7008;
 			}
 		}
+	}
+	
+	public String toString() {
+		return "Stone Furnace | (" + x + ", " + y + ")";
 	}
 }

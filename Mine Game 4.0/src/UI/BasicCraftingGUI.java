@@ -60,6 +60,9 @@ public class BasicCraftingGUI extends CraftingMenu {
 				g.fillRect(100, yInitial, screenWidth - 200, screenHeight - yInitial - 50);
 				g.setColor(Color.BLACK);
 			}
+			
+			if (gameIn.input.right.isPressed() && !gameIn.input.left.isPressed()) adjustColorSelectors(0.01F);
+			else if (gameIn.input.left.isPressed() && !gameIn.input.right.isPressed()) adjustColorSelectors(-0.01F);
 		}
 		
 		int y = yInitial + scrollValue - scrollY;
@@ -137,6 +140,7 @@ public class BasicCraftingGUI extends CraftingMenu {
 							for (int k = 0; k < RecipeLibrary.getRecipeFromLibrary(i).getNumInputs(); k++) {
 								gameIn.player.inventory.removeItem(RecipeLibrary.getRecipeFromLibrary(i).getInput(k));
 							}
+							if (gameIn.tracker != null) gameIn.tracker.incrementBasicStat("Times Crafted");
 						}
 					} else if (controls.ctrl.isPressed()) {
 						int minStackSizeToQuantityRatio = 80;
@@ -160,6 +164,7 @@ public class BasicCraftingGUI extends CraftingMenu {
 							for (int k = 0; k < RecipeLibrary.getRecipeFromLibrary(i).getNumInputs(); k++) {
 								gameIn.player.inventory.removeItem(RecipeLibrary.getRecipeFromLibrary(i).getInput(k));
 							}
+							if (gameIn.tracker != null) gameIn.tracker.incrementBasicStat("Times Crafted");
 							n++;
 						}
 					}
@@ -171,6 +176,7 @@ public class BasicCraftingGUI extends CraftingMenu {
 							for (int k = 0; k < RecipeLibrary.getRecipeFromLibrary(i).getNumInputs(); k++) {
 								gameIn.player.inventory.removeItem(RecipeLibrary.getRecipeFromLibrary(i).getInput(k));
 							}
+							if (gameIn.tracker != null) gameIn.tracker.incrementBasicStat("Times Crafted");
 						}	
 					}
 				}
@@ -203,5 +209,15 @@ public class BasicCraftingGUI extends CraftingMenu {
 	
 	public void toggleFreeCrafting() {
 		freeCrafting = !freeCrafting;
+	}
+	
+	public void adjustColorSelectors(float delta) {
+		for (int i = 0; i < RecipeLibrary.getFilledRecipeSlots(); i++) {
+							for (int k = 0; k < RecipeLibrary.getRecipeFromLibrary(i).getNumOutputs(); k++) {
+					if (!(RecipeLibrary.getRecipeFromLibrary(i).getOutput(k) == null) && ColorSelector.class.isAssignableFrom(RecipeLibrary.getRecipeFromLibrary(i).getOutput(k).getClass())) {
+						RecipeLibrary.getRecipeFromLibrary(i).shiftColorSelectorHue(k, delta);
+					}
+				}
+			}
 	}
 }

@@ -1,8 +1,10 @@
 package Entities;
 
+import java.awt.Dimension;
 import java.awt.Font;
 
 import Frame.Level;
+import UI.Inventory;
 
 public abstract class Mob extends Entity {
 	public final Font USERNAME = new Font("Comic Sans MS", Font.PLAIN, 16);
@@ -14,6 +16,8 @@ public abstract class Mob extends Entity {
 	protected int movingDir = 2;
 	protected double baseHealth;
 	protected double health;
+	protected int hitboxWidth;
+	protected int hitboxHeight;
 	
 	/* 0 = up
 	 * 1 = down
@@ -21,7 +25,7 @@ public abstract class Mob extends Entity {
 	 * 3 = right
 	 */
 	protected int scale = 1;
-	public Mob(Level level, String name, int x, int y, int speed, int baseHealth) {
+	public Mob(Level level, String name, int x, int y, int speed, int baseHealth, int hitboxWidth, int hitboxHeight) {
 		super(level);
 		this.name = name;
 		this.x = x;
@@ -29,6 +33,8 @@ public abstract class Mob extends Entity {
 		this.speed = speed;
 		this.baseHealth = baseHealth;
 		this.health = baseHealth;
+		this.hitboxWidth = hitboxWidth;
+		this.hitboxHeight = hitboxHeight;
 	}
 	
 	public void move(int deltaX, int deltaY) {
@@ -67,6 +73,58 @@ public abstract class Mob extends Entity {
 
 	public void setMovingDir(int movingDir) {
 		this.movingDir = movingDir;
+	}
+	
+	public void damage() {
+		health -= 1.0;
+		checkDeath();
+	}
+	
+	public void damage(double d) {
+		health -= d;
+		checkDeath();
+	}
+	
+	public void checkDeath() {
+		if (health <= 0) {
+			markedForDeletion = true;
+		}
+	}
+	
+	public void heal() {
+		health += 1.0;
+	}
+	
+	public void heal(double d) {
+		health += d;
+	}
+	
+	public void healTo(double d) {
+		health = d;
+	}
+	
+	public double getHealth() {
+		return health;
+	}
+	
+	public int getHitboxWidth() {
+		return hitboxWidth;
+	}
+	
+	public int getHitboxHeight() {
+		return hitboxHeight;
+	}
+	
+	public Dimension[] getHitboxVectors() {
+		return new Dimension[] { new Dimension(hitboxWidth, 0), new Dimension(0, hitboxHeight) };
+	}
+	
+	public Dimension getPositionVector() {
+		return new Dimension(x, y);
+	}
+	
+	public Dimension getHitboxDimensione() {
+		return new Dimension(hitboxWidth, hitboxHeight);
 	}
 }
 

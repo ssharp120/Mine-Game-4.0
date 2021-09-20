@@ -2,6 +2,7 @@ package Entities;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Composite;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -21,6 +22,7 @@ import Libraries.MediaLibrary;
 import Tiles.Tile;
 import UI.*;
 import Utilities.FileUtilities;
+import Tiles.DestructibleTile;
 import Tiles.SolidTile;
 
 import static Utilities.PhysicsUtilities.*;
@@ -44,7 +46,8 @@ public class Player extends Mob {
 
 	private String username;
 	
-	public int spriteWidth = 64, spriteHeight = 128;
+	public static int spriteWidth = 64;
+	public static int spriteHeight = 128;
 	
 	// Position, velocity and acceleration stored as doubles
 	public double dX, dY;
@@ -54,6 +57,8 @@ public class Player extends Mob {
 	protected double localGravity = 0.025;
 	
 	public boolean drawInfo;
+	
+	private int lastImageID = 7001;
 	
 	// Toggles for function keys and cheats
 	private boolean toggleInfo;
@@ -66,6 +71,7 @@ public class Player extends Mob {
 	private boolean toggleCreativeEntities;
 	private boolean toggleRefresh;
 	private boolean toggleMiniMap;
+	private boolean toggleTechTree;
 	
 	// Physics variables
 	protected double airResistance = 0.001, friction = 0, mass = 100;
@@ -77,7 +83,7 @@ public class Player extends Mob {
 	private List<Point> oxyPoints = new ArrayList<Point>();
 	
 	public Player(Level level, String name, int x, int y, InputHandler input) {
-		super(level, name, x, y, 1, 100);
+		super(level, name, x, y, 1, 100, spriteWidth, spriteHeight);
 		this.username = name;
 		this.controls = input;
 		game = level.getGameLoop();
@@ -152,12 +158,23 @@ public class Player extends Mob {
 						j = 0.1;
 					}
 					
+					if (j > 0) j += Math.random() * 0.01;
+					
+					level.setLeftButtonHeld(true);
 					level.destructible(controls.lastDestructibleX, controls.lastDestructibleY, j);
 					controls.updateTileInfo(controls.lastDestructibleX << 5, controls.lastDestructibleY << 5);
 				}
+			} else level.setLeftButtonHeld(false);
+			
+			if (!(inventory.getActiveItem() == null) && ColorSelector.class.isAssignableFrom(inventory.getActiveItem().getClass())) {
+				float delta = 0.001F;
+				if (game.input.insert.isPressed()) ((ColorSelector) inventory.getActiveItem()).shiftHue(delta);
+				else if (game.input.delete.isPressed()) ((ColorSelector) inventory.getActiveItem()).shiftHue(-delta);
+				if (game.input.home.isPressed()) ((ColorSelector) inventory.getActiveItem()).shiftSaturation(delta);
+				else if (game.input.end.isPressed()) ((ColorSelector) inventory.getActiveItem()).shiftSaturation(-delta);
+				if (game.input.pageUp.isPressed()) ((ColorSelector) inventory.getActiveItem()).shiftBrightness(delta);
+				else if (game.input.pageDown.isPressed()) ((ColorSelector) inventory.getActiveItem()).shiftBrightness(-delta);
 			}
-			
-			
 		}
 	}
 	
@@ -198,6 +215,7 @@ public class Player extends Mob {
 			} else if (canJump) {
 				vY = -2.5;
 				canJump = false;
+				if (game.tracker != null) game.tracker.incrementBasicStat("Jumps");
 			}
 		}
 		
@@ -368,16 +386,23 @@ public class Player extends Mob {
 		g.drawString("Health: " + health + "/" + baseHealth, drawX, drawY += 16);
 	}
 	
-	public void draw(Graphics g) {
+	public void draw(Graphics g, ImageObserver observer) {
 		if (inventory.isActive()) {
 			game.drawHUD = false;
 			inventory.draw(g, game.drawResolution.width, game.drawResolution.height, game);
 		} else {
 			game.drawHUD = true;
 		}
-		if (controls.getControlScheme() == ControlScheme.GAMEPLAY) {
+		if (controls.getControlScheme() == ControlScheme.GAMEPLAY || controls.getControlScheme() == ControlScheme.TECH_TREE) {
 			inventory.drawHotbar(g, game.drawResolution.width, game.drawResolution.height, game);
 		}		
+		
+		drawMeter(health, Color.RED, Color.getHSBColor((float) ((health%100)/100), 1F, 0.5F), g, observer, 0, 0);
+		drawMeter(oxygen, Color.CYAN, Color.CYAN, g, observer, 128 + 32, 0);
+		drawMeter(level.getPercentExplored(), Color.GREEN, Color.PINK, g, observer, 0, 128 + 32);
+		
+		g.setFont(MediaLibrary.getFontFromLibrary("INFOFont"));
+		if (drawInfo) printMovementInfo(g, 64, 172);
 	}
 	
 	public void drawOxygenLine(Graphics g, int oxyX, int oxyY) {
@@ -389,7 +414,7 @@ public class Player extends Mob {
 		}
 	}
 	
-	public void drawPlayerModel(Graphics g, int xOffset, int yOffset, ImageObserver observer) {
+	public void drawPlayerModel(Graphics2D g, int xOffset, int yOffset, ImageObserver observer) {
 		g.setColor(Color.GRAY);
 		
 		try {
@@ -405,19 +430,18 @@ public class Player extends Mob {
 		}
 		
 		if (getMovingDir() == 2) {
-			g.drawImage(MediaLibrary.getImageFromLibrary(7500), x - game.xOffset + spriteWidth, y - game.yOffset - 3, -spriteWidth, spriteHeight, observer);
+			if (vX >= -0.001) lastImageID = 7501;
+			else if (collisionBelow(x, y, spriteWidth, spriteHeight, level) && vX < -2.5) lastImageID = 7501 + (((int) (game.ticks / 20))) % 4;
+			else lastImageID = 7501 + (((int) (game.ticks / 60))) % 4;
+			g.drawImage(MediaLibrary.getImageFromLibrary(lastImageID), x - game.xOffset + spriteWidth, y - game.yOffset - 3, -spriteWidth, spriteHeight, observer);
 			if (shouldFly) g.drawImage(MediaLibrary.getImageFromLibrary(7499), x - game.xOffset + spriteWidth, y - game.yOffset - 3, -spriteWidth, spriteHeight, observer);
 		} else if (getMovingDir() == 3) {
-			g.drawImage(MediaLibrary.getImageFromLibrary(7500), x - game.xOffset, y - game.yOffset - 3, spriteWidth, spriteHeight, observer);
+			if (vX <= 0.001) lastImageID = 7501;
+			else if (collisionBelow(x, y, spriteWidth, spriteHeight, level) && vX > 2.5) lastImageID = 7501 + (((int) (game.ticks / 20))) % 4;
+			else lastImageID = 7501 + (((int) (game.ticks / 60))) % 4;
+			g.drawImage(MediaLibrary.getImageFromLibrary(lastImageID), x - game.xOffset, y - game.yOffset - 3, spriteWidth, spriteHeight, observer);
 			if (shouldFly) g.drawImage(MediaLibrary.getImageFromLibrary(7499), x - game.xOffset, y - game.yOffset - 3, spriteWidth, spriteHeight, observer);
 		}
-		
-		drawMeter(health, Color.RED, Color.getHSBColor((float) ((health%100)/100), 1F, 0.5F), g, observer, 0, 0);
-		drawMeter(oxygen, Color.CYAN, Color.CYAN, g, observer, 128 + 32, 0);
-		drawMeter(level.getPercentExplored(), Color.GREEN, Color.PINK, g, observer, 0, 128 + 32);
-		
-		g.setFont(MediaLibrary.getFontFromLibrary("INFOFont"));
-		if (drawInfo) printMovementInfo(g, 64, 172);
 	}
 	
 	public void drawMeter(double percent, Color color, Color blendedColor, Graphics g, ImageObserver observer, int xOffset, int yOffset) {
@@ -485,47 +509,6 @@ public class Player extends Mob {
 	public void setUsername(String str) {
 		username = str;
 	}
-
-	public void damage() {
-		health -= 1.0;
-		checkDeath();
-	}
-	
-	public void damage(double d) {
-		health -= d;
-		checkDeath();
-	}
-	
-	public void checkDeath() {
-		if (health <= 0) {
-			x = level.spawnX;
-			y = level.spawnY;
-			dX = level.spawnX;
-			dY = level.spawnY;
-			vX = 0;
-			vY = 0;
-			aX = 0;
-			aY = 
-			health = 100.0;
-			inventory = new Inventory(100, 80, controls);
-		}
-	}
-	
-	public void heal() {
-		health += 1.0;
-	}
-	
-	public void heal(double d) {
-		health += d;
-	}
-	
-	public void healTo(double d) {
-		health = d;
-	}
-	
-	public double getHealth() {
-		return health;
-	}
 	
 	public void removeOxygen(double d) {
 		oxygen -= d;
@@ -585,6 +568,21 @@ public class Player extends Mob {
 		return oxygenConnected;
 	}
 	
+	public void checkDeath() {
+		if (health <= 0) {
+			x = level.spawnX;
+			y = level.spawnY;
+			dX = level.spawnX;
+			dY = level.spawnY;
+			vX = 0;
+			vY = 0;
+			aX = 0;
+			aY = 
+			health = 100.0;
+			inventory = new Inventory(100, 80, controls);
+		}
+	}
+	
 	public void handleToggles() {
 		if (controls.func1.isPressed()) {
 			game.miniMapScale = 1;
@@ -627,6 +625,12 @@ public class Player extends Mob {
 			toggleCrafting = false;
 		} else {
 			toggleCrafting = true;
+		}
+		if (controls.techTree.isPressed() && !inventory.isActive()) {
+			if (toggleTechTree) game.techTreeGUI.toggleActive();
+			toggleTechTree = false;
+		} else {
+			toggleTechTree = true;
 		}
 		if (controls.func5.isPressed()) {
 			if (toggleCreativeCrafting) game.basicCraftingGUI.toggleFreeCrafting();
@@ -679,5 +683,9 @@ public class Player extends Mob {
 		} else {
 			toggleRefresh = true;
 		}
+	}
+
+	public void draw(Graphics g) {
+		
 	}
 }

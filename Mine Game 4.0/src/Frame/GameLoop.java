@@ -1,6 +1,8 @@
 package Frame;
 
 import static Utilities.FileUtilities.*;
+import Utilities.StatisticsTracker.*;
+import Utilities.TechTree;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -35,11 +37,13 @@ import UI.BasicCraftingGUI;
 import UI.Ingredient;
 import UI.InventoryItem;
 import UI.PauseMenuGUI;
+import UI.TechTreeGUI;
 import UI.WorkbenchGUI;
 import Utilities.AudioManager;
 import Utilities.Calendar;
 import Utilities.FileUtilities;
 import Utilities.LevelFactory;
+import Utilities.StatisticsTracker;
 
 public class GameLoop extends JPanel implements Runnable, KeyListener, MouseListener, MouseMotionListener, MouseWheelListener {
 	private boolean running = true;
@@ -72,6 +76,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	
 	public boolean displayFog = true;
 	public boolean displayUIs = false;
+	public boolean displayConveyorSpeeds = true;
 	
 	public boolean drawHUD;
 	public boolean drawMiniMap = true;
@@ -79,19 +84,26 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 
 	public Graphics gStorage;
 	
+	private TechTree techTree;
+	
 	public BasicCraftingGUI basicCraftingGUI;
 	public WorkbenchGUI workbenchGUI;
 	public PauseMenuGUI pauseMenuGUI;
+	public TechTreeGUI techTreeGUI;
+	
+	public StatisticsTracker tracker;
 	
 	public static void main(String[] args) {
 		new PreloadDialog();
 	}
 
 	public void tick() {
-		if (pauseMenuGUI != null && pauseMenuGUI.isActive()) {input.setControlScheme(ControlScheme.PAUSE_MENU); pauseMenuGUI.tick(); return;}
-		if (input != null && input.esc.isPressed()) {pauseMenuGUI.setActive(true); input.esc.toggle(false); return;}
-		
 		ticks++;
+		if (pauseMenuGUI != null && pauseMenuGUI.isActive()) {input.setControlScheme(ControlScheme.PAUSE_MENU); pauseMenuGUI.tick(); return;}
+		if (techTreeGUI != null && techTreeGUI.isActive()) {input.setControlScheme(ControlScheme.TECH_TREE); techTreeGUI.tick(input, ticks % 2 == 0, player.inventory); return;}
+		
+		if (input != null && input.esc.isPressed()) {pauseMenuGUI.setActive(true); input.esc.toggle(false); return;}
+				
 		checkFullscreenFocus();
 		level.tick();
 		
@@ -106,6 +118,9 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			if (input.home.isPressed()) basicCraftingGUI.returnToTop();
 			if (input.end.isPressed()) basicCraftingGUI.scrollToBottom();
 		}
+		
+		if (input.getControlScheme() == ControlScheme.GAMEPLAY && input.alt.isPressed()) displayConveyorSpeeds = true;
+		else displayConveyorSpeeds = false;
 	}
 	
 	public void resetWindow() {
@@ -134,6 +149,16 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		frame.add(this);
 		
 		checkDisplayMode();
+	}
+	
+	public void exitDialog() {
+		if (JOptionPane.showConfirmDialog(frame, 
+	            "Are you sure to want to exit the game?", "Quit now?", 
+	            JOptionPane.YES_NO_OPTION,
+	            JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+	        	exitSequence();
+	            System.exit(0);
+	        }
 	}
 	
 	public void checkFullscreenFocus() {
@@ -265,6 +290,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		AttributeLibrary.populateIngredientLibraries();
 		RecipeLibrary.populateRecipeLibrary();
 		StructureLibrary.populateStructureLibrary();
+		techTree = new TechTree();
 		audioManager = new AudioManager();
 		
 		Calendar.prepareCalendar(System.currentTimeMillis());
@@ -279,12 +305,15 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	public void initializeGUIs() {
 		workbenchGUI = new WorkbenchGUI();
 		basicCraftingGUI = new BasicCraftingGUI(this);
-		pauseMenuGUI = new PauseMenuGUI(this, input);
+		tracker = new StatisticsTracker(this);
+		pauseMenuGUI = new PauseMenuGUI(this, this, input, tracker);
+		techTreeGUI = new TechTreeGUI(input, techTree);
 	}
 	
 	public void disableAllGUIs() {
 		workbenchGUI.setActive(false);
 		basicCraftingGUI.setActive(false);
+		techTreeGUI.setActive(false);
 	}
 	
 	public void toggleFog() {
@@ -301,6 +330,10 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	
 	public boolean isPaused() {
 		return (pauseMenuGUI != null && pauseMenuGUI.isActive());
+	}
+	
+	public Dimension getDrawResolution() {
+		return drawResolution;
 	}
 	
 	public void render(Graphics g) {
@@ -330,12 +363,29 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			renderTiles(g, true);
 		}
 		
-		if (drawHUD) drawHUD(g);
+		int tempXOffset = xOffset;
+		int tempYOffset = yOffset;
 		
 		if (player != null) {
 			xOffset = (int) (player.x - (drawResolution.getWidth()/2));
 			yOffset = (int) (player.y - (drawResolution.getHeight()/2));	
+			player.drawPlayerModel(((Graphics2D) g), xOffset, yOffset, this);
 		}
+		
+		for (int y = (tempYOffset >> 5) - 1; y < ((tempYOffset + ((int) drawResolution.getHeight())) >> 5) + 1; y++) {
+			for (int x = (tempXOffset >> 5) - 1; x < ((tempXOffset + ((int) drawResolution.getWidth())) >> 5) + 1; x++) {
+				int id0 = level.getTile(x, y).getId();
+    	    	// Render lighting
+    	    	if (id0 >= 0 && level.getDiscreteLightLevel(x, y) >= -127 && level.getDiscreteLightLevel(x, y) <= 127) {
+    	    		g.setColor(new Color(0, 0, 0, 127 - level.getDiscreteLightLevel(x, y)));
+        	    	g.fillRect((x << 5) - tempXOffset, (y << 5) - tempYOffset, 32, 32);
+    	    	}
+			}
+		}
+		
+		if (player != null) player.draw(g, this);
+		
+		if (drawHUD) drawHUD(g);
 		
 		if (xOffset <= 0) {
 			xOffset = 0;
@@ -353,20 +403,16 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			}
 		}
 		
-		try {
-		player.drawPlayerModel(g, xOffset, yOffset, this);
-		} catch (NullPointerException e) {
-			FileUtilities.log(e.getMessage());
-			new PreloadDialog();
-			this.setEnabled(false);
-		}
-		
 		if (drawMiniMap) {
 			renderMiniMap(g);
 		}
 		
 		if (basicCraftingGUI.isActive()){
 			basicCraftingGUI.draw(g, drawResolution.width, drawResolution.height, this, input);
+		}
+		
+		if (techTreeGUI.isActive()){
+			techTreeGUI.draw(g, drawResolution.width, drawResolution.height, this, input);
 		}
 		
 		g.setFont(MediaLibrary.getFontFromLibrary("INFOFont"));
@@ -382,6 +428,8 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 				if (level.height << 5 < (int) drawResolution.getHeight()) yShift = ((int) drawResolution.getHeight() - (level.height << 5)) / 2;
 				xOffset += xShift;
 				yOffset += yShift;
+				
+				level.calculateDiscreteLighting();
 				
 				// Draw tile Images //
 				for (int y = (yOffset >> 5) - 1; y < ((yOffset + ((int) drawResolution.getHeight())) >> 5) + 1; y++) {
@@ -414,6 +462,29 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		            	    }
 		            	    g.drawImage(im0, (x << 5) - xOffset, (y << 5) - yOffset, this);
 		            	    if (ds) g.drawImage(MediaLibrary.getImageFromLibrary(8192), (x << 5) - xOffset, (y << 5) - yOffset, this);
+		            	    
+		            	    if (id0 == Tile.DRY_WALL.getId()) {
+		            	    	Color color = level.getTileColor(x, y);
+		            	    	if (!(color == null)) {
+			            	    	g.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 128));
+			            	    	g.fillRect((x << 5) - xOffset, (y << 5) - yOffset, 32, 32);
+		            	    	}
+		            	    }
+		            	    
+		            	    // Show conveyor speeds
+		            	    if (id0 >= Tile.CONVEYOR.getId() && id0 <= Tile.CONVEYOR_MIDDLE.getId() && !(level.getConveyorSpeed(x, y) == 0)) {
+		            	    	String conveyorSpeed = "";
+		            	    	g.setColor(Color.WHITE);
+		            	    	g.setFont(MediaLibrary.getFontFromLibrary("NumberingFont"));
+		            	    	
+		            	    	if (level.getConveyorSpeed(x, y) > 0) {
+		            	    		conveyorSpeed = ">";
+		            	    	} else if (level.getConveyorSpeed(x, y) < 0) {
+		            	    		conveyorSpeed = "<";
+		            	    	}
+
+		            	    	g.drawString(conveyorSpeed, (x << 5) - xOffset + 12, (y << 5) - yOffset + 13);
+		            	    }
 	                }
 	            }
 				
@@ -551,8 +622,14 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 				g.drawImage(MediaLibrary.getImageFromLibrary(15), ((int) drawResolution.getWidth() / 2) - 32, i + 32, this);
 				g.drawImage(MediaLibrary.getImageFromLibrary(16), ((int) drawResolution.getWidth() / 2), i + 32, this);
 			} else g.drawImage(MediaLibrary.getImageFromLibrary(displayTile.getId()), ((int) drawResolution.getWidth() / 2) - 32, i, 64, 64, this);
-			if (displayTile.getClass() == DestructibleTile.class) str = tileDurability + " / " + ((DestructibleTile) displayTile).baseDurability;
-			if (displayTile.getClass() == BackgroundDestructibleTile.class) str = tileDurability + " / " + ((BackgroundDestructibleTile) displayTile).baseDurability;
+			if (displayTile.getClass() == DestructibleTile.class) {
+				str = String.format("%.3f", tileDurability) + " / ";
+				str += String.format("%.3f", ((DestructibleTile) displayTile).baseDurability);
+			}
+			if (displayTile.getClass() == BackgroundDestructibleTile.class) {
+				str = String.format("%.3f", tileDurability) + " / ";
+				str += String.format("%.3f", ((BackgroundDestructibleTile) displayTile).baseDurability);
+			}
 			g.drawString(str, ((int) drawResolution.getWidth() / 2) - (metr.stringWidth(str) / 2), i + 100);
 		}
 		

@@ -57,6 +57,13 @@ public class Recipe {
 		}
 	}
 	
+	public void shiftColorSelectorHue(int outputIndex, float delta) {
+		InventoryItem outputItem = (InventoryItem) outputs[outputIndex];
+		if (ColorSelector.class.isAssignableFrom(outputItem.getClass())) {
+			((ColorSelector) outputItem).shiftHue(delta);
+		}
+	}
+	
 	public int getNumInputs() {
 		return numInputs;
 	}

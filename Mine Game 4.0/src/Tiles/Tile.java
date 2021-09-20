@@ -31,6 +31,17 @@ public class Tile {
     public static final SolidTile TNT = 				new DestructibleTile(19, 0xFFFF0000, "TNT", 0.6, true, 1.0, 40.0);
     public static final SolidTile COPPER_ORE =			new DestructibleTile(20, 0xFFBFFBFF, "Copper Ore", 0.8, true, 15.0, 1500.0);
     public static final SolidTile COAL_ORE = 			new DestructibleTile(21, 0xFF010101, "Coal Ore", 0.8, true, 15.0, 110.0);
+    public static final SolidTile LAMP = 				new DestructibleTile(22, 0xFFFFCA87, "Lamp", 0.5, true, 4.0, 50.0);
+    public static final Tile TORCH = 					new BackgroundDestructibleTile(23, 0xFFFE6900, "Torch", true, 1.0, 5.0);
+    public static final Tile SHIP_BACKGROUND_LAMP =		new BackgroundDestructibleTile(24, 0xFF999982, "Ship Background Lamp", false, 500.0, 12000000.0);
+    public static final SolidTile FUNNEL =		   		new DestructibleTile(25, 0xFFF4F4F4, "Iron Funnel", 0.2, true, 30.0, 2000.0);
+    public static final SolidTile CONVEYOR = 			new DestructibleTile(26, 0xFF7F6A00, "Conveyor", 0.95, true, 10.0, 50.0);
+    public static final SolidTile CONVEYOR_LEFT_END = 	new DestructibleTile(27, 0xFF7F6A01, "Conveyor left end", 0.95, true, 10.0, 50.0);
+    public static final SolidTile CONVEYOR_RIGHT_END = 	new DestructibleTile(28, 0xFF7F6A02, "Conveyor right end", 0.95, true, 10.0, 50.0);
+    public static final SolidTile CONVEYOR_MIDDLE = 	new DestructibleTile(29, 0xFF7F6A03, "Conveyor middle", 0.925, true, 10.0, 50.0);
+    public static final Tile FENCE =					new BackgroundDestructibleTile(30, 0xFFB5B5B5, "Fence", false, 3.0, 275.0);
+    public static final SolidTile GYPSUM_DEPOSIT =		new DestructibleTile(31, 0xFF8E514B, "Gypsum Deposit", 0.8, true, 7.5, 500.0);
+    public static final Tile DRY_WALL =					new BackgroundDestructibleTile(32, 0xFFE6E6E6, "Dry Wall", false, 1.0, 25.0);
     
     public Tile(int id, int levelColour, String name) {
         this.id = id;

@@ -20,6 +20,9 @@ public class InventoryTile extends InventoryItem {
 		super(tileID, tileID);
 		this.tileID = tileID;
 		this.quantity = quantity;
+		if (tileID > Tile.CONVEYOR.getId() && tileID <= Tile.CONVEYOR_MIDDLE.getId()) {
+			tileID = Tile.CONVEYOR.getId();
+		}
 	}
 	
 	public int getTileID() {
@@ -27,7 +30,10 @@ public class InventoryTile extends InventoryItem {
 	}
 	
 	public void quantityCheck() {
-		if (quantity <= 0) markedForDeletion = true;
+		if (quantity <= 0) {
+			quantity = 0;
+			markedForDeletion = true;
+		}
 	}
 	
 	public int getQuantity() {
@@ -52,6 +58,9 @@ public class InventoryTile extends InventoryItem {
 	
 	public void tick() {
 		quantityCheck();
+		if (tileID > Tile.CONVEYOR.getId() && tileID <= Tile.CONVEYOR_MIDDLE.getId()) {
+			tileID = Tile.CONVEYOR.getId();
+		}
 	}
 	
 	public void draw(Graphics g, int x, int y, int iconWidth, int iconHeight, ImageObserver observer) {

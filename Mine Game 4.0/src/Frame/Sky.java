@@ -21,6 +21,7 @@ import Utilities.FileUtilities;
 public class Sky {
 	public long time;
 	public long finetime;
+	public int timeWarp;
 	public int day;
 	public long currentTime;
 	public int[] data = new int[4];
@@ -65,9 +66,11 @@ public class Sky {
 		}
 	}
 	
-	public void tick() {
-		time = Calendar.timeElapsedMillis() % (totalDayTime * 1000);
-		day =  (int) (Calendar.timeElapsed() / totalDayTime);
+	public void tick(int timeWarp) {
+		if (Math.abs(timeWarp) > 100) timeWarp = 100;
+		if (timeWarp == 1) time = Calendar.timeElapsedMillis() % (totalDayTime * 1000);
+		else time = (time + (timeWarp * 10)) % (totalDayTime * 1000);
+		day =  (int) ((Calendar.timeElapsed() / (totalDayTime)) + 100);
 		BufferedImage buffered = new BufferedImage(1000, 8, BufferedImage.TYPE_INT_ARGB);
 		buffered.getGraphics().drawImage(images[0], 0, 0, null);
 		int x = (int) (time / totalDayTime);
@@ -109,7 +112,8 @@ public class Sky {
 		g.drawLine((int) (time/totalDayTime) + 32, 64, (int) (time/totalDayTime) + 32, 64 + 160);
 		g.drawLine(((int) (time/totalDayTime) + 48)%1000, 64, ((int) (time/totalDayTime) + 48)%1000, 64 + 160);*/
 		if (updateTime) {
-			time = Calendar.timeElapsed() % totalDayTime;
+			if (timeWarp == 1) time = Calendar.timeElapsedMillis() % (totalDayTime * 1000);
+			else time = (time + (timeWarp * 10)) % (totalDayTime * 1000);
 			finetime = Calendar.timeElapsedMillis() % (totalDayTime * 1000);
 			currentTime = Calendar.timeElapsedMillis();
 		}

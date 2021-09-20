@@ -211,6 +211,12 @@ public class Inventory {
 		return false;
 	}
 	
+	public void clearInventory() {
+		for (InventoryItem i : items) {
+			if (i != null) i.markedForDeletion = true;
+		}
+	}
+	
 	public void drawFreeItem(Graphics g, ImageObserver observer) {
 		freeItem.draw(g, mouseLocation.width - iconSize / 2, mouseLocation.height - iconSize / 2, iconSize, iconSize, observer);
 	}

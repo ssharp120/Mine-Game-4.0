@@ -66,6 +66,14 @@ public class RecipeLibrary {
 							inputs[inputIndex] = ItemFactory.createItem("i", attributes);
 							break;
 						}
+						// Color Selector //
+						case "c": {
+							int[] attributes = new int[2];
+							attributes[0] = recipeFile.nextInt();
+							attributes[1] = recipeFile.nextInt();
+							inputs[inputIndex] = ItemFactory.createItem("c", attributes);
+							break;
+						}
 						// InventoryEntity //
 						case "e": {
 							int[] attributes = new int[1];
@@ -113,6 +121,14 @@ public class RecipeLibrary {
 							attributes[0] = recipeFile.nextInt();
 							attributes[1] = recipeFile.nextInt();
 							outputs[outputIndex] = ItemFactory.createItem("i", attributes);
+							break;
+						}
+						// Color Selector //
+						case "c": {
+							int[] attributes = new int[2];
+							attributes[0] = recipeFile.nextInt();
+							attributes[1] = recipeFile.nextInt();
+							outputs[outputIndex] = ItemFactory.createItem("c", attributes);
 							break;
 						}
 						// InventoryEntity //

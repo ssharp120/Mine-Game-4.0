@@ -1,4 +1,6 @@
-tada
-oof
-oofalt
-bang
+insert_item
+drill
+undrill
+plug
+unplug
+manufacture
