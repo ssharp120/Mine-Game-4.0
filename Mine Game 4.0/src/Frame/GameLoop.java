@@ -22,6 +22,7 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
+import Client.PreloadDialog;
 import Entities.OxygenGenerator;
 import Entities.Player;
 import Frame.InputHandler.ControlScheme;
@@ -29,7 +30,6 @@ import Libraries.AttributeLibrary;
 import Libraries.MediaLibrary;
 import Libraries.RecipeLibrary;
 import Libraries.StructureLibrary;
-import Startup.PreloadDialog;
 import Tiles.BackgroundDestructibleTile;
 import Tiles.DestructibleTile;
 import Tiles.Tile;

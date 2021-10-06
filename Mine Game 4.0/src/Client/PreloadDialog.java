@@ -1,4 +1,4 @@
-package Startup;
+package Client;
 
 import static Utilities.FileUtilities.*;
 
@@ -25,6 +25,7 @@ import javax.swing.ListCellRenderer;
 import javax.swing.border.Border;
 
 import Frame.GameLoop;
+import Networking.UDPServer;
 
 @SuppressWarnings("serial")
 public class PreloadDialog extends JFrame {
@@ -47,8 +48,6 @@ public class PreloadDialog extends JFrame {
 		Color highlightColor = Color.decode("#09CCEF");
 		Color selectedColor = Color.decode("#02EEFE");
 		Border defaultBorder = BorderFactory.createLineBorder(Color.black);
-		Dimension resolution;
-		boolean startFullscreen;
 		Dimension[] availableResolutions = {
 					new Dimension(3840, 2160),
 					new Dimension(2560, 1440),
@@ -65,6 +64,7 @@ public class PreloadDialog extends JFrame {
 		JComboBox resolutionSelect;
 		JCheckBox fullscreenSelect;
 		JButton launchButton;
+		JButton serverButton;
 		JButton exitButton;
 		
 		public PreloadDialogPanel() {			
@@ -107,15 +107,20 @@ public class PreloadDialog extends JFrame {
 	        
 	        JPanel launchPanel = new JPanel();
 	        launchButton = new JButton("Launch");
+	        serverButton = new JButton("Server");
 	        exitButton = new JButton("Exit");
 	        launchButton.addActionListener(this);
+	        serverButton.addActionListener(this);
 	        exitButton.addActionListener(this);
 	        launchButton.setBackground(highlightColor);
+	        serverButton.setBackground(highlightColor);
 	        exitButton.setBackground(highlightColor);
 	        launchButton.setMnemonic(KeyEvent.VK_L);
+	        serverButton.setMnemonic(KeyEvent.VK_S);
 	        exitButton.setMnemonic(KeyEvent.VK_E);
 	        
 	        launchPanel.add(launchButton);
+	        launchPanel.add(serverButton);
 	        launchPanel.add(exitButton);
 	        launchPanel.setBackground(optionColor);
 	        launchPanel.setBorder(defaultBorder);
@@ -124,18 +129,25 @@ public class PreloadDialog extends JFrame {
 		
 		public void actionPerformed(ActionEvent e) {
 			if (e.getSource() == exitButton) System.exit(0);
-			if (e.getSource() == launchButton) {
-				resolution = (Dimension) resolutionSelect.getSelectedItem();
-				startFullscreen = fullscreenSelect.isSelected();
-				setVisible(false);
-				removeAll();
-				dispose();
-				EventQueue.invokeLater(new Runnable() {
-		            public void run() {                
-		            	new Thread(new GameLoop(resolution, startFullscreen)).start();             
-		            }
-		        });
+			if (e.getSource() == serverButton) {
+				initThreadAndClose(new UDPServer());
 			}
+			if (e.getSource() == launchButton) {
+				Dimension resolution = (Dimension) resolutionSelect.getSelectedItem();
+				boolean startFullscreen = fullscreenSelect.isSelected();
+				initThreadAndClose(new GameLoop(resolution, startFullscreen));
+			}
+		}
+		
+		public void initThreadAndClose(Runnable o) {
+			setVisible(false);
+			removeAll();
+			dispose();
+			EventQueue.invokeLater(new Runnable() {
+	            public void run() {                
+	            	new Thread(o).start();             
+	            }
+	        });
 		}
 		
 		class ComboBoxRenderer extends JLabel implements ListCellRenderer {
@@ -161,6 +173,7 @@ public class PreloadDialog extends JFrame {
 		public void keyPressed(KeyEvent e) {
 			switch (e.getKeyCode()) {
 				case KeyEvent.VK_E: exitButton.doClick(); break;
+				case KeyEvent.VK_S: serverButton.doClick(); break;
 				case KeyEvent.VK_L: launchButton.doClick(); break;
 				case KeyEvent.VK_F: fullscreenSelect.doClick(); break;
 				case KeyEvent.VK_R: resolutionSelect.setPopupVisible(!resolutionSelect.isPopupVisible()); break;
