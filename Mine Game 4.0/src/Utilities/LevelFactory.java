@@ -33,6 +33,17 @@ public class LevelFactory {
 		}
 	}
 	
+	public static BufferedImage generateTiles(int worldType, int width, int height) throws IndexOutOfBoundsException {		
+		if (width < 1 || height < 1) throw new IndexOutOfBoundsException("Invalid dimensions: " + width + " x " + height);
+		if (worldType < 0) throw new IndexOutOfBoundsException("World type must be a positive integer or zero: " + worldType);
+		
+		FileUtilities.log("Generating new " + width + " x " + height + "level of type " + worldType + "\n");
+		
+		BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+		
+		return image;
+	}
+	
 	public static BufferedImage generateLevel(int worldType, GameLoop game) {
 		BufferedImage i = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
 		FileUtilities.log("Generating new level of type " + worldType + "\n");
