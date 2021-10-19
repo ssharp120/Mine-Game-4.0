@@ -9,6 +9,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -16,25 +17,27 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.ArrayList;
 
+import javax.swing.ImageIcon;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
-import Networking.UDPServer.Command;
+import Utilities.LevelFactory;
 
 import static Utilities.FileUtilities.*;
 
 public class UDPServer implements Runnable {
 
-	private final boolean DEBUG = true;
+	private final boolean printInputChecks = false;
 	
 	// Global variables
 	private DatagramSocket serverSocket;
 	private int currentPort;
 	
-	private final int defaultPort = 10127;
+	private final int defaultPort = 7777;
 	
 	private boolean active = true;
 	
@@ -90,7 +93,7 @@ public class UDPServer implements Runnable {
 		new UDPServer();
 	}*/
 	
-	public class Command {
+	private class Command {
 		private String[] keywords;
 		private int shortestKeywordLength;
 		private boolean takesArguments;
@@ -186,6 +189,10 @@ public class UDPServer implements Runnable {
 			warning = !warning;
 		}
 		
+		public String getResponse() {
+			return action.getResponse();
+		}
+		
 		public boolean parse(String input) {
 			if (input == null) return false;
 			
@@ -193,10 +200,11 @@ public class UDPServer implements Runnable {
 			if (input.length() < shortestKeywordLength) return false;
 			
 			if (takesArguments) {
-				String[] inputWords = input.split(" ", (maxArgs + 1));
+				String[] inputWords = input.split(" ", (maxArgs + 2));
 				
 				// Check keyword and whether there are enough arguments
-				if (inputWords.length < minArgs + 1 || !checkKeyword(inputWords[0])) return false;
+				if (inputWords.length < minArgs + 1 || !checkKeyword(inputWords[0]) 
+						|| (inputWords.length == minArgs + 1 && inputWords[inputWords.length - 1].isBlank())) return false;
 				
 				// Set the arguments of the action to the rest of the string (sans keyword)
 				String[] argWords = new String[inputWords.length - 1];
@@ -204,27 +212,26 @@ public class UDPServer implements Runnable {
 					argWords[i] = inputWords[i + 1];
 				}
 				action.setArgs(argWords);
+				return true;
 			} else {
 				String inputWord = input.split(" ", 2)[0];
 				return checkKeyword(inputWord);
 			}
-			
-			return false;
 		}
 		
 		private boolean checkKeyword(String inputWord) {
 			if (inputWord == null) return false;
-			if (DEBUG) System.out.println("Checking input " + inputWord + " against command " + mainKeyword());
+			if (printInputChecks) System.out.println("Checking input " + inputWord + " against command " + mainKeyword());
 			
 			if (multipleKeywords()) {
 				for (String keyword : keywords) {
 					boolean match = keyword.toLowerCase().trim().equals(inputWord.toLowerCase().trim());
-					if (DEBUG) System.out.println(inputWord + " | " + keyword + " (" + match + ")");
+					if (printInputChecks) System.out.println(inputWord + " | " + keyword + " (" + match + ")");
 					if (match) return true;
 				} 
 			} else {
 				boolean match = mainKeyword().toLowerCase().trim().equals(inputWord.toLowerCase().trim());
-				if (DEBUG) System.out.println(inputWord + " | " + mainKeyword() + " (" + match + ")");
+				if (printInputChecks) System.out.println(inputWord + " | " + mainKeyword() + " (" + match + ")");
 				if (match) return true;
 			}
 			
@@ -232,24 +239,26 @@ public class UDPServer implements Runnable {
 		}
 		
 		public void action() {
+			action.resetResponse();
+			if (takesArguments && action.getArgumentQuantity() > maxArgs) {
+				action.setResponse("Trimmed " + action.getExcessArguments() + " from command " + mainKeyword(), true); 
+				log("[WARNING] Too many arguments at " + mainKeyword() + " - ignored " + action.getExcessArguments(), true);
+			}
 			action.run();
 		}
 		
 		public String toString() {
-			String state = "Server command ";
+			String state = "";
 			
 			// Describe keywords
-			state += mainKeyword();
 			if (multipleKeywords()) {
-				for (String keyword : keywords) {
-					state += "|" + keyword;
+				for (int i = 0; i < keywords.length; i++) {
+					state += (i == 0 ? keywords[i] : "|" + keywords[i]);
 				}
-			}
+			} else state += mainKeyword();
 			
-			// Describe arguments
-			if (takesArguments) {
-				state += " with " + minArgs + "-" + maxArgs + " arguments";
-			} else state += " with no arguments";
+			// Describe arguments in command by overriding this function
+			if (takesArguments)	state += " ";
 			
 			return state;
 		}
@@ -257,9 +266,48 @@ public class UDPServer implements Runnable {
 	
 	private abstract class CommandAction implements Runnable {
 		String[] args;
+		private String response;
 		
 		public void setArgs(String[] args) {
 			this.args = args;
+		}
+		
+		public boolean containsArgs() {
+			return (!(args == null) && args.length > 0);
+		}
+		
+		public int getArgumentQuantity() {
+			return containsArgs() ? args.length : 0;
+		}
+		
+		public String getExcessArguments() {
+			return containsArgs() ? args[args.length - 1] : "";
+		}
+		
+		public String getResponse() {
+			return response;
+		}
+		
+		public void setResponse(String str) {
+			response = str;
+		}
+		
+		public void setResponse(String str, boolean includeNewline) {
+			if (includeNewline) setResponse(str + "\n");
+			else setResponse(str);
+		}
+		
+		public void appendResponse(String str) {
+			response += str;
+		}
+		
+		public void appendResponse(String str, boolean includeNewline) {
+			if (includeNewline) appendResponse(str + "\n");
+			else appendResponse(str);
+		}
+		
+		public void resetResponse() {
+			response = "";
 		}
 		
 		public abstract void run();
@@ -285,22 +333,113 @@ public class UDPServer implements Runnable {
 			public void run() {
 				if (JOptionPane.showConfirmDialog(frame, "Are you sure you would like to exit?") == JOptionPane.YES_OPTION) close();
 			}};
-		Command shutdown = new Command(new String[] {"shutdown", "exit", "halt"}, shutdownAction, true);
-		commandList.add(shutdown);
+		Command shutdownCommand = new Command(new String[] {"shutdown", "exit", "halt"}, shutdownAction, true);
+		commandList.add(shutdownCommand);
 		
 		CommandAction clearAction = new CommandAction() {
 			public void run() {
 				clearLog();
+				setResponse("Cleared server log", true);
 			}};
-		Command clear = new Command(new String[] {"clear"}, clearAction);
-		commandList.add(clear);
+		Command clearCommand = new Command(new String[] {"clear"}, clearAction);
+		commandList.add(clearCommand);
 		
 		CommandAction resetAction = new CommandAction() {
 			public void run() {
 				resetLog();
+				setResponse("Reset server log", true);
 			}};
-		Command reset = new Command(new String[] {"reset"}, resetAction);
-		commandList.add(reset);
+		Command resetCommand = new Command(new String[] {"reset"}, resetAction);
+		commandList.add(resetCommand);
+		
+		CommandAction helpAction = new CommandAction() {
+			public void run() {
+				String msg = "[INFO] Available commands:\n";
+				for (Command command : commandList) msg += "\t\t" + command.toString() + "\n";
+				log(msg, true);
+			}};
+		Command helpCommand = new Command(new String[] {"help", "info"}, helpAction);
+		commandList.add(helpCommand);
+		
+		CommandAction portAction = new CommandAction() {
+			public void run() {
+				if (containsArgs()) {
+					int newPort;
+					try {
+						newPort = Integer.parseInt(args[0]);
+					} catch (NumberFormatException e) {
+						log("[ERROR] Port must be an integer", true);
+						appendResponse("Ignored non-integer argument at command port", true);
+						return;
+					}
+					if (newPort <= 1024 || newPort >= 65536) log("Failed to change port to " + newPort + ": Must specify a valid, non-reserved port", true);
+					else {
+						log("Closing port " + currentPort, true);
+						appendResponse("Changed port from " + currentPort + " to " + newPort, true);
+						currentPort = newPort;
+						log("Changed port to " + currentPort, true);
+					}
+				} else {
+					log("Current port: " + currentPort, true);
+				}	
+			}};
+		Command portCommand = new Command(new String[] {"port"}, 0, 1, portAction) {
+			public String toString() {
+				return super.toString() + "[new port]";
+			}};
+		commandList.add(portCommand);
+		
+		CommandAction worldgenAction = new CommandAction() {
+			public void run() {
+				BufferedImage image;
+				int worldType;
+				int width;
+				int height;
+				
+				if (getArgumentQuantity() >= 3) {
+					try {
+						worldType = Integer.valueOf(args[2]);
+						width = Integer.valueOf(args[0]);
+						height = Integer.valueOf(args[1]);
+					} catch (NumberFormatException e) {
+						log("[ERROR] World type, width and height must all be integers", true);
+						appendResponse("Aborted command worldgen due to one or multiple non-integer arguments", true);
+						return;
+					}
+				} else {
+					try {
+						worldType = Integer.valueOf(args[1]);
+					} catch (NumberFormatException e) {
+						log("[ERROR] World type must be an integer", true);
+						appendResponse("Aborted command worldgen due to non-integer argument: invalid world type", true);
+						return;
+					}
+					switch (args[0]) {
+						case "small": width = 128; height = 128; break;
+						case "medium": width = 256; height = 256; break;
+						case "large": width = 1024; height = 1024; break;
+						default:
+							log("[ERROR] World size must be small, medium, or large", true);
+							appendResponse("Aborted command worldgen due to invalid argument: invalid world size", true);
+							return;
+					}
+				}
+				
+				image = LevelFactory.generateTiles(worldType, width, height);
+				
+				JFrame imageFrame = new JFrame("World output");
+				ImageIcon icon = new ImageIcon(image);
+				JLabel label = new JLabel(icon);
+				imageFrame.add(label);
+				imageFrame.pack();
+				imageFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+				imageFrame.setVisible(true);
+			}};
+		Command worldgenCommand = new Command(new String[] {"worldgen"}, 2, 3, worldgenAction) {
+			public String toString() {
+				return super.toString() + "(-small | -medium | -large) | (width height) worldType";
+			}};
+		commandList.add(worldgenCommand);
 	}
 	
 	public void close() {
@@ -318,7 +457,7 @@ public class UDPServer implements Runnable {
 	}
 	
 	private void setActive(boolean active) {
-		this.active = false;
+		this.active = active;
 	}
 	
 	public String processData(String data) { 
@@ -332,6 +471,7 @@ public class UDPServer implements Runnable {
 		for (Command command : commandList) {
 			if (command.parse(input)) {
 				command.action();
+				return command.getResponse() == null ? "" : command.getResponse();
 			}
 		}
 		
@@ -410,7 +550,7 @@ public class UDPServer implements Runnable {
 		consoleInput.setForeground(new Color(231, 231, 231));
 		consoleInput.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				System.out.println(processCommand(consoleInput.getText()));
+				System.out.print(processCommand(consoleInput.getText()));
 			}});
 		
 		consoleInput.addKeyListener(new KeyListener() {

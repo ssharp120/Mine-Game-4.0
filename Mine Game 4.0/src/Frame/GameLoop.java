@@ -294,7 +294,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		audioManager = new AudioManager();
 		
 		Calendar.prepareCalendar(System.currentTimeMillis());
-		level = new Level(LevelFactory.generateLevel(0, this), "Generated", 0, this, (40 + 16) * 32, 526*32);
+		level = new Level(LevelFactory.generateLevel(0), "Generated", 0, this, (40 + 16) * 32, 526*32);
 		player = new Player(level, "Test", level.spawnX, level.spawnY, input);
 		level.addEntity(player);
 		

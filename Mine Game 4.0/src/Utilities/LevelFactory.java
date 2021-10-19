@@ -34,19 +34,203 @@ public class LevelFactory {
 	}
 	
 	public static BufferedImage generateTiles(int worldType, int width, int height) throws IndexOutOfBoundsException {		
-		if (width < 1 || height < 1) throw new IndexOutOfBoundsException("Invalid dimensions: " + width + " x " + height);
+		if (width < 16 || height < 16) throw new IndexOutOfBoundsException("Dimensions must be at least 16 x 16: " + width + " x " + height);
 		if (worldType < 0) throw new IndexOutOfBoundsException("World type must be a positive integer or zero: " + worldType);
 		
 		FileUtilities.log("Generating new " + width + " x " + height + "level of type " + worldType + "\n");
 		
+		// Enable old level generation
+		//if (width == 1024 && height == 1024) return generateLevel(worldType);
+		
 		BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+		
+		switch (worldType) {
+		
+		case 0:
+			
+			populateSkyTiles(image);
+			
+			int[] stoneHeights = new int[width];
+			int[] dirtHeights = new int[width];
+			int[] sandHeights = new int[width];
+			
+			double stoneRoughness = 0.6;
+			double dirtRoughness = 0.4;
+			double sandRoughness = 0.2;
+			
+			double biomeDiversity = 0.002;
+			
+			int currentBiome = 0;
+			
+			int treeXtoSkip = 0;
+			
+			double treeOccurrence = 0.3;
+			
+			int minTreeHeight = 4;
+			int maxTreeHeight = 10;
+			int minTreeSpacing = 5;
+			
+			// Define initial terrain heights
+			stoneHeights[0] = height / 2;
+			dirtHeights[0] = 32;
+			sandHeights[0] = 32;
+			
+			// Initialize step-wise delta
+			int stoneDelta = 0;
+			int dirtDelta = 0;
+			int sandDelta = 0;
+			
+			for (int i = 1; i < width; i++) {
+				// Generate stone levels
+				stoneDelta = (int) Math.round(2 - 4 * Math.random());
+				
+				// Smooth out the terrain
+				if (Math.random() > stoneRoughness) stoneDelta = 0;
+				
+				stoneHeights[i] = stoneHeights[i - 1] + stoneDelta;
+				
+				if (stoneHeights[i] <= 5) stoneHeights[i] = 5;
+				else if (stoneHeights[i] >= height - 5) stoneHeights[i] = height - 5;
+				
+				for (int j = 1; j <= stoneHeights[i]; j++) {
+					image.setRGB(i, height - j, Tile.STONE.getLevelColour());
+				}
+				
+				// Change biomes
+				if (i > 8 && i < width - 8 && Math.random() < biomeDiversity) {
+					if (currentBiome == 0) {
+						currentBiome = 1;
+						sandHeights[i - 1] = dirtHeights[i - 1];
+						
+						// Add random sand at biome transition
+						for (int ii = 0; ii < 8; ii++) {
+							for (int j = 1; j < dirtHeights[i - ii]; j++) {
+								if (Math.random() > (ii + 2)/10D) image.setRGB(i - ii, height - (stoneHeights[i - ii] + j), Tile.SAND.getLevelColour());
+							}
+						}
+					}
+					else if (currentBiome == 1) {
+						currentBiome = 0;
+						dirtHeights[i - 1] = sandHeights[i - 1];
+						
+						// Add random dirt at biome transition
+						for (int ii = 0; ii < 8; ii++) {
+							for (int j = 1; j < sandHeights[i - ii]; j++) {
+								if (Math.random() > (ii + 2)/10D) image.setRGB(i - ii, height - (stoneHeights[i - ii] + j), Tile.DIRT.getLevelColour());
+							}
+						}
+					}
+				}
+				
+				// Fill in terrain
+				switch (currentBiome) {
+				case 0:
+					
+					// Generate dirt levels
+					dirtDelta = (int) Math.round(1 - 2 * Math.random());
+					
+					// Smooth out the terrain
+					if (Math.random() > dirtRoughness) dirtDelta = 0;
+					
+					dirtHeights[i] = dirtHeights[i - 1] + dirtDelta;
+					
+					if (dirtHeights[i] < 0) dirtHeights[i] = 0;
+					if (stoneHeights[i] + dirtHeights[i] >= height - 3) dirtHeights[i] = 2;
+					
+					for (int j = 1; j < dirtHeights[i]; j++) {
+						image.setRGB(i, height - (stoneHeights[i] + j), Tile.DIRT.getLevelColour());
+					}
+					
+					// Add grass
+					if (dirtHeights[i] > 1) image.setRGB(i, height - (stoneHeights[i] + dirtHeights[i]), Tile.GRASS.getLevelColour());
+					
+					// Generate trees
+					if (i > 5 && i < width - 5 && treeXtoSkip <= 0) {
+						if (Math.random() < treeOccurrence) {
+							int treeHeight = minTreeHeight + (int) Math.round(Math.random() * (maxTreeHeight - minTreeHeight));
+							int leafRadius = 3;
+							if (treeHeight > maxTreeHeight - 2) leafRadius = 4;
+							
+							for (int ii = -leafRadius; ii < leafRadius; ii++) {
+								for (int jj = -leafRadius; jj < leafRadius; jj++) {
+									if (!((ii == -leafRadius || ii == leafRadius - 1) && (jj == -leafRadius || jj == leafRadius - 1))) {
+										image.setRGB(i + ii, height - (stoneHeights[i] + dirtHeights[i] + 1 + treeHeight + jj), Tile.LEAVES.getLevelColour());
+									}
+								}
+							}
+							
+							for (int j = 0; j < treeHeight; j++) {
+								image.setRGB(i, height - (stoneHeights[i] + dirtHeights[i] + 1 + j), Tile.NATURAL_WOOD.getLevelColour());
+							}
+						}
+						
+						treeXtoSkip = minTreeSpacing;
+					} else if (treeXtoSkip > 0) {
+						treeXtoSkip--;
+					}
+				
+				break;
+				
+				case 1:
+				
+					// Generate sand levels
+					sandDelta = (int) Math.round(1 - 2 * Math.random());
+					
+					// Smooth out the terrain
+					if (Math.random() > sandRoughness) sandDelta = 0;
+					
+					sandHeights[i] = sandHeights[i - 1] + sandDelta;
+					
+					if (sandHeights[i] < 0) sandHeights[i] = 0;
+					if (stoneHeights[i] + sandHeights[i] >= height - 3) sandHeights[i] = 2;
+					
+					for (int j = 1; j < sandHeights[i]; j++) {
+						image.setRGB(i, height - (stoneHeights[i] + j), Tile.SAND.getLevelColour());
+					}
+				
+				break;
+				}
+			
+				// Add random stone at the transition
+				for (int j = stoneHeights[i]; j < stoneHeights[i] + 8; j++) {
+					if (Math.random() > (j - stoneHeights[i] + 2)/10D) image.setRGB(i, height - j, Tile.STONE.getLevelColour());
+				}
+			
+			}
+			
+		break;
+				
+		default:
+			for (int i = 0; i < image.getWidth(); i++) {
+				for (int j = 0; j < image.getHeight(); j++) {
+					image.setRGB(i, j, Tile.SKY.getLevelColour());
+				}
+				for (int j = image.getHeight()/2; j < image.getHeight(); j++) {
+					image.setRGB(i, j, Tile.STONE.getLevelColour());
+				}
+			}
+		}
 		
 		return image;
 	}
 	
-	public static BufferedImage generateLevel(int worldType, GameLoop game) {
+	public static void populateSkyTiles(BufferedImage image) {
+		for (int j = 0; j < image.getWidth(); j++) {
+			for (int k = 0; k < image.getHeight(); k++) {
+				image.setRGB(j, k, Tile.SKY.getLevelColour());
+			}
+		}
+	}
+	
+	/**
+	 * @deprecated
+	 * Old level generation.
+	 * Use {@link #generateTiles()} instead. */
+	@Deprecated public static BufferedImage generateLevel(int worldType) {
 		BufferedImage i = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
 		FileUtilities.log("Generating new level of type " + worldType + "\n");
+		
+		StructureLibrary.populateStructureLibrary();
 		
 		if (worldType == 0) {
 			i = new BufferedImage(1024, 1024, BufferedImage.TYPE_INT_RGB);
