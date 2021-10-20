@@ -433,14 +433,14 @@ public class Player extends Mob {
 			if (vX >= -0.001) lastImageID = 7501;
 			else if (collisionBelow(x, y, spriteWidth, spriteHeight, level) && vX < -2.5) lastImageID = 7501 + (((int) (game.ticks / 20))) % 4;
 			else lastImageID = 7501 + (((int) (game.ticks / 60))) % 4;
-			g.drawImage(MediaLibrary.getImageFromLibrary(lastImageID), x - game.xOffset + spriteWidth, y - game.yOffset - 3, -spriteWidth, spriteHeight, observer);
-			if (shouldFly) g.drawImage(MediaLibrary.getImageFromLibrary(7499), x - game.xOffset + spriteWidth, y - game.yOffset - 3, -spriteWidth, spriteHeight, observer);
+			g.drawImage(MediaLibrary.getImageFromLibrary(lastImageID), x - xOffset + spriteWidth, y - yOffset - 3, -spriteWidth, spriteHeight, observer);
+			if (shouldFly) g.drawImage(MediaLibrary.getImageFromLibrary(7499), x - xOffset + spriteWidth, y - yOffset - 3, -spriteWidth, spriteHeight, observer);
 		} else if (getMovingDir() == 3) {
 			if (vX <= 0.001) lastImageID = 7501;
 			else if (collisionBelow(x, y, spriteWidth, spriteHeight, level) && vX > 2.5) lastImageID = 7501 + (((int) (game.ticks / 20))) % 4;
 			else lastImageID = 7501 + (((int) (game.ticks / 60))) % 4;
-			g.drawImage(MediaLibrary.getImageFromLibrary(lastImageID), x - game.xOffset, y - game.yOffset - 3, spriteWidth, spriteHeight, observer);
-			if (shouldFly) g.drawImage(MediaLibrary.getImageFromLibrary(7499), x - game.xOffset, y - game.yOffset - 3, spriteWidth, spriteHeight, observer);
+			g.drawImage(MediaLibrary.getImageFromLibrary(lastImageID), x - xOffset, y - yOffset - 3, spriteWidth, spriteHeight, observer);
+			if (shouldFly) g.drawImage(MediaLibrary.getImageFromLibrary(7499), x - xOffset, y - yOffset - 3, spriteWidth, spriteHeight, observer);
 		}
 	}
 	

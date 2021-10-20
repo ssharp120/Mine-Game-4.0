@@ -42,6 +42,7 @@ public class Tile {
     public static final Tile FENCE =					new BackgroundDestructibleTile(30, 0xFFB5B5B5, "Fence", false, 3.0, 275.0);
     public static final SolidTile GYPSUM_DEPOSIT =		new DestructibleTile(31, 0xFF8E514B, "Gypsum Deposit", 0.8, true, 7.5, 500.0);
     public static final Tile DRY_WALL =					new BackgroundDestructibleTile(32, 0xFFE6E6E6, "Dry Wall", false, 1.0, 25.0);
+    public static final Tile CACTUS =	 				new BackgroundDestructibleTile(33, 0xFF55EE55, "Cactus", true, 2.0, 12.5);
     
     public Tile(int id, int levelColour, String name) {
         this.id = id;

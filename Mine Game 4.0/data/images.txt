@@ -31,6 +31,7 @@
 30 tile/fence
 31 tile/gypsumdeposit
 32 tile/dry_wall
+33 tile/cactus
 5000 gui/arrow
 5001 gui/arrow_success
 5002 gui/arrowsmall

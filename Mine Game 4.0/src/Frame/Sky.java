@@ -23,6 +23,7 @@ public class Sky {
 	public long finetime;
 	public int timeWarp;
 	public int day;
+	public int startingTime = 75000;
 	public long currentTime;
 	public int[] data = new int[4];
 	public double[] ratios = new double[1];
@@ -68,7 +69,7 @@ public class Sky {
 	
 	public void tick(int timeWarp) {
 		if (Math.abs(timeWarp) > 100) timeWarp = 100;
-		if (timeWarp == 1) time = Calendar.timeElapsedMillis() % (totalDayTime * 1000);
+		if (timeWarp == 1) time = (Calendar.timeElapsedMillis() + startingTime) % (totalDayTime * 1000);
 		else time = (time + (timeWarp * 10)) % (totalDayTime * 1000);
 		day =  (int) ((Calendar.timeElapsed() / (totalDayTime)) + 100);
 		BufferedImage buffered = new BufferedImage(1000, 8, BufferedImage.TYPE_INT_ARGB);
@@ -112,10 +113,10 @@ public class Sky {
 		g.drawLine((int) (time/totalDayTime) + 32, 64, (int) (time/totalDayTime) + 32, 64 + 160);
 		g.drawLine(((int) (time/totalDayTime) + 48)%1000, 64, ((int) (time/totalDayTime) + 48)%1000, 64 + 160);*/
 		if (updateTime) {
-			if (timeWarp == 1) time = Calendar.timeElapsedMillis() % (totalDayTime * 1000);
+			if (timeWarp == 1) time = (Calendar.timeElapsedMillis() + startingTime) % (totalDayTime * 1000);
 			else time = (time + (timeWarp * 10)) % (totalDayTime * 1000);
-			finetime = Calendar.timeElapsedMillis() % (totalDayTime * 1000);
-			currentTime = Calendar.timeElapsedMillis();
+			finetime = (Calendar.timeElapsedMillis() + startingTime) % (totalDayTime * 1000);
+			currentTime = (Calendar.timeElapsedMillis() + startingTime);
 		}
 		
 		double xFactor = screen.getWidth()/2560;

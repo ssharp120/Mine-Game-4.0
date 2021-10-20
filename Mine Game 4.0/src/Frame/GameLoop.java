@@ -1,8 +1,6 @@
 package Frame;
 
-import static Utilities.FileUtilities.*;
-import Utilities.StatisticsTracker.*;
-import Utilities.TechTree;
+import static Utilities.FileUtilities.loadImage;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -17,6 +15,7 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
+import java.awt.image.BufferedImage;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -44,6 +43,7 @@ import Utilities.Calendar;
 import Utilities.FileUtilities;
 import Utilities.LevelFactory;
 import Utilities.StatisticsTracker;
+import Utilities.TechTree;
 
 public class GameLoop extends JPanel implements Runnable, KeyListener, MouseListener, MouseMotionListener, MouseWheelListener {
 	private boolean running = true;
@@ -184,6 +184,26 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	public GameLoop(Dimension resolution, boolean startFullscreen) {
 		FileUtilities.log("Initializing Mine Game 4.0" + "\n");
 		
+		initializeFrame(resolution, startFullscreen);
+		checkDisplayMode();
+		
+		initializeGameElements();
+		initializeLevel();
+		initializeGUIs();
+	}
+	
+	public GameLoop(Dimension resolution, boolean startFullscreen, BufferedImage levelImage) {
+		FileUtilities.log("Initializing Mine Game 4.0" + "\n");
+		
+		initializeFrame(resolution, startFullscreen);
+		checkDisplayMode();
+		
+		initializeGameElements();
+		initializeLevel(levelImage);
+		initializeGUIs();
+	}
+	
+	public void initializeFrame(Dimension resolution, boolean startFullscreen) {
 		// Set initial parameters
 		
 		this.resolution = resolution;
@@ -226,11 +246,6 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		
 		// Finally add the game panel to the frame
 		frame.add(this);
-		
-		checkDisplayMode();
-		
-		initializeGameElements();
-		initializeGUIs();
 	}
 	
 	public void exitSequence() {
@@ -294,12 +309,58 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		audioManager = new AudioManager();
 		
 		Calendar.prepareCalendar(System.currentTimeMillis());
+	}
+	
+	public void initializeLevel() {
 		level = new Level(LevelFactory.generateLevel(0), "Generated", 0, this, (40 + 16) * 32, 526*32);
 		player = new Player(level, "Test", level.spawnX, level.spawnY, input);
 		level.addEntity(player);
 		
 		level.populatePlants();
 		level.addEntity(new OxygenGenerator(level, true, 60, 528));
+	}
+	
+	public void initializeLevel(BufferedImage image) {
+		if (image == null) throw new IllegalArgumentException("Input image must not be null");
+		if (image.getWidth() < 16 || image.getHeight() < 16) throw new IllegalArgumentException("Input image must be at least 16 x 16");
+		
+		int spawnX = 16;
+		int spawnY = 8;
+		int startingOxyGenX = 0;
+		int startingOxyGenY = 0;
+		
+
+		// Locate the spawnpoint at the crashed ship
+		spawn:
+		for (int i = 0; i < image.getWidth(); i++) {
+			for (int j = 0; j < image.getHeight(); j++) {
+				if (image.getRGB(i, j) == Tile.SHIP_TILE.getLevelColour()) {
+					spawnX = i + 20;
+					spawnY = j + 10;
+					startingOxyGenX = i + 24;
+					startingOxyGenY = j + 19;
+					break spawn;
+				}
+			}
+		}
+		
+		if (spawnX == 16 && spawnY == 8) {
+			// Find highest ground tile and set the spawnpoint just above that
+			for (int j = 4; j < image.getHeight(); j++) {
+				if (!(image.getRGB(spawnX, j) == Tile.SKY.getLevelColour())) {
+					spawnY = j - 12;
+					break;
+				}
+			}
+		}
+		
+		level = new Level(image, "Supplied", 0, this, spawnX << 5, spawnY << 5);
+		player = new Player(level, "Test", level.spawnX, level.spawnY, input);
+		level.addEntity(player);
+		
+		level.populatePlants();
+		if (startingOxyGenX > 0 && startingOxyGenY > 0) level.addEntity(new OxygenGenerator(level, true, startingOxyGenX, startingOxyGenY));
+		else level.addEntity(new OxygenGenerator(level, true, spawnX, spawnY));
 	}
 	
 	public void initializeGUIs() {
@@ -369,7 +430,12 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		if (player != null) {
 			xOffset = (int) (player.x - (drawResolution.getWidth()/2));
 			yOffset = (int) (player.y - (drawResolution.getHeight()/2));	
-			player.drawPlayerModel(((Graphics2D) g), xOffset, yOffset, this);
+			if (xOffset < 0) {
+				player.drawPlayerModel((Graphics2D) g, 0, yOffset, this);
+			} else if (xOffset > (level.width << 5) - drawResolution.getWidth()) {
+				player.drawPlayerModel((Graphics2D) g, (level.width << 5) - drawResolution.width, yOffset, this);
+			} else player.drawPlayerModel(((Graphics2D) g), xOffset, yOffset, this);
+			
 		}
 		
 		for (int y = (tempYOffset >> 5) - 1; y < ((tempYOffset + ((int) drawResolution.getHeight())) >> 5) + 1; y++) {

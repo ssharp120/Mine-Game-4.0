@@ -9,6 +9,8 @@ import java.nio.file.FileSystems;
 import javax.imageio.ImageIO;
 import javax.swing.filechooser.FileSystemView;
 
+import org.w3c.dom.html.HTMLImageElement;
+
 import Frame.GameLoop;
 import Frame.Level;
 import Libraries.AttributeLibrary;
@@ -67,8 +69,16 @@ public class LevelFactory {
 			double treeOccurrence = 0.3;
 			
 			int minTreeHeight = 4;
-			int maxTreeHeight = 10;
+			int maxTreeHeight = 11;
 			int minTreeSpacing = 5;
+			
+			int cactusXtoSkip = 0;
+			
+			double cactusOccurrence = 0.3;
+			
+			int minCactusHeight = 2;
+			int maxCactusHeight = 6;
+			int minCactusSpacing = 5;
 			
 			// Define initial terrain heights
 			stoneHeights[0] = height / 2;
@@ -80,14 +90,14 @@ public class LevelFactory {
 			int dirtDelta = 0;
 			int sandDelta = 0;
 			
-			for (int i = 1; i < width; i++) {
+			for (int i = 0; i < width; i++) {
 				// Generate stone levels
 				stoneDelta = (int) Math.round(2 - 4 * Math.random());
 				
 				// Smooth out the terrain
 				if (Math.random() > stoneRoughness) stoneDelta = 0;
 				
-				stoneHeights[i] = stoneHeights[i - 1] + stoneDelta;
+				if (i > 0) stoneHeights[i] = stoneHeights[i - 1] + stoneDelta;
 				
 				if (stoneHeights[i] <= 5) stoneHeights[i] = 5;
 				else if (stoneHeights[i] >= height - 5) stoneHeights[i] = height - 5;
@@ -132,7 +142,7 @@ public class LevelFactory {
 					// Smooth out the terrain
 					if (Math.random() > dirtRoughness) dirtDelta = 0;
 					
-					dirtHeights[i] = dirtHeights[i - 1] + dirtDelta;
+					if (i > 0) dirtHeights[i] = dirtHeights[i - 1] + dirtDelta;
 					
 					if (dirtHeights[i] < 0) dirtHeights[i] = 0;
 					if (stoneHeights[i] + dirtHeights[i] >= height - 3) dirtHeights[i] = 2;
@@ -148,13 +158,15 @@ public class LevelFactory {
 					if (i > 5 && i < width - 5 && treeXtoSkip <= 0) {
 						if (Math.random() < treeOccurrence) {
 							int treeHeight = minTreeHeight + (int) Math.round(Math.random() * (maxTreeHeight - minTreeHeight));
-							int leafRadius = 3;
-							if (treeHeight > maxTreeHeight - 2) leafRadius = 4;
+							int leafRadius = 2;
+							if (treeHeight > maxTreeHeight - 2) leafRadius = 3;
 							
-							for (int ii = -leafRadius; ii < leafRadius; ii++) {
-								for (int jj = -leafRadius; jj < leafRadius; jj++) {
-									if (!((ii == -leafRadius || ii == leafRadius - 1) && (jj == -leafRadius || jj == leafRadius - 1))) {
-										image.setRGB(i + ii, height - (stoneHeights[i] + dirtHeights[i] + 1 + treeHeight + jj), Tile.LEAVES.getLevelColour());
+							for (int ii = -leafRadius; ii <= leafRadius; ii++) {
+								for (int jj = -leafRadius; jj <= leafRadius; jj++) {
+									if (!((ii == -leafRadius || ii == leafRadius) && (jj == -leafRadius || jj == leafRadius))) {
+										if (image.getRGB(i + ii, height - (stoneHeights[i] + dirtHeights[i] + 1 + treeHeight + jj)) == Tile.SKY.getLevelColour()) {
+											image.setRGB(i + ii, height - (stoneHeights[i] + dirtHeights[i] + 1 + treeHeight + jj), Tile.LEAVES.getLevelColour());
+										}
 									}
 								}
 							}
@@ -179,13 +191,28 @@ public class LevelFactory {
 					// Smooth out the terrain
 					if (Math.random() > sandRoughness) sandDelta = 0;
 					
-					sandHeights[i] = sandHeights[i - 1] + sandDelta;
+					if (i > 0) sandHeights[i] = sandHeights[i - 1] + sandDelta;
 					
 					if (sandHeights[i] < 0) sandHeights[i] = 0;
 					if (stoneHeights[i] + sandHeights[i] >= height - 3) sandHeights[i] = 2;
 					
 					for (int j = 1; j < sandHeights[i]; j++) {
 						image.setRGB(i, height - (stoneHeights[i] + j), Tile.SAND.getLevelColour());
+					}
+					
+					// Generate cacti
+					if (i > 5 && i < width - 5 && cactusXtoSkip <= 0) {
+						if (Math.random() < cactusOccurrence) {
+							int cactusHeight = minCactusHeight + (int) Math.round(Math.random() * (maxCactusHeight - minCactusHeight));
+							
+							for (int j = 0; j < cactusHeight; j++) {
+								image.setRGB(i, height - (stoneHeights[i] + sandHeights[i] + j), Tile.CACTUS.getLevelColour());
+							}
+						}
+						
+						cactusXtoSkip = minCactusSpacing;
+					} else if (cactusXtoSkip > 0) {
+						cactusXtoSkip--;
 					}
 				
 				break;
@@ -197,6 +224,43 @@ public class LevelFactory {
 				}
 			
 			}
+			
+			// Generate structures
+			if (width > 64 && height > 64) {
+				StructureLibrary.populateStructureLibrary();
+				
+				BasicGeneratedStructure crashed_ship = (BasicGeneratedStructure) StructureLibrary.getStructureFromLibrary(3);
+				int startX = width / 2 - 16;
+				int startY = 23;
+				
+				int lowestY = 0;
+				for (int i = 0; i < crashed_ship.width; i++) {
+					for (int j = 23; j < height; j++) {
+						if (!(image.getRGB(startX + i, j) == Tile.SKY.getLevelColour() 
+								|| image.getRGB(startX + i, j) == Tile.NATURAL_WOOD.getLevelColour()
+								|| image.getRGB(startX + i, j) == Tile.LEAVES.getLevelColour())) {
+							
+							if (j - crashed_ship.height + 2 > lowestY) lowestY = j - crashed_ship.height + 2;
+							break;
+						}
+					}
+				}
+				
+				if (lowestY > 0) startY = lowestY;
+				else startY = height / 2;
+				
+				for (int i = 0; i < crashed_ship.width; i++) {
+					for (int j = 0; j < crashed_ship.height; j++) {
+						if (crashed_ship.getTile(i, j) > 1 && crashed_ship.getTile(i, j) < 8000 && startX + i < width && startY + j < height) image.setRGB(startX + i, startY + j, Tile.tiles[crashed_ship.getTile(i, j)].getLevelColour());
+					}
+				}
+				
+				FileUtilities.logLevelGeneration("\tCrashed ship generated at:");
+				FileUtilities.logLevelGeneration("\t\tx = "  + startX);
+				FileUtilities.logLevelGeneration("\t\t and");
+				FileUtilities.logLevelGeneration("\t\ty = "  + startY);
+			}
+			
 			
 		break;
 				

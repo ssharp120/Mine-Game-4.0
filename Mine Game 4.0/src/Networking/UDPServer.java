@@ -2,6 +2,7 @@ package Networking;
 
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -25,6 +26,8 @@ import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
+import Client.PreloadDialog;
+import Frame.GameLoop;
 import Utilities.LevelFactory;
 
 import static Utilities.FileUtilities.*;
@@ -433,6 +436,22 @@ public class UDPServer implements Runnable {
 				imageFrame.add(label);
 				imageFrame.pack();
 				imageFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+				imageFrame.addKeyListener(new KeyListener() {
+					public void keyTyped(KeyEvent e) {}
+
+					public void keyPressed(KeyEvent e) {
+						if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+							EventQueue.invokeLater(new Runnable() {
+					            public void run() {
+					            	new Thread(new GameLoop(new Dimension(800, 600), false, image)).start();             
+					            }
+					        });
+							imageFrame.dispose();
+						}
+					}
+
+					public void keyReleased(KeyEvent e) {}
+				});
 				imageFrame.setVisible(true);
 			}};
 		Command worldgenCommand = new Command(new String[] {"worldgen"}, 2, 3, worldgenAction) {

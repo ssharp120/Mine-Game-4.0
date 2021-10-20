@@ -219,7 +219,7 @@ public class Level {
 			for (int j = 0; j < height; j++) { */
 	
 	private void loadHorizon() {
-		horizon = 480;
+		horizon = 580;
 		exploredTiles = new boolean[width][height];
 		
 		FileUtilities.log("Removing fog...\n");
@@ -614,7 +614,9 @@ public class Level {
 			for (int l = 0; l < radius * 2; l++) {
 				int distance = (((k - radius) * (k - radius)) + ((l - radius) * (l - radius))) * linearFalloff;
 				//System.out.print((byte) (127 - (transparencyDepth * distance)) + " ");
-				if (exploredTiles != null && exploredTiles[i + k - radius][j + l - radius] && discreteLightLevels != null 
+				if (exploredTiles != null && i + k - radius > 0 && i + k - radius < width &&
+						j + l - radius > 0 && j + l - radius < height && 
+						exploredTiles[i + k - radius][j + l - radius] && discreteLightLevels != null 
 						&& i + k - radius > 0 && i + k - radius < width && j + l - radius > 0 && j + l - radius < height
 							&& distance <= 255 && distance >= 0
 								&& (byte) (127 - distance) > discreteLightLevels[i + k - radius][j + l - radius]) {
@@ -643,17 +645,18 @@ public class Level {
 	public void checkLeafDecay(int x, int y) {
 		if (tiles[x][y] == Tile.LEAVES.getId()) {
 			boolean woodFound = false;
-			for (int i = -2; i <= 2; i++) {
-				for (int j = 0; j < 3; j++) {
-					if (tiles[x + i][y + j] == Tile.NATURAL_WOOD.getId()) woodFound = true;
+			int woodRadius = 6;
+			for (int i = -woodRadius; i <= woodRadius; i++) {
+				for (int j = 0; j < woodRadius; j++) {
+					if (x + i > 0 && x + i < width && y + j > 0 && y + j < height && tiles[x + i][y + j] == Tile.NATURAL_WOOD.getId()) woodFound = true;
 				}
 			}
 			if ((tiles[x + 1][y] == Tile.VOID.getId() && tiles[x - 1][y] == Tile.VOID.getId() && tiles[x][y + 1] == Tile.VOID.getId() && tiles[x][y - 1] == Tile.VOID.getId())) {
 				tiles[x][y] = Tile.VOID.getId();
 			}
 			if (!woodFound) {
-				for (int i = 0; i < 5; i++) {
-					for (int j = 0; j < 3; j++) {
+				for (int i = 0; i < woodRadius; i++) {
+					for (int j = 0; j < woodRadius; j++) {
 						if (tiles[x + i][y + j] == Tile.LEAVES.getId()) tiles[x + i][y + j] = Tile.SKY.getId();
 						if (Math.random() < 0.25) ((Player) entities.get(0)).inventory.addItem(ItemFactory.createItem("i", new int[] {6, 1}));
 					}
@@ -692,6 +695,10 @@ public class Level {
 	}
 	
 	public void placePlant(int x, int y) {
+		// Temporarily disabled
+		return;
+		
+		/*
 		// Create a positive or negative distance to randomly displace the crop up to half a tile
 		int horizontalDelta = (int) Math.round(16 - 32 * Math.random());
 		
@@ -707,6 +714,7 @@ public class Level {
 		if (!(tiles[x - 1][y] == Tile.SAND.getId() && tiles[x - 1][y - 1] == Tile.SKY.getId()) && horizontalDelta < 0)  horizontalDelta = -horizontalDelta;
 		
 		entities.add(new Crop(this, true, 0, (x << 5) + horizontalDelta, (y - 1) << 5));
+		*/
 	}
 	
 	public synchronized void checkLeftClickEntityCollision(int clickX, int clickY) {
