@@ -355,7 +355,7 @@ public class FileUtilities {
 		 
 		 try {
 		 if (logger == null) {
-			 fsv.createNewFolder(new File(fsv.getHomeDirectory() + fs.getSeparator() + "Mine Game 4.0 Data"));
+			 //fsv.createNewFolder(new File(fsv.getHomeDirectory() + fs.getSeparator() + "Mine Game 4.0 Data"));
 			 logger = new FileWriter(fsv.getHomeDirectory() + fs.getSeparator() + "Mine Game 4.0 Data" + fs.getSeparator() + "client_" + TIMESTAMP_AT_RUNTIME + ".txt");
 		 }
 		 System.out.print(msg);

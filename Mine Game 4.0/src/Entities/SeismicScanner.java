@@ -10,7 +10,7 @@ public class SeismicScanner extends Entity {
 	
 	public SeismicScanner(Level level, boolean active, int x, int y) {
 		super(2, level, active, x, y);
-		this.currentScanningLevel = level.getHorizon();
+		this.currentScanningLevel = y;
 	}
 
 	public void tick() {

@@ -48,6 +48,8 @@ public class UDPServer implements Runnable {
 	
 	private String log = "";
 	
+	private BufferedImage queuedWorld;
+	
 	// GUI elements and settings
 	private JFrame frame;
 	private JPanel panel;
@@ -418,9 +420,9 @@ public class UDPServer implements Runnable {
 						return;
 					}
 					switch (args[0]) {
-						case "small": width = 128; height = 128; break;
-						case "medium": width = 256; height = 256; break;
-						case "large": width = 1024; height = 1024; break;
+						case "small": width = 1024; height = 1024; break;
+						case "medium": width = 2048; height = 1024; break;
+						case "large": width = 4096; height = 1024; break;
 						default:
 							log("[ERROR] World size must be small, medium, or large", true);
 							appendResponse("Aborted command worldgen due to invalid argument: invalid world size", true);
@@ -443,7 +445,9 @@ public class UDPServer implements Runnable {
 						if (e.getKeyCode() == KeyEvent.VK_ENTER) {
 							EventQueue.invokeLater(new Runnable() {
 					            public void run() {
-					            	new Thread(new GameLoop(new Dimension(800, 600), false, image)).start();             
+					            	queuedWorld = image;
+					            	log("Selected world #" + System.currentTimeMillis(), true);
+					            	//new Thread(new GameLoop(new Dimension(800, 600), false, image)).start();             
 					            }
 					        });
 							imageFrame.dispose();
@@ -459,6 +463,14 @@ public class UDPServer implements Runnable {
 				return super.toString() + "(-small | -medium | -large) | (width height) worldType";
 			}};
 		commandList.add(worldgenCommand);
+		
+		CommandAction playAction = new CommandAction() {
+			public void run() {
+				if (queuedWorld == null) log("Unable to start game - no world selected", true);
+				else new Thread(new GameLoop(new Dimension(800, 600), false, queuedWorld)).start();
+			}};
+		Command playCommand = new Command(new String[] {"play"}, playAction);
+		commandList.add(playCommand);
 	}
 	
 	public void close() {

@@ -72,6 +72,7 @@ public class Player extends Mob {
 	private boolean toggleRefresh;
 	private boolean toggleMiniMap;
 	private boolean toggleTechTree;
+	private boolean toggleLighting;
 	
 	// Physics variables
 	protected double airResistance = 0.001, friction = 0, mass = 100;
@@ -671,6 +672,14 @@ public class Player extends Mob {
 			toggleCreativeEntities = false;
 		} else {
 			toggleCreativeEntities = true;
+		}
+		if (controls.func10.isPressed()) {
+			if (toggleLighting) {
+				game.toggleLighting();
+			} 
+			toggleLighting = false;
+		} else {
+			toggleLighting = true;
 		}
 		
 		if (controls.func12.isPressed()) {

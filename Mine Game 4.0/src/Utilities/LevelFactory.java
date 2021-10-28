@@ -56,8 +56,8 @@ public class LevelFactory {
 			int[] dirtHeights = new int[width];
 			int[] sandHeights = new int[width];
 			
-			double stoneRoughness = 0.6;
-			double dirtRoughness = 0.4;
+			double stoneRoughness = 0.4;
+			double dirtRoughness = 0.2;
 			double sandRoughness = 0.2;
 			
 			double biomeDiversity = 0.002;
@@ -66,19 +66,52 @@ public class LevelFactory {
 			
 			int treeXtoSkip = 0;
 			
-			double treeOccurrence = 0.3;
+			double treeOccurrence = 0.8;
 			
 			int minTreeHeight = 4;
-			int maxTreeHeight = 11;
-			int minTreeSpacing = 5;
+			int maxTreeHeight = 16;
+			int minTreeSpacing = 2;
 			
 			int cactusXtoSkip = 0;
 			
-			double cactusOccurrence = 0.3;
+			double cactusOccurrence = 0.5;
 			
 			int minCactusHeight = 2;
 			int maxCactusHeight = 6;
 			int minCactusSpacing = 5;
+			
+			double coalDensity = 0.375;
+			double[] coalOccurrences = new double[256];
+			
+			int minCoalWidth = 2;
+			int maxCoalWidth = 10;
+			int minCoalHeight = 2;
+			int maxCoalHeight = 6;
+			
+			double ironDensity = 0.5;
+			double[] ironOccurrences = new double[512];
+			
+			int minIronWidth = 3;
+			int maxIronWidth = 8;
+			int minIronHeight = 3;
+			int maxIronHeight = 8;
+			
+			double copperDensity = 0.625;
+			double[] copperOccurrences = new double[512];
+			
+			int minCopperWidth = 6;
+			int maxCopperWidth = 9;
+			int minCopperHeight = 8;
+			int maxCopperHeight = 11;
+			
+			double gypsumDensity = 0.75;
+			double[] gypsumOccurrences = new double[256];
+			
+			int minGypsumWidth = 8;
+			int maxGypsumWidth = 17;
+			int minGypsumHeight = 1;
+			int maxGypsumHeight = 3;
+			
 			
 			// Define initial terrain heights
 			stoneHeights[0] = height / 2;
@@ -113,9 +146,9 @@ public class LevelFactory {
 						sandHeights[i - 1] = dirtHeights[i - 1];
 						
 						// Add random sand at biome transition
-						for (int ii = 0; ii < 8; ii++) {
-							for (int j = 1; j < dirtHeights[i - ii]; j++) {
-								if (Math.random() > (ii + 2)/10D) image.setRGB(i - ii, height - (stoneHeights[i - ii] + j), Tile.SAND.getLevelColour());
+						for (int k = 0; k < 8; k++) {
+							for (int j = 1; j < dirtHeights[i - k]; j++) {
+								if (Math.random() > (k + 2)/10D) image.setRGB(i - k, height - (stoneHeights[i - k] + j), Tile.SAND.getLevelColour());
 							}
 						}
 					}
@@ -124,9 +157,9 @@ public class LevelFactory {
 						dirtHeights[i - 1] = sandHeights[i - 1];
 						
 						// Add random dirt at biome transition
-						for (int ii = 0; ii < 8; ii++) {
-							for (int j = 1; j < sandHeights[i - ii]; j++) {
-								if (Math.random() > (ii + 2)/10D) image.setRGB(i - ii, height - (stoneHeights[i - ii] + j), Tile.DIRT.getLevelColour());
+						for (int k = 0; k < 8; k++) {
+							for (int j = 1; j < sandHeights[i - k]; j++) {
+								if (Math.random() > (k + 2)/10D) image.setRGB(i - k, height - (stoneHeights[i - k] + j), Tile.DIRT.getLevelColour());
 							}
 						}
 					}
@@ -158,14 +191,15 @@ public class LevelFactory {
 					if (i > 5 && i < width - 5 && treeXtoSkip <= 0) {
 						if (Math.random() < treeOccurrence) {
 							int treeHeight = minTreeHeight + (int) Math.round(Math.random() * (maxTreeHeight - minTreeHeight));
+							FileUtilities.logLevelGeneration("Generating new " + treeHeight + " tile tall cactus at (" + i + ", " + stoneHeights[i] + dirtHeights[i] + 1 + ")");
 							int leafRadius = 2;
 							if (treeHeight > maxTreeHeight - 2) leafRadius = 3;
 							
-							for (int ii = -leafRadius; ii <= leafRadius; ii++) {
-								for (int jj = -leafRadius; jj <= leafRadius; jj++) {
-									if (!((ii == -leafRadius || ii == leafRadius) && (jj == -leafRadius || jj == leafRadius))) {
-										if (image.getRGB(i + ii, height - (stoneHeights[i] + dirtHeights[i] + 1 + treeHeight + jj)) == Tile.SKY.getLevelColour()) {
-											image.setRGB(i + ii, height - (stoneHeights[i] + dirtHeights[i] + 1 + treeHeight + jj), Tile.LEAVES.getLevelColour());
+							for (int k = -leafRadius; k <= leafRadius; k++) {
+								for (int l = -leafRadius; l <= leafRadius; l++) {
+									if (!((k == -leafRadius || k == leafRadius) && (l == -leafRadius || l == leafRadius))) {
+										if (image.getRGB(i + k, height - (stoneHeights[i] + dirtHeights[i] + 1 + treeHeight + l)) == Tile.SKY.getLevelColour()) {
+											image.setRGB(i + k, height - (stoneHeights[i] + dirtHeights[i] + 1 + treeHeight + l), Tile.LEAVES.getLevelColour());
 										}
 									}
 								}
@@ -180,7 +214,7 @@ public class LevelFactory {
 					} else if (treeXtoSkip > 0) {
 						treeXtoSkip--;
 					}
-				
+					
 				break;
 				
 				case 1:
@@ -204,6 +238,7 @@ public class LevelFactory {
 					if (i > 5 && i < width - 5 && cactusXtoSkip <= 0) {
 						if (Math.random() < cactusOccurrence) {
 							int cactusHeight = minCactusHeight + (int) Math.round(Math.random() * (maxCactusHeight - minCactusHeight));
+							FileUtilities.logLevelGeneration("Generating new " + cactusHeight + " tile tall cactus at (" + i + ", " + stoneHeights[i] + sandHeights[i] + 1 + ")");
 							
 							for (int j = 0; j < cactusHeight; j++) {
 								image.setRGB(i, height - (stoneHeights[i] + sandHeights[i] + j), Tile.CACTUS.getLevelColour());
@@ -225,8 +260,76 @@ public class LevelFactory {
 			
 			}
 			
+			FileUtilities.logLevelGeneration("Generating ores");
+			for (int i = 0; i < 256; i++) {
+				coalOccurrences[i] = 0.005 - Math.abs(90 - i) * 0.00005;
+			}
+			for (int i = 0; i < 512; i++) {
+				ironOccurrences[i] = 0.0025 - Math.abs(236 - i) * 0.0000075;
+			}
+			for (int i = 0; i < 512; i++) {
+				copperOccurrences[i] = 0.000875 - Math.abs(236 - i) * 0.0000025;
+			}
+			for (int i = 0; i < 256; i++) {
+				gypsumOccurrences[i] = 0.000625 - Math.abs(54 - i) * 0.0000095;
+			}
+			// Generate ores
+			for (int i = 0; i < width; i++) {
+				for (int j = 0; j < stoneHeights[i]; j++) {
+					// Coal ore
+					if (stoneHeights[i] - j < coalOccurrences.length && Math.random() < coalOccurrences[stoneHeights[i] - j]) {
+						int coalWidth = (int) Math.round(minCoalWidth + Math.random() * (maxCoalWidth - minCoalWidth));
+						int coalHeight = (int) Math.round(minCoalHeight + Math.random() * (maxCoalHeight - minCoalHeight));
+						for (int k = 0; k < coalWidth; k++) {
+							for (int l = 0; l < coalHeight; l++) {
+								if (i + k < width && height - j + l < height && Math.random() < coalDensity) {
+									image.setRGB(i + k, height - j + l, Tile.COAL_ORE.getLevelColour());
+								}
+							}
+						}
+					}
+					// Iron ore
+					if (stoneHeights[i] - j < ironOccurrences.length && Math.random() < ironOccurrences[stoneHeights[i] - j]) {
+						int ironWidth = (int) Math.round(minIronWidth + Math.random() * (maxIronWidth - minIronWidth));
+						int ironHeight = (int) Math.round(minIronHeight + Math.random() * (maxIronHeight - minIronHeight));
+						for (int k = 0; k < ironWidth; k++) {
+							for (int l = 0; l < ironHeight; l++) {
+								if (i + k < width && height - j + l < height && Math.random() < ironDensity) {
+									image.setRGB(i + k, height - j + l, Tile.IRON_ORE.getLevelColour());
+								}
+							}
+						}
+					}
+					// Copper ore
+					if (stoneHeights[i] - j < copperOccurrences.length && Math.random() < copperOccurrences[stoneHeights[i] - j]) {
+						int copperWidth = (int) Math.round(minCopperWidth + Math.random() * (maxCopperWidth - minCopperWidth));
+						int copperHeight = (int) Math.round(minCopperHeight + Math.random() * (maxCopperHeight - minCopperHeight));
+						for (int k = 0; k < copperWidth; k++) {
+							for (int l = 0; l < copperHeight; l++) {
+								if (i + k < width && height - j + l < height && Math.random() < copperDensity) {
+									image.setRGB(i + k, height - j + l, Tile.COPPER_ORE.getLevelColour());
+								}
+							}
+						}
+					}
+					// Gypsum deposits
+					if (stoneHeights[i] - j < gypsumOccurrences.length && Math.random() < gypsumOccurrences[stoneHeights[i] - j]) {
+						int gypsumWidth = (int) Math.round(minGypsumWidth + Math.random() * (maxGypsumWidth - minGypsumWidth));
+						int gypsumHeight = (int) Math.round(minGypsumHeight + Math.random() * (maxGypsumHeight - minGypsumHeight));
+						for (int k = 0; k < gypsumWidth; k++) {
+							for (int l = 0; l < gypsumHeight; l++) {
+								if (i + k < width && height - j + l < height && Math.random() < gypsumDensity) {
+									image.setRGB(i + k, height - j + l, Tile.GYPSUM_DEPOSIT.getLevelColour());
+								}
+							}
+						}
+					}
+				}
+			}
+			
 			// Generate structures
 			if (width > 64 && height > 64) {
+				FileUtilities.logLevelGeneration("Initializing structure library");
 				StructureLibrary.populateStructureLibrary();
 				
 				BasicGeneratedStructure crashed_ship = (BasicGeneratedStructure) StructureLibrary.getStructureFromLibrary(3);

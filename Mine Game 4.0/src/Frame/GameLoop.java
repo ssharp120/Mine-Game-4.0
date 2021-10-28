@@ -47,7 +47,7 @@ import Utilities.TechTree;
 
 public class GameLoop extends JPanel implements Runnable, KeyListener, MouseListener, MouseMotionListener, MouseWheelListener {
 	private boolean running = true;
-	private int MAXFPS = 165;
+	private int MAXUPS = 80;
 	public int FPS, UPS;
 	
 	public Dimension resolution;
@@ -77,6 +77,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	public boolean displayFog = true;
 	public boolean displayUIs = false;
 	public boolean displayConveyorSpeeds = true;
+	public boolean displayLighting = true;
 	
 	public boolean drawHUD;
 	public boolean drawMiniMap = true;
@@ -93,19 +94,30 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	
 	public StatisticsTracker tracker;
 	
+	private GraphicsThread graphicsThread;
+	
+	private long[] graphicsTimes;
+	private long levelUpdateTime;
+	
 	public static void main(String[] args) {
 		new PreloadDialog();
 	}
 
 	public void tick() {
+		long startTime = System.currentTimeMillis();
+		
 		ticks++;
+		
+		checkFullscreenFocus();
+		level.tick();
+		
+		// Measure level time
+		levelUpdateTime = System.currentTimeMillis() - startTime;
+		
 		if (pauseMenuGUI != null && pauseMenuGUI.isActive()) {input.setControlScheme(ControlScheme.PAUSE_MENU); pauseMenuGUI.tick(); return;}
 		if (techTreeGUI != null && techTreeGUI.isActive()) {input.setControlScheme(ControlScheme.TECH_TREE); techTreeGUI.tick(input, ticks % 2 == 0, player.inventory); return;}
 		
 		if (input != null && input.esc.isPressed()) {pauseMenuGUI.setActive(true); input.esc.toggle(false); return;}
-				
-		checkFullscreenFocus();
-		level.tick();
 		
 		if (input.getControlScheme() == ControlScheme.BASIC_CRAFTING && basicCraftingGUI != null) {
 			if (input.up.isPressed() && input.down.isPressed()) {
@@ -121,6 +133,8 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		
 		if (input.getControlScheme() == ControlScheme.GAMEPLAY && input.alt.isPressed()) displayConveyorSpeeds = true;
 		else displayConveyorSpeeds = false;
+		
+		//System.out.println("Total time " + (System.currentTimeMillis() - startTime));
 	}
 	
 	public void resetWindow() {
@@ -188,7 +202,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		checkDisplayMode();
 		
 		initializeGameElements();
-		initializeLevel();
+		initializeLevel(LevelFactory.generateTiles(0, 1024, 1024));
 		initializeGUIs();
 	}
 	
@@ -297,6 +311,8 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	}
 	
 	public void initializeGameElements() {
+		graphicsTimes = new long[6];
+		graphicsThread = new GraphicsThread();
 		input = new InputHandler(this);
 		MediaLibrary.populateSoundLibrary();
 		MediaLibrary.populateImageLibrary();
@@ -309,15 +325,6 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		audioManager = new AudioManager();
 		
 		Calendar.prepareCalendar(System.currentTimeMillis());
-	}
-	
-	public void initializeLevel() {
-		level = new Level(LevelFactory.generateLevel(0), "Generated", 0, this, (40 + 16) * 32, 526*32);
-		player = new Player(level, "Test", level.spawnX, level.spawnY, input);
-		level.addEntity(player);
-		
-		level.populatePlants();
-		level.addEntity(new OxygenGenerator(level, true, 60, 528));
 	}
 	
 	public void initializeLevel(BufferedImage image) {
@@ -381,6 +388,10 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		displayFog = !displayFog;
 	}
 	
+	public void toggleLighting() {
+		displayLighting = !displayLighting;
+	}
+	
 	public boolean shouldDisplayUIs() {
 		return displayUIs;
 	}
@@ -397,7 +408,25 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		return drawResolution;
 	}
 	
+	public class GraphicsThread extends Thread {
+		Graphics g;
+		
+		public void updateGraphicsObject(Graphics g) {
+			this.g = g;
+		}
+		
+		public void run() {
+			long startTime = System.currentTimeMillis();
+			if (g == null) throw new IllegalArgumentException("No graphics object provided");
+			else render(g);
+			if (ticks % 20 == 0) FPS = System.currentTimeMillis() - startTime > 0 ? (1000 / (int) (System.currentTimeMillis() - startTime)) : 1000;
+		}
+	}
+	
 	public void render(Graphics g) {
+		long startTime = System.currentTimeMillis();
+		long currentTime = System.currentTimeMillis();
+		
 		// Globalize the graphics object
 		gStorage = g;
 		
@@ -414,6 +443,10 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			level.drawSky(g, drawResolution);
 		}
 		
+		// Measure sky time
+		graphicsTimes[0] = System.currentTimeMillis() - startTime;
+		currentTime = System.currentTimeMillis();
+		
 		if (pauseMenuGUI != null && pauseMenuGUI.isActive()) {
 			renderTiles(g, false);
 			
@@ -423,6 +456,10 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		} else {
 			renderTiles(g, true);
 		}
+		
+		// Measure tile rendering time
+		graphicsTimes[1] = System.currentTimeMillis() - currentTime;
+		currentTime = System.currentTimeMillis();
 		
 		int tempXOffset = xOffset;
 		int tempYOffset = yOffset;
@@ -438,18 +475,35 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			
 		}
 		
-		for (int y = (tempYOffset >> 5) - 1; y < ((tempYOffset + ((int) drawResolution.getHeight())) >> 5) + 1; y++) {
-			for (int x = (tempXOffset >> 5) - 1; x < ((tempXOffset + ((int) drawResolution.getWidth())) >> 5) + 1; x++) {
-				int id0 = level.getTile(x, y).getId();
-    	    	// Render lighting
-    	    	if (id0 >= 0 && level.getDiscreteLightLevel(x, y) >= -127 && level.getDiscreteLightLevel(x, y) <= 127) {
-    	    		g.setColor(new Color(0, 0, 0, 127 - level.getDiscreteLightLevel(x, y)));
-        	    	g.fillRect((x << 5) - tempXOffset, (y << 5) - tempYOffset, 32, 32);
-    	    	}
+		// Measure player rendering time
+		graphicsTimes[2] = System.currentTimeMillis() - currentTime;
+		currentTime = System.currentTimeMillis();
+		
+		level.drawEntities(g, this);
+		
+		// Measure level rendering time
+		graphicsTimes[3] = System.currentTimeMillis() - currentTime;
+		currentTime = System.currentTimeMillis();
+		
+		if (displayLighting) {
+			if (!(level == null)) level.calculateDiscreteLighting();
+		
+			for (int y = (tempYOffset >> 5) - 1; y < ((tempYOffset + ((int) drawResolution.getHeight())) >> 5) + 1; y++) {
+				for (int x = (tempXOffset >> 5) - 1; x < ((tempXOffset + ((int) drawResolution.getWidth())) >> 5) + 1; x++) {
+					int id0 = level.getTile(x, y).getId();
+	    	    	// Render lighting
+	    	    	if (id0 >= 0 && level.getDiscreteLightLevel(x, y) >= -127 && level.getDiscreteLightLevel(x, y) < 127) {
+	    	    		g.setColor(new Color(0, 0, 0, 127 - level.getDiscreteLightLevel(x, y)));
+	        	    	g.fillRect((x << 5) - tempXOffset, (y << 5) - tempYOffset, 32, 32);
+	    	    	}
+				}
 			}
+		
 		}
 		
-		if (player != null) player.draw(g, this);
+		// Measure lighting time
+		graphicsTimes[4] = System.currentTimeMillis() - currentTime;
+		currentTime = System.currentTimeMillis();
 		
 		if (drawHUD) drawHUD(g);
 		
@@ -481,9 +535,38 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			techTreeGUI.draw(g, drawResolution.width, drawResolution.height, this, input);
 		}
 		
+		// Measure GUI and HUD rendering time
+		graphicsTimes[5] = System.currentTimeMillis() - currentTime;
+		currentTime = System.currentTimeMillis() - currentTime;
+		
+		if (!(player == null)) player.draw(g, this);
+		
 		g.setFont(MediaLibrary.getFontFromLibrary("INFOFont"));
-		//g.drawString("FPS: " + FPS, (int) drawResolution.getWidth() - 100, (int) drawResolution.getHeight() - 32);
-		g.drawString("UPS: " + FPS, (int) drawResolution.getWidth() - 100, (int) drawResolution.getHeight() - 32);
+	
+		if (!(player == null) && player.drawInfo) {
+			g.setColor(Color.GREEN);
+			g.drawString("Level update time (ms): " + levelUpdateTime, (int) drawResolution.getWidth() - 232, (int) drawResolution.getHeight() - 32 - 16 * 6);
+			g.drawString("Render times (ms):", (int) drawResolution.getWidth() - 232, (int) drawResolution.getHeight() - 32 - 16 * 5);
+			for (int i = 0; i < 6; i++) {
+				String timeLabel = new String();
+				switch (i) {
+				case 0: timeLabel = "Sky ------"; break;
+				case 1: timeLabel = "Tiles ----"; break;
+				case 2: timeLabel = "Player ---"; break;
+				case 3: timeLabel = "Level ----"; break;
+				case 4: timeLabel = "Lights ---"; break;
+				case 5: timeLabel = "GUI/HUD --"; break;
+				}
+				
+				if (graphicsTimes[i] < 1000 / 120) g.setColor(Color.GREEN);
+				else if (graphicsTimes[i] < 1000 / 60) g.setColor(Color.YELLOW);
+				else g.setColor(Color.RED);
+				g.drawString(timeLabel + graphicsTimes[i], (int) drawResolution.getWidth() - 232, (int) drawResolution.getHeight() - 32 - 16 * (4 - i));
+			}
+			g.drawString("UPS: " + UPS, (int) drawResolution.getWidth() - 100, (int) drawResolution.getHeight() - 48);
+		} else g.setColor(Color.DARK_GRAY);
+		
+		g.drawString("FPS: " + FPS, (int) drawResolution.getWidth() - 100, (int) drawResolution.getHeight() - 32);
 	}
 	
 	public void renderTiles(Graphics g, boolean renderLevel) {
@@ -495,14 +578,17 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 				xOffset += xShift;
 				yOffset += yShift;
 				
-				level.calculateDiscreteLighting();
+				//int tilesRendered = 0;
 				
-				// Draw tile Images //
+				Image defaultImage = MediaLibrary.getImageFromLibrary(1);
+				
+				// Draw tile Images within the bounds of the window //
 				for (int y = (yOffset >> 5) - 1; y < ((yOffset + ((int) drawResolution.getHeight())) >> 5) + 1; y++) {
 					for (int x = (xOffset >> 5) - 1; x < ((xOffset + ((int) drawResolution.getWidth())) >> 5) + 1; x++) {
 			            	boolean ds = false;
 		            	    int id0 = level.getTile(x, y).getId();
-		            	    Image im0 = null;
+		            	    if (id0 == Tile.SKY.getId() || id0 == Tile.BARRIER.getId() || id0 == Tile.VOID.getId()) continue;
+		            	    Image im0 = defaultImage;
 		            	    for (Tile t : Tile.tiles) {
 		            	    	if (t != null) {
 		            	    		if (id0 == t.getId()) {
@@ -519,13 +605,15 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		            	    					ds = true;
 		            	    				}
 		            	    			}
+		            	    			break;
 		            	    		}
 		            	    	}
 		            	    }
 		            	    
-		            	    if (displayFog && x > 0 && y > 0 && y > level.getHorizon() && x < level.width && y < level.width && (!level.isExplored(x, y) || im0 == null)) {
-		            	    	im0 = MediaLibrary.getImageFromLibrary(1);
+		            	    if (displayFog && (!level.isVisible(x, y) || im0 == null)) {
+		            	    	im0 = defaultImage;
 		            	    }
+		            	    
 		            	    g.drawImage(im0, (x << 5) - xOffset, (y << 5) - yOffset, this);
 		            	    if (ds) g.drawImage(MediaLibrary.getImageFromLibrary(8192), (x << 5) - xOffset, (y << 5) - yOffset, this);
 		            	    
@@ -551,10 +639,11 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 
 		            	    	g.drawString(conveyorSpeed, (x << 5) - xOffset + 12, (y << 5) - yOffset + 13);
 		            	    }
+		            	//tilesRendered++;
 	                }
 	            }
 				
-				if (renderLevel) level.draw(g, this);
+				//System.out.println("Tiles rendered: " + tilesRendered);
 			}
 		} catch (NullPointerException e) {
 			FileUtilities.log("\t[Null tile]", true);
@@ -708,15 +797,17 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	}
 	
 	public void paint(Graphics g) {
-		render(g);
+		graphicsThread.updateGraphicsObject(g);
+		graphicsThread.run();
+		//System.out.println(graphicsThread.getId());
 	}
 	
 	public void run() {
 		long last = System.nanoTime();
-		double nspt = (1000000000D)/(MAXFPS);
+		double nspt = (1000000000D)/(MAXUPS);
 		int frameCount = 0;
 		int tickCount = 0;
-		long lastT = System.currentTimeMillis();
+		long startTime = System.currentTimeMillis();
 		double delta = 0;
 		
 		while (running) {
@@ -726,32 +817,26 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			last = current;
 			
 			boolean render = false;
-			
+						
 			while (delta >= 1) {
 				tickCount++;
 				tick();
 				delta--;
 				render = true;
+				
+				if (ticks % 20 == 0) UPS = System.currentTimeMillis() - startTime > 0 ? (1000 / (int) (System.currentTimeMillis() - startTime)) : 1000;
+				startTime = System.currentTimeMillis();
 			}
 			
 			if (render) {
 				if (fullscreen && level != null) {
-					Graphics2D g = window.manager.getGraphics();
-					render(g);
-					g.dispose();
+					graphicsThread.updateGraphicsObject((Graphics) window.manager.getGraphics());
+					graphicsThread.run();
 					window.manager.updateDisplay();
 				} else {
 					repaint();
 				}
 				frameCount++;
-			}
-			
-			if (System.currentTimeMillis() - lastT >= 1000) {
-				lastT += 1000;
-				FPS = frameCount;
-				UPS = tickCount;
-				frameCount = 0;
-				tickCount = 0;
 			}
 		}
 	}
