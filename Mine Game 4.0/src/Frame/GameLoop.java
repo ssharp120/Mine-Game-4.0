@@ -202,7 +202,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		checkDisplayMode();
 		
 		initializeGameElements();
-		initializeLevel(LevelFactory.generateTiles(0, 1024, 1024));
+		initializeLevel(LevelFactory.generateTiles(0, 4096, 1024));
 		initializeGUIs();
 	}
 	
@@ -712,10 +712,10 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			miniMap = null;
 			try {
 				miniMap = (Image) level.drawMiniMap(miniMapScale, miniMapScale).getSubimage(
-						(playerX - level.width / (miniMapScale * miniMapScale * 2) * modifier)/miniMapScale, 
-						(playerY - level.height / (miniMapScale * miniMapScale * 2) * modifier)/miniMapScale, 
-						level.width / (miniMapScale * miniMapScale * miniMapScale) * modifier, 
-						level.height / (miniMapScale * miniMapScale * miniMapScale) * modifier);
+						(playerX - 1024 / (miniMapScale * miniMapScale * 2) * modifier)/miniMapScale, 
+						(playerY - 1024 / (miniMapScale * miniMapScale * 2) * modifier)/miniMapScale, 
+						1024 / (miniMapScale * miniMapScale * miniMapScale) * modifier, 
+						1024 / (miniMapScale * miniMapScale * miniMapScale) * modifier);
 				drawMiniMap = true;
 			} catch (Exception e) {
 				FileUtilities.log(e.getMessage());

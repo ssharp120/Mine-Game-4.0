@@ -77,6 +77,7 @@ public class Level {
 	private double[][] conveyorSpeeds;
 	private int[][] tileColors;
 	private Player player;
+	private boolean queueUpdate = false;
 	
 	private List<Entity> entities = new ArrayList<Entity>();
 	private List<Entity> queuedEntities = new ArrayList<Entity>();
@@ -339,6 +340,7 @@ public class Level {
 			if (Tile.tiles[id].getClass() == BackgroundDestructibleTile.class) {
 				baseDurabilities[x][y] = ((BackgroundDestructibleTile) Tile.tiles[tiles[x][y]]).baseDurability;
 			}
+			queueUpdate = true;
 		}
 	}
 	
@@ -359,7 +361,10 @@ public class Level {
 		
 		currentProjectiles = 0;
 		
-		updateTiles();
+		if (queueUpdate) {
+			updateTiles();
+			queueUpdate = false;
+		}
 		
 		boolean oxygenConnected = false;
 		
@@ -487,6 +492,8 @@ public class Level {
 	public void updateTiles() {
 		for (int i = 0; i < width; i++) {
 			for (int j = 0; j < height; j++) {
+				boolean change = false;
+				
 				if (!(tiles == null || exploredTiles == null) && exploredTiles[i][j] && tiles[i][j] > 2) {
 					// Apply gravity to sand not supported from the bottom
 					if (tiles[i][j] == Tile.SAND.getId()) {
@@ -494,12 +501,14 @@ public class Level {
 							tiles[i][j] = tiles[i][j + 1];
 							durabilities[i][j + 1] = ((DestructibleTile) Tile.SAND).baseDurability;
 							tiles[i][j + 1] = Tile.SAND.getId();
+							change = true;
 						}
 					} else if (tiles[i][j] == Tile.CACTUS.getId()) {
 						if (j < height - 1 && !(tiles[i][j + 1] == Tile.SAND.getId() || tiles[i][j + 1] == Tile.CACTUS.getId())) {
 							// Destroy cactus and produce an item
 							addEntity(new PhysicalItem(1033, this, true, i << 5, j << 5, 0.2 - Math.random() * 0.4, 0.2 - Math.random() * 0.4, new InventoryTile(33, 1)));
 							tiles[i][j] = Tile.SKY.getId();
+							change = true;
 						}
 					} else if (tiles[i][j] == Tile.NATURAL_WOOD.getId()){
 						if (i > 1 && i < width - 1 && j < height - 1) {
@@ -512,6 +521,7 @@ public class Level {
 								// Destroy wood and produce an item
 								addEntity(new PhysicalItem(1004, this, true, i << 5, j << 5, 0.2 - Math.random() * 0.4, 0.2 - Math.random() * 0.4, new InventoryTile(4, 1)));
 								tiles[i][j] = Tile.SKY.getId();
+								change = true;
 							}
 						}
 					} else if (tiles[i][j] == Tile.LEAVES.getId()){
@@ -530,6 +540,7 @@ public class Level {
 								// Destroy wood and produce an item
 								addEntity(new PhysicalItem(1009, this, true, i << 5, j << 5, 0.2 - Math.random() * 0.4, 0.2 - Math.random() * 0.4, new InventoryTile(9, 1)));
 								tiles[i][j] = Tile.SKY.getId();
+								change = true;
 							}
 						}
 					} else {// Apply gravity to tiles not supported on any side
@@ -546,6 +557,7 @@ public class Level {
 								}
 								tiles[i][j] = replacementID;
 								tiles[i][j + 1] = tileID;
+								change = true;
 							}
 						}
 					}
@@ -573,6 +585,11 @@ public class Level {
 					if (i == game.input.lastDestructibleX && j == game.input.lastDestructibleY && !leftButtonHeld && durabilities[i][j] < baseDurabilities[i][j]) {
 						durabilities[i][j] = baseDurabilities[i][j];
 					}*/
+				}
+				
+				if (change) {
+					i--;
+					j--;
 				}
 			}
 		}
@@ -1037,6 +1054,7 @@ public class Level {
 				else game.player.inventory.addItem(new InventoryTile(tiles[targetX][targetY], 1));
 				setTile(targetX, targetY, 2);
 				if (game.tracker != null) game.tracker.incrementBasicStat("Tiles Mined");
+				queueUpdate = true;
 			}
 		}
 	}
