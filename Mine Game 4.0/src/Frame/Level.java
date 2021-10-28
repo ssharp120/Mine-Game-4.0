@@ -973,17 +973,35 @@ public class Level {
 		}
 	}
 	
-	public BufferedImage drawMiniMap(int scaleX, int scaleY) {
-		BufferedImage image = new BufferedImage(width / scaleX, height / scaleY, BufferedImage.TYPE_INT_ARGB);
-		for (int i = 0; i < width; i += scaleX) {
-			for (int j = 0; j < height; j += scaleY) {
-				if (exploredTiles[i + scaleX / 2][j + scaleY / 2]) image.setRGB(i / scaleX, j / scaleY, Tile.tiles[tiles[i + scaleX / 2][j + scaleY / 2]].getLevelColour());
-				else {
-					if ((i % 2 == 0 && j % 2 == 1) || (i % 2 == 1 && j % 2 == 0)) image.setRGB(i / scaleX, j / scaleY, Color.LIGHT_GRAY.getRGB());
-					else image.setRGB(i / scaleX, j / scaleY, Color.DARK_GRAY.getRGB());
+	public BufferedImage drawMiniMap(int scaleX, int scaleY, int playerX, int playerY) {
+		int imageWidth, imageHeight;
+		if (scaleX == 4) {
+			imageWidth = 64;
+			imageHeight = 64;
+		} else if (scaleX == 2) {
+			imageWidth = 256;
+			imageHeight = 256;
+		} else {
+			imageWidth = 1024;
+			imageHeight = 1024;
+		}
+		BufferedImage image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);
+		for (int i = playerX - 512 / scaleX; i <= playerX + 512 / scaleX; i += scaleX) {
+			for (int j = playerY - 512 / scaleY; j <= playerY + 512 / scaleY; j += scaleY) {
+				//System.out.println("i " + i + " j " + j);
+				int x = (i - playerX + 512 / scaleX) / scaleX;
+				int y = (j - playerY + 512 / scaleY) / scaleY;
+				if (i + scaleX / 2 > 0 && j + scaleY / 2 > 0 && i + scaleX / 2 < width && j + scaleY / 2 < height
+						&& x > 0 && x < image.getWidth() && y > 0 && y < image.getHeight()) {
+					if (exploredTiles[i + scaleX / 2][j + scaleY / 2]) image.setRGB(x, y, Tile.tiles[tiles[i + scaleX / 2][j + scaleY / 2]].getLevelColour());
+					else {
+						if ((x % 2 == 0 && y % 2 == 1) || (x % 2 == 1 && y % 2 == 0)) image.setRGB(x, y, Color.LIGHT_GRAY.getRGB());
+						else image.setRGB(x, y, Color.GRAY.getRGB());
+					}
 				}
 			}
 		}
+		
 		return image;
 	}
 	

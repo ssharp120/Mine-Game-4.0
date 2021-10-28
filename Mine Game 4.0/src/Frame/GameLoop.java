@@ -82,6 +82,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	public boolean drawHUD;
 	public boolean drawMiniMap = true;
 	public int miniMapScale = 4;
+	private BufferedImage miniMap;
 
 	public Graphics gStorage;
 	
@@ -202,7 +203,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		checkDisplayMode();
 		
 		initializeGameElements();
-		initializeLevel(LevelFactory.generateTiles(0, 4096, 1024));
+		initializeLevel(LevelFactory.generateTiles(0, 1024, 1024));
 		initializeGUIs();
 	}
 	
@@ -423,6 +424,89 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		}
 	}
 	
+	public void renderTiles(Graphics g, boolean renderLevel) {
+		try {
+			if (level != null) {				
+				int xShift = 0, yShift = 0;
+				if (level.width << 5 < (int) drawResolution.getWidth()) xShift = ((int) drawResolution.getWidth() - (level.width << 5)) / 2; 
+				if (level.height << 5 < (int) drawResolution.getHeight()) yShift = ((int) drawResolution.getHeight() - (level.height << 5)) / 2;
+				xOffset += xShift;
+				yOffset += yShift;
+				
+				//int tilesRendered = 0;
+				
+				Image defaultImage = MediaLibrary.getImageFromLibrary(1);
+				
+				// Draw tile Images within the bounds of the window //
+				for (int y = (yOffset >> 5) - 1; y < ((yOffset + ((int) drawResolution.getHeight())) >> 5) + 1; y++) {
+					for (int x = (xOffset >> 5) - 1; x < ((xOffset + ((int) drawResolution.getWidth())) >> 5) + 1; x++) {
+			            	boolean ds = false;
+		            	    int id0 = level.getTile(x, y).getId();
+		            	    if (id0 == Tile.SKY.getId() || id0 == Tile.BARRIER.getId() || id0 == Tile.VOID.getId()) continue;
+		            	    Image im0 = defaultImage;
+		            	    for (Tile t : Tile.tiles) {
+		            	    	if (t != null) {
+		            	    		if (id0 == t.getId()) {
+		            	    			im0 = MediaLibrary.getImageFromLibrary(t.getId());
+		            	    			if (t.getClass() == DestructibleTile.class) {
+		            	    				double d = level.getDurability(x, y);
+		            	    				if (d != ((DestructibleTile) t).durability) {
+		            	    					ds = true;
+		            	    				}
+		            	    			}
+		            	    			if (t.getClass() == BackgroundDestructibleTile.class) {
+		            	    				double d = level.getDurability(x, y);
+		            	    				if (d != ((BackgroundDestructibleTile) t).durability) {
+		            	    					ds = true;
+		            	    				}
+		            	    			}
+		            	    			break;
+		            	    		}
+		            	    	}
+		            	    }
+		            	    
+		            	    if (displayFog && (!level.isVisible(x, y) || im0 == null)) {
+		            	    	im0 = defaultImage;
+		            	    }
+		            	    
+		            	    g.drawImage(im0, (x << 5) - xOffset, (y << 5) - yOffset, this);
+		            	    if (ds) g.drawImage(MediaLibrary.getImageFromLibrary(8192), (x << 5) - xOffset, (y << 5) - yOffset, this);
+		            	    
+		            	    if (id0 == Tile.DRY_WALL.getId()) {
+		            	    	Color color = level.getTileColor(x, y);
+		            	    	if (!(color == null)) {
+			            	    	g.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 128));
+			            	    	g.fillRect((x << 5) - xOffset, (y << 5) - yOffset, 32, 32);
+		            	    	}
+		            	    }
+		            	    
+		            	    // Show conveyor speeds
+		            	    if (id0 >= Tile.CONVEYOR.getId() && id0 <= Tile.CONVEYOR_MIDDLE.getId() && !(level.getConveyorSpeed(x, y) == 0)) {
+		            	    	String conveyorSpeed = "";
+		            	    	g.setColor(Color.WHITE);
+		            	    	g.setFont(MediaLibrary.getFontFromLibrary("NumberingFont"));
+		            	    	
+		            	    	if (level.getConveyorSpeed(x, y) > 0) {
+		            	    		conveyorSpeed = ">";
+		            	    	} else if (level.getConveyorSpeed(x, y) < 0) {
+		            	    		conveyorSpeed = "<";
+		            	    	}
+	
+		            	    	g.drawString(conveyorSpeed, (x << 5) - xOffset + 12, (y << 5) - yOffset + 13);
+		            	    }
+		            	//tilesRendered++;
+	                }
+	            }
+				
+				//System.out.println("Tiles rendered: " + tilesRendered);
+			}
+		} catch (NullPointerException e) {
+			FileUtilities.log("\t[Null tile]", true);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
 	public void render(Graphics g) {
 		long startTime = System.currentTimeMillis();
 		long currentTime = System.currentTimeMillis();
@@ -569,89 +653,6 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		g.drawString("FPS: " + FPS, (int) drawResolution.getWidth() - 100, (int) drawResolution.getHeight() - 32);
 	}
 	
-	public void renderTiles(Graphics g, boolean renderLevel) {
-		try {
-			if (level != null) {				
-				int xShift = 0, yShift = 0;
-				if (level.width << 5 < (int) drawResolution.getWidth()) xShift = ((int) drawResolution.getWidth() - (level.width << 5)) / 2; 
-				if (level.height << 5 < (int) drawResolution.getHeight()) yShift = ((int) drawResolution.getHeight() - (level.height << 5)) / 2;
-				xOffset += xShift;
-				yOffset += yShift;
-				
-				//int tilesRendered = 0;
-				
-				Image defaultImage = MediaLibrary.getImageFromLibrary(1);
-				
-				// Draw tile Images within the bounds of the window //
-				for (int y = (yOffset >> 5) - 1; y < ((yOffset + ((int) drawResolution.getHeight())) >> 5) + 1; y++) {
-					for (int x = (xOffset >> 5) - 1; x < ((xOffset + ((int) drawResolution.getWidth())) >> 5) + 1; x++) {
-			            	boolean ds = false;
-		            	    int id0 = level.getTile(x, y).getId();
-		            	    if (id0 == Tile.SKY.getId() || id0 == Tile.BARRIER.getId() || id0 == Tile.VOID.getId()) continue;
-		            	    Image im0 = defaultImage;
-		            	    for (Tile t : Tile.tiles) {
-		            	    	if (t != null) {
-		            	    		if (id0 == t.getId()) {
-		            	    			im0 = MediaLibrary.getImageFromLibrary(t.getId());
-		            	    			if (t.getClass() == DestructibleTile.class) {
-		            	    				double d = level.getDurability(x, y);
-		            	    				if (d != ((DestructibleTile) t).durability) {
-		            	    					ds = true;
-		            	    				}
-		            	    			}
-		            	    			if (t.getClass() == BackgroundDestructibleTile.class) {
-		            	    				double d = level.getDurability(x, y);
-		            	    				if (d != ((BackgroundDestructibleTile) t).durability) {
-		            	    					ds = true;
-		            	    				}
-		            	    			}
-		            	    			break;
-		            	    		}
-		            	    	}
-		            	    }
-		            	    
-		            	    if (displayFog && (!level.isVisible(x, y) || im0 == null)) {
-		            	    	im0 = defaultImage;
-		            	    }
-		            	    
-		            	    g.drawImage(im0, (x << 5) - xOffset, (y << 5) - yOffset, this);
-		            	    if (ds) g.drawImage(MediaLibrary.getImageFromLibrary(8192), (x << 5) - xOffset, (y << 5) - yOffset, this);
-		            	    
-		            	    if (id0 == Tile.DRY_WALL.getId()) {
-		            	    	Color color = level.getTileColor(x, y);
-		            	    	if (!(color == null)) {
-			            	    	g.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 128));
-			            	    	g.fillRect((x << 5) - xOffset, (y << 5) - yOffset, 32, 32);
-		            	    	}
-		            	    }
-		            	    
-		            	    // Show conveyor speeds
-		            	    if (id0 >= Tile.CONVEYOR.getId() && id0 <= Tile.CONVEYOR_MIDDLE.getId() && !(level.getConveyorSpeed(x, y) == 0)) {
-		            	    	String conveyorSpeed = "";
-		            	    	g.setColor(Color.WHITE);
-		            	    	g.setFont(MediaLibrary.getFontFromLibrary("NumberingFont"));
-		            	    	
-		            	    	if (level.getConveyorSpeed(x, y) > 0) {
-		            	    		conveyorSpeed = ">";
-		            	    	} else if (level.getConveyorSpeed(x, y) < 0) {
-		            	    		conveyorSpeed = "<";
-		            	    	}
-
-		            	    	g.drawString(conveyorSpeed, (x << 5) - xOffset + 12, (y << 5) - yOffset + 13);
-		            	    }
-		            	//tilesRendered++;
-	                }
-	            }
-				
-				//System.out.println("Tiles rendered: " + tilesRendered);
-			}
-		} catch (NullPointerException e) {
-			FileUtilities.log("\t[Null tile]", true);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-	
 	public void renderMiniMap(Graphics g) {
 		boolean hasMap = false;
 		// Check if the player has a map
@@ -661,95 +662,19 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		}
 		
 		if (!hasMap) miniMapScale = 4;
-		
-		Image miniMap;
-		int shiftX = 256;
-		int shiftY = 256;
-		if (miniMapScale > 2) {
-			shiftX = 64;
-			shiftY = 64;
+					
+		try {
+			if (miniMapScale > 1 || ticks % 100 == 0) miniMap = level.drawMiniMap(miniMapScale, miniMapScale, player.x >> 5, player.y >> 5);
+			drawMiniMap = true;
+		} catch (Exception e) {
+			FileUtilities.log(e.getMessage());
+			drawMiniMap = false;
 		}
 		
-		if (miniMapScale == 1) {
-			miniMap = (Image) level.drawMiniMap(miniMapScale, miniMapScale);
-			g.drawImage(miniMap, (int) drawResolution.getWidth() - miniMap.getWidth(this) - shiftX, shiftY, this);
-			g.setColor(Color.RED);
-			g.drawOval((int) drawResolution.getWidth() - miniMap.getWidth(this) - shiftX - 2 + (player.x >> 5), shiftY - 2 + (player.y >> 5), 4, 4);
-		}
-		else {
-			int playerX;
-			int playerY;
-			boolean isCenteredX = true;
-			boolean isCenteredY = true;
-			int drawTrackerX = 128;
-			int drawTrackerY = 128;
-			int modifier;
-			
-			if (miniMapScale == 4) modifier = 2;
-			else modifier = 1;
-			
-			// Determine whether the minimap will be within the bounds
-			if (player.x >> 5 + level.width / (miniMapScale * miniMapScale * 2) * modifier < level.width && player.x >> 5 > level.width / (miniMapScale * miniMapScale * 2) * modifier) {
-				playerX = player.x >> 5;
-			} else if (player.x >> 5 + level.width / (miniMapScale * miniMapScale * 2) * modifier >= level.width) {
-				playerX = level.width - level.width / (miniMapScale * miniMapScale * 2) * modifier - 1;
-			}
-			else {
-				playerX = level.width / (miniMapScale * miniMapScale * 2) * modifier + 1;
-				isCenteredX = false;
-			}
-			
-			if (player.y >> 5 + level.height / (miniMapScale * miniMapScale * 2) * modifier < level.height && player.y >> 5 > level.height / (miniMapScale * miniMapScale * 2) * modifier) {
-				playerY = player.y >> 5;
-			} else if (player.y >> 5 + level.height / (miniMapScale * miniMapScale * 2) * modifier >= level.height) {
-				playerY = level.height - level.height / (miniMapScale * miniMapScale * 2) * modifier - 1;
-			}
-			else {
-				playerY = level.height / (miniMapScale * miniMapScale * 2) * modifier + 1;
-				isCenteredY = false;
-			}
-			
-			miniMap = null;
-			try {
-				miniMap = (Image) level.drawMiniMap(miniMapScale, miniMapScale).getSubimage(
-						(playerX - 1024 / (miniMapScale * miniMapScale * 2) * modifier)/miniMapScale, 
-						(playerY - 1024 / (miniMapScale * miniMapScale * 2) * modifier)/miniMapScale, 
-						1024 / (miniMapScale * miniMapScale * miniMapScale) * modifier, 
-						1024 / (miniMapScale * miniMapScale * miniMapScale) * modifier);
-				drawMiniMap = true;
-			} catch (Exception e) {
-				FileUtilities.log(e.getMessage());
-				drawMiniMap = false;
-			}
-			
-			if (drawMiniMap) {
-				if (miniMapScale == 2) {
-					if (isCenteredX) drawTrackerX = (int) drawResolution.getWidth() - miniMap.getWidth(this) - drawResolution.width / 10 + miniMap.getWidth(this);
-					else {
-						drawTrackerX = (int) drawResolution.getWidth() - miniMap.getWidth(this) - drawResolution.width / 10 + (player.x >> 5);
-					}
-					if (isCenteredY) drawTrackerY = drawResolution.height / 80 + miniMap.getHeight(this);
-					else {
-						drawTrackerY = drawResolution.height / 80 + (player.y >> 5);
-					}
-					g.drawImage(miniMap, (int) drawResolution.getWidth() - miniMap.getWidth(this) - drawResolution.width / 10, drawResolution.height / 80, 2 * miniMap.getWidth(this), 2 * miniMap.getHeight(this), this);
-				}
-				if (miniMapScale == 4) {
-					if (isCenteredX) drawTrackerX = (int) drawResolution.getWidth() - miniMap.getWidth(this) * 4 - drawResolution.width / 10 + 4 * miniMap.getWidth(this);
-					else {
-						drawTrackerX = (int) drawResolution.getWidth() - miniMap.getWidth(this) * 4 - drawResolution.width / 10 + 4 * (player.x >> 6);
-					}
-					if (isCenteredY) drawTrackerY = drawResolution.height / 80 + 4 * miniMap.getHeight(this);
-					else {
-						drawTrackerY = drawResolution.height / 80 + 4 * (player.y >> 6);
-					}
-					g.drawImage(miniMap, (int) drawResolution.getWidth() - miniMap.getWidth(this) * 4 - drawResolution.width / 10, drawResolution.height / 80, 8 * miniMap.getWidth(this), 8 * miniMap.getHeight(this), this);
-				}
-				if (miniMapScale == 2 || miniMapScale == 4) {
-					g.setColor(Color.RED);
-					g.drawOval(drawTrackerX - 2, drawTrackerY - 2, 4, 4);
-				}
-			}
+		if (drawMiniMap && miniMapScale == 1) {
+			g.drawImage(miniMap, drawResolution.width - 1024 - 16, 16, 1024, 1024, this);
+		} else if (drawMiniMap) {
+			g.drawImage(miniMap, drawResolution.width - 256 - 16, 16, 256, 256, this);
 		}
 	}
 	 
