@@ -403,7 +403,7 @@ public class Player extends Mob {
 		drawMeter(level.getPercentExplored(), Color.GREEN, Color.PINK, g, observer, 0, 128 + 32);
 		
 		g.setFont(MediaLibrary.getFontFromLibrary("INFOFont"));
-		if (drawInfo) printMovementInfo(g, 64, 172);
+		if (drawInfo) printMovementInfo(g, 196, 196);
 	}
 	
 	public void drawOxygenLine(Graphics g, int oxyX, int oxyY) {
@@ -427,7 +427,7 @@ public class Player extends Mob {
 		} catch (NullPointerException n) {
 			// Do nothing
 		} catch (Exception e) {
-			FileUtilities.log(e.getMessage());
+			if (!(e.getMessage() == null)) FileUtilities.log(e.getMessage());
 		}
 		
 		if (getMovingDir() == 2) {

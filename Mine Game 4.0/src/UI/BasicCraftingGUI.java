@@ -45,19 +45,15 @@ public class BasicCraftingGUI extends CraftingMenu {
 			if (gameIn.player.drawInfo) {
 				if (scrollMax > screenHeight) {
 					g.setColor(Color.CYAN);
-					g.drawLine(0, scrollY, 100, scrollY/screenHeight);
+					g.drawLine(0, scrollY * (screenHeight - 16) / scrollMax, 100, scrollY * (screenHeight - 16) / scrollMax);
 					g.setColor(Color.RED);
-					g.drawLine(0, scrollMax, 100, scrollMax/screenHeight);
+					g.drawLine(0, screenHeight - 16, 100, screenHeight - 16);
 				} else {
 					g.setColor(Color.CYAN);
 					g.drawLine(0, scrollY, 100, scrollY);
 					g.setColor(Color.RED);
 					g.drawLine(0, scrollMax, 100, scrollMax);
 				}
-				g.setColor(Color.BLUE);
-				g.drawRect(100, yInitial, screenWidth - 200, screenHeight - yInitial - 50);
-				g.setColor(Color.GRAY);
-				g.fillRect(100, yInitial, screenWidth - 200, screenHeight - yInitial - 50);
 				g.setColor(Color.BLACK);
 			}
 			

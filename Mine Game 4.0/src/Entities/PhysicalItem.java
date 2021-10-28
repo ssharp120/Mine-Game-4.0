@@ -34,12 +34,12 @@ public class PhysicalItem extends Projectile {
 	public void draw(Graphics g) {
 		item.draw(g, x - level.getGameLoop().xOffset, y - level.getGameLoop().yOffset, 32, 32, level.getGameLoop());
 		
-		if (getItemClass() == Ingredient.class) {
+		if (getItemClass() == Ingredient.class && ((Ingredient) item).getQuantity() > 1) {
 			g.setColor(Color.WHITE);
 			g.setFont(MediaLibrary.getFontFromLibrary("NumberingFont"));
 			
 			g.drawString("" + ((Ingredient) item).getQuantity(), x - level.getGameLoop().xOffset + 24, y - level.getGameLoop().yOffset + 32);
-		} else if (getItemClass() == InventoryTile.class) {
+		} else if (getItemClass() == InventoryTile.class && ((InventoryTile) item).getQuantity() > 1) {
 			g.setColor(Color.WHITE);
 			g.setFont(MediaLibrary.getFontFromLibrary("NumberingFont"));
 			
@@ -51,7 +51,7 @@ public class PhysicalItem extends Projectile {
 	public void tick() {
 		super.tick();
 		hitboxWidth = MediaLibrary.getImageFromLibrary(item.getImageID()).getWidth(level.getGameLoop());
-		hitboxHeight = MediaLibrary.getImageFromLibrary(item.getImageID()).getHeight(level.getGameLoop());
+		hitboxHeight = MediaLibrary.getImageFromLibrary(item.getImageID()).getHeight(level.getGameLoop()) * 7 / 8;
 		
 		if (level.getGameLoop().input.collect.isPressed()) {
 			if (PhysicsUtilities.checkIntersection(x + (hitboxWidth / 2), y + (hitboxWidth / 2), level.getGameLoop().player.x, level.getGameLoop().player.y, level.getGameLoop().player.spriteWidth, level.getGameLoop().player.spriteHeight, true)) {

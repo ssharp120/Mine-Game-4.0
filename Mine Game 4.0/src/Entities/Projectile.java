@@ -84,7 +84,6 @@ public class Projectile extends Entity {
 	}
 
 	public void tick() {
-		
 		if (elasticity < 0 || elasticity > 1) FileUtilities.log("Impossible elasticity! " + this.toString());
 		
 		vX += aX;
@@ -96,7 +95,7 @@ public class Projectile extends Entity {
 		y = (int) Math.round(dY);
 		
 		aX = 0;
-		aY = 0.01;
+		aY = 0.025;
 		
 		if (elasticity == 0 && ((PhysicsUtilities.collisionLeft(x, y, hitboxWidth, hitboxHeight, level) && vX < 0) || (PhysicsUtilities.collisionRight(x, y, hitboxWidth, hitboxHeight, level) && vX > 0))) {
 			aY = 0;

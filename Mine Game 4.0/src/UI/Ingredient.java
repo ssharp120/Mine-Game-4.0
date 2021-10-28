@@ -56,11 +56,11 @@ public class Ingredient extends InventoryItem {
 		Font tileFont = MediaLibrary.getFontFromLibrary("HUDFont").deriveFont((float) (iconHeight / 3));
 		g.setFont(tileFont);
 		g.setColor(Color.decode("#AFAFAF"));
-		if (quantity < 10) {
+		if (quantity > 1 && quantity < 10) {
 			FontMetrics metr = new JPanel().getFontMetrics(tileFont);
 			g.drawString("" + quantity, metr.stringWidth("0") + x + iconWidth - (3 * offset) - 3, y + iconHeight - (offset) + 4);
 		}
-		else g.drawString("" + quantity, x + iconWidth - (3 * offset) - 3, y + iconHeight - (offset) + 4);
+		else if (quantity > 1) g.drawString("" + quantity, x + iconWidth - (3 * offset) - 3, y + iconHeight - (offset) + 4);
 	}
 	
 	public String toString() {

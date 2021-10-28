@@ -413,13 +413,16 @@ public class Level {
 			player.disconnectOxygen();
 			player.removeOxygen(0.01);
 		}
-		for (int i = -16; i < 16; i++) {
-			for (int j = -8; j < 8; j++) {
+		for (int i = -64; i < 64; i++) {
+			for (int j = -32; j < 32; j++) {
 				if (player.x >= -16 * 32 && player.x >> 5 < width + 16 * 32 && player.y >= -8 * 32 && player.y >> 5 < height + 8 * 32
-					&& i * i + j * j <= 64 && (player.x >> 5) + i >= 0 && (player.x >> 5) + i < width
-					&& (player.y >> 5) + j >= 0 && (player.y >> 5) + j < height) 
-					
-					exploredTiles[(player.x >> 5) + i][(player.y >> 5) + j] = true;
+						&& i * i + j * j <= 64 && (player.x >> 5) + i >= 0 && (player.x >> 5) + i < width
+						&& (player.y >> 5) + j >= 0 && (player.y >> 5) + j < height
+						&& !visibleTiles[(player.x >> 5) + i][(player.y >> 5) + j]) visibleTiles[(player.x >> 5) + i][(player.y >> 5) + j] = true;
+				if (player.x >= -16 * 32 && player.x >> 5 < width + 16 * 32 && player.y >= -8 * 32 && player.y >> 5 < height + 8 * 32
+					&& i * i + j * j <= 32 * 32 && (player.x >> 5) + i >= 0 && (player.x >> 5) + i < width
+					&& (player.y >> 5) + j >= 0 && (player.y >> 5) + j < height
+					&& visibleTiles[(player.x >> 5) + i][(player.y >> 5) + j]) exploredTiles[(player.x >> 5) + i][(player.y >> 5) + j] = true;
 			}
 		}
 		int exploredArea = 0;
@@ -484,7 +487,7 @@ public class Level {
 	public void updateTiles() {
 		for (int i = 0; i < width; i++) {
 			for (int j = 0; j < height; j++) {
-				if (tiles != null) {
+				if (!(tiles == null || exploredTiles == null) && exploredTiles[i][j] && tiles[i][j] > 2) {
 					// Apply gravity to sand not supported from the bottom
 					if (tiles[i][j] == Tile.SAND.getId()) {
 						if (j < height - 1 && tiles[i][j + 1] <= 2) {
@@ -492,7 +495,44 @@ public class Level {
 							durabilities[i][j + 1] = ((DestructibleTile) Tile.SAND).baseDurability;
 							tiles[i][j + 1] = Tile.SAND.getId();
 						}
-					} else { // Apply gravity to tiles not supported on any side
+					} else if (tiles[i][j] == Tile.CACTUS.getId()) {
+						if (j < height - 1 && !(tiles[i][j + 1] == Tile.SAND.getId() || tiles[i][j + 1] == Tile.CACTUS.getId())) {
+							// Destroy cactus and produce an item
+							addEntity(new PhysicalItem(1033, this, true, i << 5, j << 5, 0.2 - Math.random() * 0.4, 0.2 - Math.random() * 0.4, new InventoryTile(33, 1)));
+							tiles[i][j] = Tile.SKY.getId();
+						}
+					} else if (tiles[i][j] == Tile.NATURAL_WOOD.getId()){
+						if (i > 1 && i < width - 1 && j < height - 1) {
+							if (!(tiles[i][j +1] == Tile.NATURAL_WOOD.getId() 
+									|| Tile.tiles[tiles[i + 1][j]].isSolid() 
+									|| Tile.tiles[tiles[i - 1][j]].isSolid() 
+									|| Tile.tiles[tiles[i][j + 1]].isSolid()
+									|| tiles[i + 1][j] == Tile.NATURAL_WOOD.getId()
+									|| tiles[i - 1][j] == Tile.NATURAL_WOOD.getId())) {
+								// Destroy wood and produce an item
+								addEntity(new PhysicalItem(1004, this, true, i << 5, j << 5, 0.2 - Math.random() * 0.4, 0.2 - Math.random() * 0.4, new InventoryTile(4, 1)));
+								tiles[i][j] = Tile.SKY.getId();
+							}
+						}
+					} else if (tiles[i][j] == Tile.LEAVES.getId()){
+						if (i > 1 && i < width - 1 && j < height - 1) {
+							if (!(tiles[i][j + 1] == Tile.NATURAL_WOOD.getId() 
+									|| tiles[i][j + 1] == Tile.LEAVES.getId()
+									|| Tile.tiles[tiles[i + 1][j]].isSolid() 
+									|| Tile.tiles[tiles[i - 1][j]].isSolid() 
+									|| Tile.tiles[tiles[i][j + 1]].isSolid()
+									|| tiles[i + 1][j] == Tile.NATURAL_WOOD.getId()
+									|| tiles[i - 1][j] == Tile.NATURAL_WOOD.getId()
+									|| tiles[i + 2][j] == Tile.NATURAL_WOOD.getId()
+									|| tiles[i - 2][j] == Tile.NATURAL_WOOD.getId()
+									|| tiles[i + 3][j] == Tile.NATURAL_WOOD.getId()
+									|| tiles[i - 3][j] == Tile.NATURAL_WOOD.getId())) {
+								// Destroy wood and produce an item
+								addEntity(new PhysicalItem(1009, this, true, i << 5, j << 5, 0.2 - Math.random() * 0.4, 0.2 - Math.random() * 0.4, new InventoryTile(9, 1)));
+								tiles[i][j] = Tile.SKY.getId();
+							}
+						}
+					} else {// Apply gravity to tiles not supported on any side
 						if (i > 1 && i < width - 1 && j > 1 && j < height - 1) {
 							if (tiles[i - 1][j] <= 2 && tiles[i + 1][j] <= 2 && tiles[i][j - 1] <= 2 && tiles[i][j + 1] <= 2) {
 								int replacementID = tiles[i][j + 1];
