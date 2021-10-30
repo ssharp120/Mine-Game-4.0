@@ -100,7 +100,7 @@ public class PhysicsUtilities {
 		if (level == null) { 
 			throw new RuntimeException("No Level");
 		}
-		if (Math.abs((x + 32)/32) >= level.width) {
+		if (Math.abs((x + hitboxWidth)/32) >= level.width) {
 			return true;
 		}
 		if (Math.abs((y + hitboxHeight)/32) >= level.height || x < 0 || y < 0) {
@@ -120,10 +120,10 @@ public class PhysicsUtilities {
 		if (level == null) { 
 			throw new RuntimeException("No Level");
 		}
-		if (y < 0) {
+		if (x <= 0) {
 			return true;
 		}
-		if (Math.abs((x + 32)/32) >= level.width || Math.abs((y + hitboxHeight)/32) >= level.height || x < 0) {
+		if (Math.abs((x + 32)/32) >= level.width || Math.abs((y + hitboxHeight)/32) >= level.height || y < 0) {
 			return false;
 		}
 		for (int i = 1; i < (hitboxHeight / 4) - (hitboxHeight / 32); i++) {

@@ -32,6 +32,7 @@
 31 tile/gypsumdeposit
 32 tile/dry_wall
 33 tile/cactus
+34 tile/oxygen_tether
 5000 gui/arrow
 5001 gui/arrow_success
 5002 gui/arrowsmall

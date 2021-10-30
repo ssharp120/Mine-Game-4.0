@@ -56,6 +56,7 @@ public class Level {
 	private int[][] tileData;
 	private boolean[][] exploredTiles;
 	private boolean[][] visibleTiles;
+	private boolean[][] activatedOxygenTethers;
 	private double percentExplored;
 	private int horizon;
 	private double[][] durabilities;
@@ -78,6 +79,7 @@ public class Level {
 	private int[][] tileColors;
 	private Player player;
 	private boolean queueUpdate = false;
+	private boolean playerConnectedToOxygenGenerator = false;
 	
 	private List<Entity> entities = new ArrayList<Entity>();
 	private List<Entity> queuedEntities = new ArrayList<Entity>();
@@ -101,6 +103,7 @@ public class Level {
 		initDiscreteLightLevels();
 		initConveyorSpeeds();
 		initTileColors();
+		initOxygenTethers();
 		fillUnexploredAreas();
 	}
 	
@@ -120,6 +123,7 @@ public class Level {
 		initDiscreteLightLevels();
 		initConveyorSpeeds();
 		initTileColors();
+		initOxygenTethers();
 		fillUnexploredAreas();
 	}
 	
@@ -148,6 +152,10 @@ public class Level {
 				tileColors[i][j] = -1;
 			}
 		}
+	}
+	
+	public void initOxygenTethers() {
+		activatedOxygenTethers = new boolean[width][height];
 	}
 	
 	public boolean hasTileColor(int x, int y) {
@@ -370,6 +378,8 @@ public class Level {
 		
 		if (!(entities.get(0) == null)) entities.get(0).tick();
 		
+		playerConnectedToOxygenGenerator = false;
+		
 		for (Entity e : getEntities()) {
 			if (e == null) continue;
 			e.tick();
@@ -377,9 +387,10 @@ public class Level {
 				if (entities.get(0).x > (e.x << 5) - 128 - 64 && entities.get(0).x < (e.x << 5) + 128 + 32
 						&& entities.get(0).y > (e.y << 5) - 128 - 128 && entities.get(0).y < (e.y << 5) + 128) {
 					player.connectOxygen();
-					player.addOxygen(0.025);
+					player.addOxygen(0.0875);
 					player.addOxygenPoint(e.x * 32, e.y * 32);
 					oxygenConnected = true;
+					playerConnectedToOxygenGenerator = true;
 					//drawLightCircle(e.x, e.y, 4, 16);
 				}
 			}
@@ -430,6 +441,42 @@ public class Level {
 					&& visibleTiles[(player.x >> 5) + i][(player.y >> 5) + j]) exploredTiles[(player.x >> 5) + i][(player.y >> 5) + j] = true;
 			}
 		}
+		
+		if (!playerConnectedToOxygenGenerator) {
+			int bestX = 1024;
+			int bestY = 1024;
+			boolean connection = false;
+			
+			for (int i = -16; i < 16; i++) {
+				for (int j = -16; j < 16; j++) {
+	
+					if ((player.x >> 5) + i >= 0 && (player.x >> 5) + i < width
+						&& (player.y >> 5) + j >= 0 && (player.y >> 5) + j < height
+						&& visibleTiles[(player.x >> 5) + i][(player.y >> 5) + j]
+						&& exploredTiles[(player.x >> 5) + i][(player.y >> 5) + j]) {
+						//System.out.println("i " + i + " j " + j);
+						if (tiles[(player.x >> 5) + i][(player.y >> 5) + j] == Tile.OXYGEN_TETHER.getId()
+								&& activatedOxygenTethers[(player.x >> 5) + i][(player.y >> 5) + j]) {
+							connection = true;
+							if (i * i + j * j < bestX * bestX + bestY + bestY) {
+								bestX = i;
+								bestY = j;
+							}
+						}
+						
+					}
+				}
+			}
+			
+			if (connection) {
+				player.connectOxygen();
+				double distanceMultiplier = Math.pow(((double) (bestX * bestX + bestY * bestY))/16, -1.8);
+				player.addOxygen(distanceMultiplier < 0.0875 ? distanceMultiplier : 0.0875);
+				player.addOxygenPoint((((player.x >> 5) + bestX) << 5) - 4, (((player.y >> 5) + bestY) << 5) + 2);
+			}
+		}
+		
+		
 		int exploredArea = 0;
 		for (int m = 0; m < width; m++) {
 			for (int n = 0; n < height; n++) {
@@ -485,11 +532,27 @@ public class Level {
 		}
 	}
 	
+	public void activateOxygenTether(int x, int y) {
+		if (x > 0 && x < width && y > 0 && y < height) {
+			activatedOxygenTethers[x][y] = true;
+		}
+	}
+	
+	public boolean activatedOxygenTether(int x, int y) {
+		if (x > 0 && x < width && y > 0 && y < height) return activatedOxygenTethers[x][y];
+		return false;
+	}
+	
 	public synchronized void queueEntity(Entity e) {
 		if (e != null) queuedEntities.add(e);
 	}
 	
 	public void updateTiles() {
+		initOxygenTethers();
+		for (Entity e : getEntities()) {
+			if (e == null) continue;
+			if (e.getClass() == OxygenGenerator.class) e.tick();
+		}
 		for (int i = 0; i < width; i++) {
 			for (int j = 0; j < height; j++) {
 				boolean change = false;
@@ -504,7 +567,11 @@ public class Level {
 							change = true;
 						}
 					} else if (tiles[i][j] == Tile.CACTUS.getId()) {
-						if (j < height - 1 && !(tiles[i][j + 1] == Tile.SAND.getId() || tiles[i][j + 1] == Tile.CACTUS.getId())) {
+						if (j < height - 1 && (!(tiles[i][j + 1] == Tile.SAND.getId() || tiles[i][j + 1] == Tile.CACTUS.getId())
+								// Conditions for breakage:
+								|| tiles[i][j + 1] == Tile.SHIP_BACKGROUND.getId()
+								|| tiles[i][j + 1] == Tile.SHIP_BACKGROUND_LAMP.getId()
+								|| tiles[i][j + 1] == Tile.SHIP_TILE.getId())) {
 							// Destroy cactus and produce an item
 							addEntity(new PhysicalItem(1033, this, true, i << 5, j << 5, 0.2 - Math.random() * 0.4, 0.2 - Math.random() * 0.4, new InventoryTile(33, 1)));
 							tiles[i][j] = Tile.SKY.getId();
@@ -517,7 +584,17 @@ public class Level {
 									|| Tile.tiles[tiles[i - 1][j]].isSolid() 
 									|| Tile.tiles[tiles[i][j + 1]].isSolid()
 									|| tiles[i + 1][j] == Tile.NATURAL_WOOD.getId()
-									|| tiles[i - 1][j] == Tile.NATURAL_WOOD.getId())) {
+									|| tiles[i - 1][j] == Tile.NATURAL_WOOD.getId())
+									// Conditions for breakage:
+									|| tiles[i][j + 1] == Tile.SHIP_BACKGROUND.getId()
+									|| tiles[i][j + 1] == Tile.SHIP_BACKGROUND_LAMP.getId()
+									|| tiles[i][j + 1] == Tile.SHIP_TILE.getId()
+									|| tiles[i - 1][j] == Tile.SHIP_BACKGROUND.getId()
+									|| tiles[i - 1][j] == Tile.SHIP_BACKGROUND_LAMP.getId()
+									|| tiles[i - 1][j] == Tile.SHIP_TILE.getId()
+									|| tiles[i + 1][j] == Tile.SHIP_BACKGROUND.getId()
+									|| tiles[i + 1][j] == Tile.SHIP_BACKGROUND_LAMP.getId()
+									|| tiles[i + 1][j] == Tile.SHIP_TILE.getId()) {
 								// Destroy wood and produce an item
 								addEntity(new PhysicalItem(1004, this, true, i << 5, j << 5, 0.2 - Math.random() * 0.4, 0.2 - Math.random() * 0.4, new InventoryTile(4, 1)));
 								tiles[i][j] = Tile.SKY.getId();
@@ -525,7 +602,7 @@ public class Level {
 							}
 						}
 					} else if (tiles[i][j] == Tile.LEAVES.getId()){
-						if (i > 1 && i < width - 1 && j < height - 1) {
+						if (i > 1 && i < width - 1 && j > 0 && j < height - 1) {
 							if (!(tiles[i][j + 1] == Tile.NATURAL_WOOD.getId() 
 									|| tiles[i][j + 1] == Tile.LEAVES.getId()
 									|| Tile.tiles[tiles[i + 1][j]].isSolid() 
@@ -536,14 +613,46 @@ public class Level {
 									|| tiles[i + 2][j] == Tile.NATURAL_WOOD.getId()
 									|| tiles[i - 2][j] == Tile.NATURAL_WOOD.getId()
 									|| tiles[i + 3][j] == Tile.NATURAL_WOOD.getId()
-									|| tiles[i - 3][j] == Tile.NATURAL_WOOD.getId())) {
-								// Destroy wood and produce an item
-								addEntity(new PhysicalItem(1009, this, true, i << 5, j << 5, 0.2 - Math.random() * 0.4, 0.2 - Math.random() * 0.4, new InventoryTile(9, 1)));
+									|| tiles[i - 3][j] == Tile.NATURAL_WOOD.getId())
+									// Conditions for breakage:
+									|| tiles[i][j + 1] == Tile.SHIP_BACKGROUND.getId()
+									|| tiles[i][j + 1] == Tile.SHIP_BACKGROUND_LAMP.getId()
+									|| tiles[i][j + 1] == Tile.SHIP_TILE.getId()
+									|| tiles[i - 1][j] == Tile.SHIP_BACKGROUND.getId()
+									|| tiles[i - 1][j] == Tile.SHIP_BACKGROUND_LAMP.getId()
+									|| tiles[i - 1][j] == Tile.SHIP_TILE.getId()
+									|| tiles[i + 1][j] == Tile.SHIP_BACKGROUND.getId()
+									|| tiles[i + 1][j] == Tile.SHIP_BACKGROUND_LAMP.getId()
+									|| tiles[i + 1][j] == Tile.SHIP_TILE.getId()) {
+								// Destroy leaves and produce an item
+								if (Math.random() < 0.33) addEntity(new PhysicalItem(1009, this, true, i << 5, j << 5, 0.2 - Math.random() * 0.4, 0.2 - Math.random() * 0.4, new InventoryTile(9, 1)));
+								else if (Math.random() < 0.66) addEntity(new PhysicalItem(12006, this, true, i << 5, j << 5, 0.1 - Math.random() * 0.4, 0.3 - Math.random() * 0.4, new Ingredient(6,1)));
+								else addEntity(new PhysicalItem(12000, this, true, i << 5, j << 5, 0.3 - Math.random() * 0.6, 0.1 - Math.random() * 0.4, new Ingredient(0,1)));
 								tiles[i][j] = Tile.SKY.getId();
 								change = true;
 							}
 						}
+					} else if (tiles[i][j] == Tile.OXYGEN_TETHER.getId()) {
+						activatedOxygenTethers[i][j] = false;
+						if (j < height - 1 && !Tile.tiles[tiles[i][j + 1]].isSolid()) {
+							addEntity(new PhysicalItem(1034, this, true, i << 5, j << 5, 0.05 - Math.random() * 0.1, - Math.random() * 0.075, new InventoryTile(34, 1)));
+							tiles[i][j] = Tile.SKY.getId();
+							change = true;
+						} else {
+						oxygenTetherLoop:
+							for (int k = -16; k <= 16; k++) {
+								for (int l = -16; l <= 16; l++) {
+									if (i + k > 0 && i + k < width && j + l > 0 && j + l < height) {
+										if (activatedOxygenTethers[i + k][j + l]) {
+											activatedOxygenTethers[i][j] = true;
+											break oxygenTetherLoop;
+										}
+									}
+								}
+							}
+						}
 					} else {// Apply gravity to tiles not supported on any side
+						activatedOxygenTethers[i][j] = false;
 						if (i > 1 && i < width - 1 && j > 1 && j < height - 1) {
 							if (tiles[i - 1][j] <= 2 && tiles[i + 1][j] <= 2 && tiles[i][j - 1] <= 2 && tiles[i][j + 1] <= 2) {
 								int replacementID = tiles[i][j + 1];
@@ -585,6 +694,10 @@ public class Level {
 					if (i == game.input.lastDestructibleX && j == game.input.lastDestructibleY && !leftButtonHeld && durabilities[i][j] < baseDurabilities[i][j]) {
 						durabilities[i][j] = baseDurabilities[i][j];
 					}*/
+				}
+				
+				if (!(tiles == null || exploredTiles == null || activatedOxygenTethers == null) && exploredTiles[i][j] && activatedOxygenTethers[i][j] && !(tiles[i][j] == Tile.OXYGEN_TETHER.getId())) {
+					activatedOxygenTethers[i][j] = false;
 				}
 				
 				if (change) {
@@ -629,6 +742,8 @@ public class Level {
 					drawLightCircle(i, j, 8, 3);
 				} else if (tiles != null && tiles[i][j] == Tile.SHIP_BACKGROUND_LAMP.getId()) {
 					drawLightCircle(i, j, 16, 2);
+				} else if (activatedOxygenTethers != null && activatedOxygenTethers[i][j]) {
+					drawLightCircle(i, j, 12, 3);
 				}
 			}
 		}
@@ -993,7 +1108,10 @@ public class Level {
 				int y = (j - playerY + 512 / scaleY) / scaleY;
 				if (i + scaleX / 2 > 0 && j + scaleY / 2 > 0 && i + scaleX / 2 < width && j + scaleY / 2 < height
 						&& x > 0 && x < image.getWidth() && y > 0 && y < image.getHeight()) {
-					if (exploredTiles[i + scaleX / 2][j + scaleY / 2]) image.setRGB(x, y, Tile.tiles[tiles[i + scaleX / 2][j + scaleY / 2]].getLevelColour());
+					if (exploredTiles[i + scaleX / 2][j + scaleY / 2]) {
+						if (activatedOxygenTethers[i + scaleX / 2][j + scaleY / 2]) image.setRGB(x, y, Color.CYAN.getRGB());
+						else image.setRGB(x, y, Tile.tiles[tiles[i + scaleX / 2][j + scaleY / 2]].getLevelColour());
+					}
 					else {
 						if ((x % 2 == 0 && y % 2 == 1) || (x % 2 == 1 && y % 2 == 0)) image.setRGB(x, y, Color.LIGHT_GRAY.getRGB());
 						else image.setRGB(x, y, Color.GRAY.getRGB());
@@ -1013,9 +1131,62 @@ public class Level {
 		if (potentialConnection) {
 			drawPotentialConnection(g2, floatingElectricalDevice);
 		}
+		
+		for (int i = game.xOffset >> 5; i < (game.xOffset + game.drawResolution.width) >> 5; i++) {
+			for (int j = game.yOffset >> 5; j < (game.yOffset + game.drawResolution.height) >> 5; j++) {
+				if (activatedOxygenTether(i, j)) {
+					int bestXLeft = 1024;
+					int bestYLeft = 1024;
+					int bestXRight = 1024;
+					int bestYRight = 1024;
+					boolean connectionLeft = false;
+					boolean connectionRight = false;
+					
+					
+					for (int k = -16; k < 0; k++) {
+						for (int l = -16; l < 16; l++) {
+							if (i + k > 0 && i + k < width && j + l > 0 && j + l < height && activatedOxygenTethers[i + k][j + l]) {
+								connectionLeft = true;
+								//System.out.println("k " + k + " l " + l);
+								if (Math.pow(k, 2) + Math.pow(l, 2) < Math.pow(bestXLeft, 2) + Math.pow(bestYLeft, 2)) {
+									bestXLeft = k;
+									bestYLeft = l;
+								}
+							}
+						}
+					}
+					
+					for (int k = 1; k < 16; k++) {
+						for (int l = -16; l < 16; l++) {
+							if (i + k > 0 && i + k < width && j + l > 0 && j + l < height && activatedOxygenTethers[i + k][j + l]) {
+								connectionRight = true;
+								//System.out.println("k " + k + " l " + l);
+								if (Math.pow(k, 2) + Math.pow(l, 2) < Math.pow(bestXRight, 2) + Math.pow(bestYRight, 2)) {
+									bestXRight = k;
+									bestYRight = l;
+								}
+							}
+						}
+					}
+					
+					if (connectionLeft) {
+						g2.setStroke(new BasicStroke(5));
+						g2.setColor(Color.CYAN);
+						g2.drawLine((i << 5) - game.xOffset + 20, (j << 5) - game.yOffset + 4, ((i + bestXLeft) << 5) - game.xOffset + 20, ((j + bestYLeft) << 5) - game.yOffset + 4);
+					}
+					if (connectionRight) {
+						g2.setStroke(new BasicStroke(5));
+						g2.setColor(Color.CYAN);
+						g2.drawLine((i << 5) - game.xOffset + 20, (j << 5) - game.yOffset + 4, ((i + bestXRight) << 5) - game.xOffset + 20, ((j + bestYRight) << 5) - game.yOffset + 4);
+					}
+				}				
+			}
+		}
 	}
 	
 	public void drawPotentialConnection(Graphics2D g2, ElectricalDevice d) {
+		if (d == null) return;
+		
 		double wireDistance = Math.sqrt((d.getLevelX() - currentMouseXOnPanel) * (d.getLevelX() - currentMouseXOnPanel)
 				+ (d.getLevelY() - currentMouseYOnPanel) * (d.getLevelY() - currentMouseYOnPanel));
 		
@@ -1053,6 +1224,19 @@ public class Level {
 	public synchronized void drawEntities(Graphics g, ImageObserver observer) {
 		for (Entity e : getEntities()) {
 			e.draw(g);
+			
+			if (e.getClass() == OxygenGenerator.class) {
+				for (int i = -8; i <= 8; i++) {
+					for (int j = -8; j <= 8; j++) {
+						if (e.x + i > 0 && e.x + i < width && e.y + j > 0 && e.y + j < height && getTile(e.x + i, e.y + j).getId() == Tile.OXYGEN_TETHER.getId()) {
+							Graphics2D g2 = (Graphics2D) g;
+							g2.setStroke(new BasicStroke(5));
+							g2.setColor(Color.CYAN);
+							g2.drawLine((e.x << 5) - game.xOffset + 20, (e.y << 5) - game.yOffset + 4, ((e.x + i) << 5) - game.xOffset + 16, ((e.y + j) << 5) - game.yOffset + 8);
+						}
+					}
+				}
+			}
 		}
 	}
 	

@@ -7,8 +7,9 @@
 1,1. b. 8,1. b. 18,2. //Stone wall
 1,1. i. 0,2. b. 13,5. //Sticks to platforms
 2,1. i. 0,4. b. 17,1. i. 16,1. // Arrow
-1,1. i. 3,10. i. 4,1. //Sugarcane seeds to paper
-2,1. i. 4,8. i. 0,1. i. 5,1. //Paper to map
+1,1. b. 4,2. i. 4,3. //Logs to paper
+1,1. b. 33,3. i. 4,2. //Cacti to paper
+2,1. i. 4,24. i. 0,1. i. 5,1. //Paper to map
 1,1. i. 6,1. i. 0,1. //Saplings to sticks
 1,1. b. 7,4. b. 10,1. //Glass
 1,1. b. 10,1. i. 19,1. //Bottle
@@ -32,6 +33,7 @@
 2,1. i. 7,1. i. 8,1. i. 9,1. // Motor
 2,1. i. 13,4. i. 11,4. b. 26,8. // Conveyor
 2,1. i. 1,2. i. 13,1. t. 4,12020,2,2,2,Drill //Drill
+2,1. i. 13,4. i. 11,8. b. 34,1. // Oxygen tether  
 2,1. i. 1,8. b. 10,2. e. 0. //Oxygen generator
 3,1. b. 3,4. i. 0,2. i. 1,1. e. 1. //Storage container
 4,1. b. 12,1. b. 10,2. i. 0,1. i. 1,1. e. 2. //Seismic Scanner
@@ -51,4 +53,4 @@
 2,1. i. 0,3. i. 1,2. t. 2,10007,25,1000,1000,Iron Shovel //Iron shovel 
 2,1. i. 0,5. i.3,20. t. 3,10009,10,5,5,Bow //Bow
 1,1. i. 0,6. e. 9 //Dummy
-1,1. b. 8190,1. i. 20,1. // Science
+3,1. i. 19,1. b. 34,1. b. 26,1. i. 20,1. // Basic Science

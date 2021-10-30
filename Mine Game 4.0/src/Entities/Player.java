@@ -188,6 +188,16 @@ public class Player extends Mob {
 		boolean dirL = false;
 		boolean dirR = false;
 		
+		// Set coordinates in bounds
+		if (dX < 0) {dX = 0; x = 0;}
+		else if (dX > level.width << 5) {dX = level.width << 5; x = level.width << 5;}
+		if (dY < 0) {
+			dY = 0; y = 0; 
+			if (vY < 0) vY = -vY / 3;
+		}
+		else if (dY > level.height << 5) {dY = level.height << 5; y = level.height << 5;}
+		
+		
 		// Set horizontal acceleration and temporary direction variables based on currently held direction
 		if (controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY && !collisionLeft(x, y, spriteWidth, spriteHeight, level) && controls.left.isPressed()) { 
 			aX = -.05;
@@ -410,7 +420,14 @@ public class Player extends Mob {
 		if (connectedToOxygen()) {
 			Graphics2D g2 = (Graphics2D) g;
 			g2.setStroke(new BasicStroke(5));
-			g2.setColor(Color.CYAN);
+			Color color = Color.CYAN;
+			float HSB[] = new float[3];
+			Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), HSB);
+			float distanceMultiplier = (float) ((x - oxyX) * (x - oxyX) + (y - oxyY) * (y - oxyY))/(32 * 32 * 16 * 16 * 2);
+			//System.out.println(distanceMultiplier);
+			HSB[2] = distanceMultiplier < HSB[2] ? HSB[2] - distanceMultiplier : 0;
+			color = Color.getHSBColor(HSB[0], HSB[1], HSB[2]);
+			g2.setColor(color);
 			g2.drawLine(x - game.xOffset + spriteWidth / 2, y - game.yOffset - 3 + spriteHeight / 3, oxyX  - game.xOffset + 20, oxyY - game.yOffset + 4);
 		}
 	}

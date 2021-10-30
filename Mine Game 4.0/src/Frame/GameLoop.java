@@ -203,7 +203,8 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		checkDisplayMode();
 		
 		initializeGameElements();
-		initializeLevel(LevelFactory.generateTiles(0, 1024, 1024));
+		initializeLevel(LevelFactory.generateTiles(0, 4096, 1024));
+		level.updateTiles();
 		initializeGUIs();
 	}
 	
@@ -215,6 +216,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		
 		initializeGameElements();
 		initializeLevel(levelImage);
+		level.updateTiles();
 		initializeGUIs();
 	}
 	
@@ -563,7 +565,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		graphicsTimes[2] = System.currentTimeMillis() - currentTime;
 		currentTime = System.currentTimeMillis();
 		
-		level.drawEntities(g, this);
+		level.draw(g, this);
 		
 		// Measure level rendering time
 		graphicsTimes[3] = System.currentTimeMillis() - currentTime;
