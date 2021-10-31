@@ -203,6 +203,11 @@ public class ServerGameLoop implements Runnable {
 		return constraints;
 	}
 	
+	public byte[] getTileData() {
+		if (level == null) return "[ERROR] No level".getBytes();
+		else return level.getTileData();
+	}
+	
 	public void tick() {
 		if (ticks % 20 == 0) {
 			// Test different UPS values

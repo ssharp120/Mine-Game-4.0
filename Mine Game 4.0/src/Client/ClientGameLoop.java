@@ -244,16 +244,14 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 		}
 	}
 	
-
-	
-	
 	public void tick() {
 		if (!connectedToServer) {
 			try {
-				DatagramPacket pendingPacket = createPacket("connect", serverIP, currentPort);
+				// Create connection packet
+				DatagramPacket connectionPacket = createPacket("connect", serverIP, currentPort);
 				
 				// Send packet
-				socket.send(pendingPacket);
+				socket.send(connectionPacket);
 				
 				// Wait for response
 				String response = receivePacket();
@@ -265,6 +263,25 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+		}
+		
+		if (ticks % 10000 == 0) try {
+			// Create tile request packet
+			DatagramPacket tileRequestPacket = createPacket("tiles", serverIP, currentPort);
+			
+			// Send packet
+			socket.send(tileRequestPacket);
+			
+			// Wait for response
+			String response = receivePacket();
+			
+			if (response.contains("[ERROR]")) {
+				System.out.println(response);
+			} else {
+				System.out.println(response);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 		ticks++;
 	}

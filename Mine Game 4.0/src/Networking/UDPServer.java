@@ -510,25 +510,37 @@ public class UDPServer implements Runnable {
 		this.active = active;
 	}
 	
-	public String processData(String data, String IPAddress) { 
+	public byte[] processData(String data, String IPAddress) { 
 		// Connection request
-		if (data.length() > 1 && data.contains("connect")) {
+		if (data.length() > 6 && data.contains("connect")) {
 			log("Received connection request from client " + IPAddress);
 			if (game == null) {
 				log("[ERROR] Server not running");
-				return "[SERVER] [ERROR] Server not running";
+				return "[SERVER] [ERROR] Server not running".getBytes();
 			}
 			else {
 				log("Sending server info to client " + IPAddress);
 				try {
-					return InetAddress.getLocalHost().toString();
+					return InetAddress.getLocalHost().toString().getBytes();
 				} catch (UnknownHostException e) {
 					e.printStackTrace();
 				}
 			}
+		} else if (data.length() > 4 && data.contains("tiles")) {
+			log("Received tile request from client" + IPAddress);
+			
+			if (game == null) {
+				log("[ERROR] Server not running");
+				return "[SERVER] [ERROR] Server not running".getBytes();
+			}
+			else {
+				log("Sending tile info to client " + IPAddress);
+				byte[] tileData = game.getTileData();
+				return tileData;
+			}
 		}
 		
-		return data.toUpperCase();
+		return data.toUpperCase().getBytes();
 	}
 	
 	public String processCommand(String input) {
@@ -692,8 +704,7 @@ public class UDPServer implements Runnable {
 			int port = packet.getPort();
 			
 			// Process data
-			String processedData = processData(receivedData, IPAddress.toString().substring(1) + ":" + port);
-			byte[] pendingData = processedData.getBytes();
+			byte[] pendingData = processData(receivedData, IPAddress.toString().substring(1) + ":" + port);
 			
 			// Console output
 			//log("Received \"" + receivedData.trim() + "\" from client " + IPAddress.toString().substring(1) + ":" + port, true);
