@@ -251,17 +251,12 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 				
 				// Send packet
 				socket.send(pendingPacket);
+				
+				// Wait for response
+				System.out.println(receivePacket());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-		}
-		
-		// Receive packet
-		try {
-			System.out.println(receivePacket());
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 		
 		ticks++;
@@ -270,6 +265,7 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 	public void initializeSocket(int port) {
 		try {
 			socket = new DatagramSocket(port);
+			currentPort = port;
 		} catch (SocketException e) {
 			e.printStackTrace();
 		}
