@@ -265,7 +265,7 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 			}
 		}
 		
-		if (ticks % 10000 == 0) try {
+		if (ticks % 10000 == 1) try {
 			// Create tile request packet
 			DatagramPacket tileRequestPacket = createPacket("tiles", serverIP, currentPort);
 			

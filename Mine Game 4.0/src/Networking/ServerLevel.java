@@ -229,10 +229,10 @@ public class ServerLevel {
 	public byte[] getTileData() {
 		if (tiles == null) return "[ERROR] Tile array is undefined".getBytes();
 		
-		byte[] tileData = new byte[width * height];
-		for (int i = 0; i < width; i++) {
-			for (int j = 0; j < height; j++) {
-				tileData[j * width + i] = (byte) tiles[i][j];
+		byte[] tileData = new byte[64 * 64];
+		for (int i = spawnX >> 5; i < (spawnX >> 5) + 64; i++) {
+			for (int j = spawnY >> 5; j < (spawnY >> 5) + 64; j++) {
+				tileData[(j - (spawnY >> 5)) * 64 + (i - (spawnX >> 5))] = (byte) tiles[i][j];
 			}
 		}
 		return tileData;
