@@ -3,7 +3,7 @@ package Entities;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 
-import Frame.Level;
+import SingleplayerClient.Level;
 
 public abstract class Entity {
 	public int x, y;

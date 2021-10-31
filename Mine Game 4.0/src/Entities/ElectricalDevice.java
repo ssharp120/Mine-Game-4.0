@@ -5,8 +5,8 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 
-import Frame.Level;
 import Libraries.MediaLibrary;
+import SingleplayerClient.Level;
 import UI.Ingredient;
 import Utilities.Battery;
 import Utilities.FileUtilities;

@@ -1,6 +1,6 @@
 package Utilities;
 
-import Frame.Level;
+import SingleplayerClient.Level;
 import Tiles.Platform;
 import Tiles.Tile;
 

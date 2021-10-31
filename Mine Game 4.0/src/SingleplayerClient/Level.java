@@ -1,4 +1,4 @@
-package Frame;
+package SingleplayerClient;
 
 import static Utilities.FileUtilities.*;
 import static Utilities.PhysicsUtilities.collisionLeft;
@@ -53,12 +53,10 @@ public class Level {
 	protected String filePath;
 	public String name;
 	private int[][] tiles;
-	private int[][] tileData;
 	private boolean[][] exploredTiles;
 	private boolean[][] visibleTiles;
 	private boolean[][] activatedOxygenTethers;
 	private double percentExplored;
-	private int horizon;
 	private double[][] durabilities;
 	private double[][] baseDurabilities;
 	private byte[][] discreteLightLevels;
@@ -275,7 +273,6 @@ public class Level {
             this.width = this.image.getWidth();
             this.height = this.image.getHeight();
             tiles = new int[width][height];
-            tileData = new int[width][height];
             durabilities = new double[width][height];
             baseDurabilities = new double[width][height];
             this.loadTiles();

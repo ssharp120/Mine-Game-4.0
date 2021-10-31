@@ -2,8 +2,8 @@ package Entities;
 
 import java.awt.Graphics;
 
-import Frame.Level;
 import Libraries.MediaLibrary;
+import SingleplayerClient.Level;
 
 public class SeismicScanner extends Entity {
 	private int currentScanningLevel = 0;

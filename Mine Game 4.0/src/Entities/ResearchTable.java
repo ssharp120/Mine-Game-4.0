@@ -1,6 +1,6 @@
 package Entities;
 
-import Frame.Level;
+import SingleplayerClient.Level;
 import UI.Ingredient;
 import UI.InventoryItem;
 import UI.Recipe;

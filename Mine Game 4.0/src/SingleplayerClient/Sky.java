@@ -1,4 +1,4 @@
-package Frame;
+package SingleplayerClient;
 
 import java.awt.AlphaComposite;
 import java.awt.Color;

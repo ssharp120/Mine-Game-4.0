@@ -4,11 +4,11 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.ImageObserver;
 
-import Frame.GameLoop;
-import Frame.InputHandler;
 import Libraries.AttributeLibrary;
 import Libraries.MediaLibrary;
 import Libraries.RecipeLibrary;
+import SingleplayerClient.GameLoop;
+import SingleplayerClient.InputHandler;
 
 public class BasicCraftingGUI extends CraftingMenu {
 	private int scrollY;

@@ -7,7 +7,7 @@ import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
 import java.util.HashMap;
 
-import Frame.GameLoop;
+import SingleplayerClient.GameLoop;
 
 public class StatisticsTracker {
 	

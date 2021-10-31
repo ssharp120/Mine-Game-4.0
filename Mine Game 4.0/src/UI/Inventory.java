@@ -6,9 +6,9 @@ import java.awt.Graphics;
 import java.awt.image.ImageObserver;
 
 import Entities.Furniture;
-import Frame.InputHandler;
-import Frame.InputHandler.ControlScheme;
-import Frame.Level;
+import SingleplayerClient.InputHandler;
+import SingleplayerClient.Level;
+import SingleplayerClient.InputHandler.ControlScheme;
 
 public class Inventory {
 	private InventoryItem[] items;

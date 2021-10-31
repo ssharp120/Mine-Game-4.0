@@ -6,8 +6,8 @@ import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 
-import Frame.Level;
 import Libraries.MediaLibrary;
+import SingleplayerClient.Level;
 import Tiles.Tile;
 import UI.Ingredient;
 import UI.InventoryItem;

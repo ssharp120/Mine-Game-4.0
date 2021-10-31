@@ -24,8 +24,8 @@ import javax.swing.JPanel;
 import javax.swing.ListCellRenderer;
 import javax.swing.border.Border;
 
-import Frame.GameLoop;
 import Networking.UDPServer;
+import SingleplayerClient.GameLoop;
 
 @SuppressWarnings("serial")
 public class PreloadDialog extends JFrame {
@@ -34,7 +34,7 @@ public class PreloadDialog extends JFrame {
 		panel = new PreloadDialogPanel();
 		add(panel);
 		setResizable(false);
-		setTitle("Settings");
+		setTitle("Mine Game 4.0 Launcher");
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         pack();
@@ -65,13 +65,14 @@ public class PreloadDialog extends JFrame {
 		JCheckBox fullscreenSelect;
 		JButton launchButton;
 		JButton serverButton;
+		JButton clientButton;
 		JButton exitButton;
 		
 		public PreloadDialogPanel() {			
 			setBackground(backgroundColor);
 			setFocusable(true);
 	        requestFocusInWindow();
-	        setPreferredSize(new Dimension(256, 384));
+	        setPreferredSize(new Dimension(312, 384));
 	        
 	        addKeyListener(this);
 	        
@@ -108,19 +109,24 @@ public class PreloadDialog extends JFrame {
 	        JPanel launchPanel = new JPanel();
 	        launchButton = new JButton("Launch");
 	        serverButton = new JButton("Server");
+	        clientButton = new JButton("Client");
 	        exitButton = new JButton("Exit");
 	        launchButton.addActionListener(this);
 	        serverButton.addActionListener(this);
+	        clientButton.addActionListener(this);
 	        exitButton.addActionListener(this);
 	        launchButton.setBackground(highlightColor);
 	        serverButton.setBackground(highlightColor);
+	        clientButton.setBackground(highlightColor);
 	        exitButton.setBackground(highlightColor);
 	        launchButton.setMnemonic(KeyEvent.VK_L);
 	        serverButton.setMnemonic(KeyEvent.VK_S);
+	        clientButton.setMnemonic(KeyEvent.VK_C);
 	        exitButton.setMnemonic(KeyEvent.VK_E);
 	        
 	        launchPanel.add(launchButton);
 	        launchPanel.add(serverButton);
+	        launchPanel.add(clientButton);
 	        launchPanel.add(exitButton);
 	        launchPanel.setBackground(optionColor);
 	        launchPanel.setBorder(defaultBorder);
@@ -131,6 +137,11 @@ public class PreloadDialog extends JFrame {
 			if (e.getSource() == exitButton) System.exit(0);
 			if (e.getSource() == serverButton) {
 				initThreadAndClose(new UDPServer());
+			}
+			if (e.getSource() == clientButton) {
+				Dimension resolution = (Dimension) resolutionSelect.getSelectedItem();
+				boolean startFullscreen = fullscreenSelect.isSelected();
+				initThreadAndClose(new ClientGameLoop(resolution, startFullscreen));
 			}
 			if (e.getSource() == launchButton) {
 				Dimension resolution = (Dimension) resolutionSelect.getSelectedItem();
@@ -174,6 +185,7 @@ public class PreloadDialog extends JFrame {
 			switch (e.getKeyCode()) {
 				case KeyEvent.VK_E: exitButton.doClick(); break;
 				case KeyEvent.VK_S: serverButton.doClick(); break;
+				case KeyEvent.VK_C: clientButton.doClick(); break;
 				case KeyEvent.VK_L: launchButton.doClick(); break;
 				case KeyEvent.VK_F: fullscreenSelect.doClick(); break;
 				case KeyEvent.VK_R: resolutionSelect.setPopupVisible(!resolutionSelect.isPopupVisible()); break;

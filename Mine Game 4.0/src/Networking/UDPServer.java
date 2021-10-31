@@ -27,7 +27,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
 import Client.PreloadDialog;
-import Frame.GameLoop;
+import SingleplayerClient.GameLoop;
 import Utilities.LevelFactory;
 
 import static Utilities.FileUtilities.*;
@@ -72,6 +72,8 @@ public class UDPServer implements Runnable {
 	private Color warningColor = new Color(215, 201, 32);
 	
 	private ArrayList<Command> commandList = new ArrayList<Command>();
+	
+	private ServerGameLoop game;
 	
 	public UDPServer() {
 		log("Starting server...", true);
@@ -471,6 +473,20 @@ public class UDPServer implements Runnable {
 			}};
 		Command playCommand = new Command(new String[] {"play"}, playAction);
 		commandList.add(playCommand);
+		
+		CommandAction startAction = new CommandAction() {
+			public void run() {
+				if (queuedWorld == null) {
+					log("No world selected", true);
+					log("Generating new world with default settings...", true);
+					queuedWorld = LevelFactory.generateTiles(0, 1024, 1024);
+				} 
+				log("Starting server from stored " + queuedWorld.getWidth() + " x " + queuedWorld.getHeight() + " world");
+				game = new ServerGameLoop(queuedWorld);
+				new Thread(game).start();
+			}};
+		Command startCommand = new Command(new String[] {"start"}, startAction);
+		commandList.add(startCommand);
 	}
 	
 	public void close() {
@@ -597,6 +613,8 @@ public class UDPServer implements Runnable {
 		c.weighty = 0;
 		c.anchor = GridBagConstraints.PAGE_END;
 		panel.add(consoleInput, c);
+		
+		frame.setMinimumSize(new Dimension(800, 600));
 		
 		// Activate UI
 		panel.setVisible(true);

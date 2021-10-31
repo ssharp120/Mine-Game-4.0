@@ -11,10 +11,10 @@ import javax.swing.filechooser.FileSystemView;
 
 import org.w3c.dom.html.HTMLImageElement;
 
-import Frame.GameLoop;
-import Frame.Level;
 import Libraries.AttributeLibrary;
 import Libraries.StructureLibrary;
+import SingleplayerClient.GameLoop;
+import SingleplayerClient.Level;
 import Structures.BasicGeneratedStructure;
 import Tiles.Tile;
 

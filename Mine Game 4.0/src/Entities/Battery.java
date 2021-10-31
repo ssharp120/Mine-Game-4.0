@@ -3,8 +3,8 @@ package Entities;
 import java.awt.Color;
 import java.awt.Graphics;
 
-import Frame.Level;
 import Libraries.MediaLibrary;
+import SingleplayerClient.Level;
 
 public class Battery extends ElectricalDevice {
 	public Battery(Level level, boolean active, int x, int y) {

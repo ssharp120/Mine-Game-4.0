@@ -1,4 +1,4 @@
-package Frame;
+package SingleplayerClient;
 
 import java.awt.Color;
 import java.awt.DisplayMode;
@@ -56,13 +56,17 @@ public class FullscreenWindow {
 		manager = new ScreenManager();
 		
 		// Find the highest compatible resolution and set the fullscreen resolution to it
-		DisplayMode dMode = manager.findFirstCompatibleMode(modes);
-		manager.setFullScreen(dMode);
+		DisplayMode dMode = getManager().findFirstCompatibleMode(modes);
+		getManager().setFullScreen(dMode);
 		
 		// Set the default font and screen color
-		Window window = manager.getFSWindow();
+		Window window = getManager().getFSWindow();
 		window.setFont(new Font("Consolas", Font.PLAIN, 36));
 		window.setBackground(Color.BLUE);
 		window.setForeground(Color.WHITE);
+	}
+
+	public ScreenManager getManager() {
+		return manager;
 	}
 }

@@ -4,7 +4,7 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.ImageObserver;
 
-import Frame.InputHandler;
+import SingleplayerClient.InputHandler;
 
 public class WorkbenchGUI extends CraftingMenu {
 	public void draw(Graphics g, int screenWidth, int screenHeight, ImageObserver observer, InputHandler controls) {

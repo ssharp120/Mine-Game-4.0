@@ -45,7 +45,7 @@ public class FileUtilities {
 	private static Image loadImageFromJAR(String path) {
 		Image tmp = null;
 		try {
-			tmp = ImageIO.read(Frame.GameLoop.class.getResourceAsStream("/org/res/" + path));
+			tmp = ImageIO.read(SingleplayerClient.GameLoop.class.getResourceAsStream("/org/res/" + path));
 		} catch (IOException e){
 			e.printStackTrace();
 		}
@@ -112,7 +112,7 @@ public class FileUtilities {
 	 
 	 public static Scanner getFileFromJAR(String path) {
 		 try {
-			 BufferedReader txtReader = new BufferedReader(new InputStreamReader(Frame.GameLoop.class.getResourceAsStream("/org/data/" + path)));
+			 BufferedReader txtReader = new BufferedReader(new InputStreamReader(SingleplayerClient.GameLoop.class.getResourceAsStream("/org/data/" + path)));
 			 Scanner scanner = new Scanner(txtReader);
 			 return scanner;
 		 } catch (Exception e) { e.printStackTrace(); }
@@ -333,7 +333,7 @@ public class FileUtilities {
 				 File file = new File("data/audio/" + path);
 				 inputStream = AudioSystem.getAudioInputStream(file);
 			 } else {
-				 inputStream = AudioSystem.getAudioInputStream(new BufferedInputStream(Frame.GameLoop.class.getResourceAsStream("/org/data/audio/" + path)));
+				 inputStream = AudioSystem.getAudioInputStream(new BufferedInputStream(SingleplayerClient.GameLoop.class.getResourceAsStream("/org/data/audio/" + path)));
 			 }
 			 Clip audioClip = (Clip) AudioSystem.getClip();
 			 audioClip.open(inputStream);

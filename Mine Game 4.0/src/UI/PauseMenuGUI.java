@@ -18,9 +18,9 @@ import java.util.List;
 import javax.swing.JOptionPane;
 
 import Entities.Entity;
-import Frame.GameLoop;
-import Frame.InputHandler;
 import Libraries.MediaLibrary;
+import SingleplayerClient.GameLoop;
+import SingleplayerClient.InputHandler;
 import Utilities.PhysicsUtilities;
 import Utilities.StatisticsTracker;
 

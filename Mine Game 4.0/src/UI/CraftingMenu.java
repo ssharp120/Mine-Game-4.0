@@ -3,7 +3,7 @@ package UI;
 import java.awt.Graphics;
 import java.awt.image.ImageObserver;
 
-import Frame.InputHandler;
+import SingleplayerClient.InputHandler;
 
 public abstract class CraftingMenu {
 	private boolean isActive;

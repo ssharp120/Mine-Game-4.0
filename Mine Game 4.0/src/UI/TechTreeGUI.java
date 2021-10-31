@@ -5,9 +5,9 @@ import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
 
-import Frame.InputHandler;
 import Libraries.MediaLibrary;
 import Libraries.RecipeLibrary;
+import SingleplayerClient.InputHandler;
 import Utilities.TechTree;
 import Utilities.TechTree.TechTreeNode;
 

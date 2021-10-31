@@ -3,7 +3,7 @@ package Entities;
 import java.awt.Dimension;
 import java.awt.Font;
 
-import Frame.Level;
+import SingleplayerClient.Level;
 import UI.Inventory;
 
 public abstract class Mob extends Entity {

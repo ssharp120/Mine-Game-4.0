@@ -3,8 +3,8 @@ package Entities;
 import java.awt.Color;
 import java.awt.Graphics;
 
-import Frame.Level;
 import Libraries.MediaLibrary;
+import SingleplayerClient.Level;
 import Tiles.Tile;
 import UI.ColorSelector;
 import UI.Ingredient;

@@ -1,4 +1,4 @@
-package Frame;
+package SingleplayerClient;
 
 import static Utilities.FileUtilities.loadImage;
 
@@ -24,11 +24,11 @@ import javax.swing.JPanel;
 import Client.PreloadDialog;
 import Entities.OxygenGenerator;
 import Entities.Player;
-import Frame.InputHandler.ControlScheme;
 import Libraries.AttributeLibrary;
 import Libraries.MediaLibrary;
 import Libraries.RecipeLibrary;
 import Libraries.StructureLibrary;
+import SingleplayerClient.InputHandler.ControlScheme;
 import Tiles.BackgroundDestructibleTile;
 import Tiles.DestructibleTile;
 import Tiles.Tile;
@@ -47,7 +47,8 @@ import Utilities.TechTree;
 
 public class GameLoop extends JPanel implements Runnable, KeyListener, MouseListener, MouseMotionListener, MouseWheelListener {
 	private boolean running = true;
-	private int MAXUPS = 80;
+	// Remove final if implementing dynamic tick rate
+	private final int MAXUPS = 100;
 	public int FPS, UPS;
 	
 	public Dimension resolution;
@@ -178,11 +179,11 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	
 	public void checkFullscreenFocus() {
 		if (fullscreen) {
-			if (window != null && !window.manager.getFSWindow().isFocused()) {
+			if (window != null && !window.getManager().getFSWindow().isFocused()) {
 				setWindowed();
 				return;
 			}
-			if (window != null && !window.manager.getFSWindow().isShowing()) {
+			if (window != null && !window.getManager().getFSWindow().isShowing()) {
 				setWindowed();
 				Runtime.getRuntime().gc();
 				if (JOptionPane.showConfirmDialog(frame, 
@@ -291,17 +292,17 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			frame.setVisible(false);
 			window = new FullscreenWindow();
 			window.init();
-			window.manager.getFSWindow().setIconImage(loadImage("icon.png"));
-			window.manager.getFSWindow().setName("Mine Game 3.0");
-			window.manager.getFSWindow().setFocusable(true);
-			window.manager.getFSWindow().requestFocusInWindow();
-			window.manager.getFSWindow().addKeyListener(this);
-			window.manager.getFSWindow().addMouseListener(this);
-			window.manager.getFSWindow().addMouseMotionListener(this);
-			window.manager.getFSWindow().addMouseWheelListener(this);
+			window.getManager().getFSWindow().setIconImage(loadImage("icon.png"));
+			window.getManager().getFSWindow().setName("Mine Game 3.0");
+			window.getManager().getFSWindow().setFocusable(true);
+			window.getManager().getFSWindow().requestFocusInWindow();
+			window.getManager().getFSWindow().addKeyListener(this);
+			window.getManager().getFSWindow().addMouseListener(this);
+			window.getManager().getFSWindow().addMouseMotionListener(this);
+			window.getManager().getFSWindow().addMouseWheelListener(this);
 		} else {
 			if (window != null) {
-				window.manager.restoreScreen();
+				window.getManager().restoreScreen();
 			}
 			addKeyListener(this);
 			addMouseListener(this);
@@ -517,7 +518,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		gStorage = g;
 		
 		if (fullscreen) {
-			drawResolution = new Dimension(window.manager.getWidth(), window.manager.getHeight());
+			drawResolution = new Dimension(window.getManager().getWidth(), window.getManager().getHeight());
 		} else {
 			drawResolution = this.getSize();
 		}
@@ -732,8 +733,6 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	public void run() {
 		long last = System.nanoTime();
 		double nspt = (1000000000D)/(MAXUPS);
-		int frameCount = 0;
-		int tickCount = 0;
 		long startTime = System.currentTimeMillis();
 		double delta = 0;
 		
@@ -746,7 +745,6 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			boolean render = false;
 						
 			while (delta >= 1) {
-				tickCount++;
 				tick();
 				delta--;
 				render = true;
@@ -757,13 +755,12 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			
 			if (render) {
 				if (fullscreen && level != null) {
-					graphicsThread.updateGraphicsObject((Graphics) window.manager.getGraphics());
+					graphicsThread.updateGraphicsObject((Graphics) window.getManager().getGraphics());
 					graphicsThread.run();
-					window.manager.updateDisplay();
+					window.getManager().updateDisplay();
 				} else {
 					repaint();
 				}
-				frameCount++;
 			}
 		}
 	}

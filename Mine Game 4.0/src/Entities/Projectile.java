@@ -7,8 +7,8 @@ import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 
-import Frame.Level;
 import Libraries.MediaLibrary;
+import SingleplayerClient.Level;
 import Tiles.SolidTile;
 import Tiles.Tile;
 import UI.Ingredient;

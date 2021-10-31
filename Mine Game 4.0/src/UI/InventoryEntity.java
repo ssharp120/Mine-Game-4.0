@@ -1,7 +1,7 @@
 package UI;
 
 import Entities.*;
-import Frame.Level;
+import SingleplayerClient.Level;
 
 public class InventoryEntity extends InventoryItem {
 	public int entityIndex;

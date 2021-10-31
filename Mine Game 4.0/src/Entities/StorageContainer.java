@@ -2,8 +2,8 @@ package Entities;
 
 import java.awt.Graphics;
 
-import Frame.Level;
 import Libraries.MediaLibrary;
+import SingleplayerClient.Level;
 import UI.InventoryItem;
 import Utilities.FileUtilities;
 

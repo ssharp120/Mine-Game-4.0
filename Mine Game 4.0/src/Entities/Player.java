@@ -14,11 +14,11 @@ import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Observer;
 
-import Frame.GameLoop;
-import Frame.InputHandler;
-import Frame.InputHandler.ControlScheme;
-import Frame.Level;
 import Libraries.MediaLibrary;
+import SingleplayerClient.GameLoop;
+import SingleplayerClient.InputHandler;
+import SingleplayerClient.Level;
+import SingleplayerClient.InputHandler.ControlScheme;
 import Tiles.Tile;
 import UI.*;
 import Utilities.FileUtilities;

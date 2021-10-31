@@ -2,7 +2,7 @@ package Entities;
 
 import java.awt.Graphics;
 
-import Frame.Level;
+import SingleplayerClient.Level;
 
 public abstract class Plant extends Entity {	
 	public int plantIdentifier;
