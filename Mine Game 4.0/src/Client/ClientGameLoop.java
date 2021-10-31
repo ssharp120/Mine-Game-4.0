@@ -94,6 +94,7 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 	
 	private final int defaultPort = 7777;
 	private int currentPort;
+	private String serverIP = "192.168.0.28";
 	
 	private DatagramSocket socket;
 	
@@ -249,16 +250,18 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 	public void tick() {
 		if (!connectedToServer) {
 			try {
-				DatagramPacket pendingPacket = createPacket("connect", "192.168.0.28", currentPort);
+				DatagramPacket pendingPacket = createPacket("connect", serverIP, currentPort);
 				
 				// Send packet
 				socket.send(pendingPacket);
 				
 				// Wait for response
 				String response = receivePacket();
-				System.out.println(response);
 				if (response.contains("[ERROR]")) exitSequence();
-				else connectedToServer = true;
+				else {
+					connectedToServer = true;
+					FileUtilities.log("Connected to server " + response);
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

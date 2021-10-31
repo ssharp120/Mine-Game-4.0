@@ -16,6 +16,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 
 import javax.swing.ImageIcon;
@@ -514,12 +515,16 @@ public class UDPServer implements Runnable {
 		if (data.length() > 1 && data.contains("connect")) {
 			log("Received connection request from client " + IPAddress);
 			if (game == null) {
-				log("Error: Server not running");
+				log("[ERROR] Server not running");
 				return "[SERVER] [ERROR] Server not running";
 			}
 			else {
-				log("Sending server info to client");
-				return game.toString();
+				log("Sending server info to client " + IPAddress);
+				try {
+					return InetAddress.getLocalHost().toString();
+				} catch (UnknownHostException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		
