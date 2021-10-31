@@ -23,6 +23,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
@@ -62,6 +63,7 @@ public class UDPServer implements Runnable {
 	private final Dimension defaultPreferredSize = new Dimension(800, 600);
 	
 	private JTextArea consoleOutput;
+	private JScrollPane consoleOutputScrollPane;
 	private JTextField consoleInput;
 	
 	private int logIndex;
@@ -507,7 +509,20 @@ public class UDPServer implements Runnable {
 		this.active = active;
 	}
 	
-	public String processData(String data) { 
+	public String processData(String data, String IPAddress) { 
+		// Connection request
+		if (data.length() > 1 && data.contains("connect")) {
+			log("Received connection request from client " + IPAddress);
+			if (game == null) {
+				log("Error: Server not running");
+				return "[SERVER] [ERROR] Server not running";
+			}
+			else {
+				log("Sending server info to client");
+				return game.toString();
+			}
+		}
+		
 		return data.toUpperCase();
 	}
 	
@@ -588,7 +603,8 @@ public class UDPServer implements Runnable {
 		c.weightx = 1;
 		c.weighty = 0.75;
 		c.anchor = GridBagConstraints.PAGE_START;
-		panel.add(consoleOutput, c);
+		consoleOutputScrollPane = new JScrollPane(consoleOutput, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+		panel.add(consoleOutputScrollPane, c);
 
 		consoleInput = new JTextField();
 		consoleInput.setFont(consoleFont);
@@ -666,17 +682,17 @@ public class UDPServer implements Runnable {
 			// Convert data into String
 			String receivedData = new String(packet.getData());
 			
-			// Process data
-			String processedData = processData(receivedData);
-			byte[] pendingData = processedData.getBytes();
-			
 			// Get client IP address and port
 			InetAddress IPAddress = packet.getAddress();
 			int port = packet.getPort();
 			
+			// Process data
+			String processedData = processData(receivedData, IPAddress.toString().substring(1) + ":" + port);
+			byte[] pendingData = processedData.getBytes();
+			
 			// Console output
-			log("Received \"" + receivedData.trim() + "\" from client " + IPAddress.toString().substring(1) + ":" + port, true);
-			log("Sending \"" + processedData.trim() + "\" to client " + IPAddress.toString().substring(1) + ":" + port, true);
+			//log("Received \"" + receivedData.trim() + "\" from client " + IPAddress.toString().substring(1) + ":" + port, true);
+			//log("Sending \"" + processedData.trim() + "\" to client " + IPAddress.toString().substring(1) + ":" + port, true);
 			
 			// Initialize packet to send to client
 			DatagramPacket pendingPacket = new DatagramPacket(pendingData, pendingData.length, IPAddress, port);

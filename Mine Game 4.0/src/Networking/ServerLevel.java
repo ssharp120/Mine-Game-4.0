@@ -435,6 +435,6 @@ public class ServerLevel {
 	}
 	
 	public String toString() {
-		return width + " x " + height + " server level";
+		return "[SERVER] " + width + " x " + height + " server level";
 	}
 }

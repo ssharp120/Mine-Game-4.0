@@ -1,8 +1,7 @@
-/Tiles/
-/Utilities/
-/Frame/
-/Networking/
-/Entities/
-/UI/
-/Client/
 /SingleplayerClient/
+/Structures/
+/Tiles/
+/UI/
+/Utilities/
+/Client/
+/Networking/

@@ -51,6 +51,16 @@ public class ServerGameLoop implements Runnable {
 		initLevel(image);
 	}
 	
+	public String toString() {
+		String response = "";
+		
+		response += "[SERVER] Server game loop\n";
+		response += "[SERVER] Ticks: " + ticks + "\n";
+		if (!(level == null)) response += "[SERVER] Level:\n" + level.toString() + "\n";
+		
+		return response;
+	}
+	
 	public void initLevel(BufferedImage image) {		
 		if (image == null) throw new IllegalArgumentException("Input image must not be null");
 		if (image.getWidth() < 16 || image.getHeight() < 16) throw new IllegalArgumentException("Input image must be at least 16 x 16");

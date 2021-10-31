@@ -100,6 +100,8 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 	private long[] graphicsTimes;
 	private long levelUpdateTime;
 	
+	boolean connectedToServer;
+	
 	public ClientGameLoop(Dimension resolution, boolean startFullscreen) {
 		FileUtilities.log("Initializing Mine Game 4.0 client..." + "\n");
 		
@@ -245,20 +247,22 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 	
 	
 	public void tick() {
-		if (ticks % 100 == 0 && currentPort > 0) {
+		if (!connectedToServer) {
 			try {
-				DatagramPacket pendingPacket = createPacket("Ticks: " + ticks, "192.168.0.28", currentPort);
+				DatagramPacket pendingPacket = createPacket("connect", "192.168.0.28", currentPort);
 				
 				// Send packet
 				socket.send(pendingPacket);
 				
 				// Wait for response
-				System.out.println(receivePacket());
+				String response = receivePacket();
+				System.out.println(response);
+				if (response.contains("[ERROR]")) exitSequence();
+				else connectedToServer = true;
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
-		
 		ticks++;
 	}
 	
