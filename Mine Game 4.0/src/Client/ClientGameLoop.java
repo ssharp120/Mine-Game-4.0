@@ -25,10 +25,10 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import Entities.Player;
+import Libraries.MediaLibrary;
 import SingleplayerClient.FullscreenWindow;
 import SingleplayerClient.InputHandler;
 import SingleplayerClient.Level;
-import SingleplayerClient.GameLoop.GraphicsThread;
 import Tiles.Tile;
 import UI.BasicCraftingGUI;
 import UI.PauseMenuGUI;
@@ -103,14 +103,38 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 	
 	boolean connectedToServer;
 	
+	private int[][] tiles;
+	private int tileWidth;
+	private int tileHeight;
+	
 	public ClientGameLoop(Dimension resolution, boolean startFullscreen) {
 		FileUtilities.log("Initializing Mine Game 4.0 client..." + "\n");
 		
 		initializeFrame(resolution, startFullscreen);
 		checkDisplayMode();
 		
+		graphicsThread = new GraphicsThread();
+		
 		FileUtilities.log("Starting socket on port " + defaultPort + "\n");
 		initializeSocket(defaultPort);
+		
+		initializeTiles(64, 64);
+		initializeLibraries();
+	}
+	
+	public class GraphicsThread extends Thread {
+		Graphics g;
+		
+		public void updateGraphicsObject(Graphics g) {
+			this.g = g;
+		}
+		
+		public void run() {
+			long startTime = System.currentTimeMillis();
+			if (g == null) throw new IllegalArgumentException("No graphics object provided");
+			else render(g);
+			if (ticks % 20 == 0) FPS = System.currentTimeMillis() - startTime > 0 ? (1000 / (int) (System.currentTimeMillis() - startTime)) : 1000;
+		}
 	}
 	
 	public void initializeFrame(Dimension resolution, boolean startFullscreen) {
@@ -156,6 +180,18 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 		
 		// Finally add the game panel to the frame
 		frame.add(this);
+	}
+	
+	public void initializeTiles(int tileWidth, int tileHeight) {
+		if (tileWidth > 0 && tileHeight > 0) {
+			tiles = new int[tileWidth][tileHeight];
+			this.tileWidth = tileWidth;
+			this.tileHeight = tileHeight;
+		}
+	}
+	
+	public void initializeLibraries() {
+		MediaLibrary.populateImageLibrary();
 	}
 	
 	public void resetWindow() {
@@ -265,23 +301,31 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 			}
 		}
 		
-		if (ticks % 10000 == 1) try {
-			// Create tile request packet
-			DatagramPacket tileRequestPacket = createPacket("tiles", serverIP, currentPort);
-			
-			// Send packet
-			socket.send(tileRequestPacket);
-			
-			// Wait for response
-			String response = receivePacket();
-			
-			if (response.contains("[ERROR]")) {
-				System.out.println(response);
-			} else {
-				System.out.println(response);
+		if (ticks % 100 == 1) {
+			try {
+				// Create tile request packet
+				DatagramPacket tileRequestPacket = createPacket("tiles", serverIP, currentPort);
+				
+				// Send packet
+				socket.send(tileRequestPacket);
+				
+				// Wait for response
+				byte[] response = receivePacketData();
+				
+				if (new String(response).contains("[ERROR]")) System.out.println(new String(response));
+				else {
+					if (tileWidth > 0 && tileHeight > 0 && response.length >= tileWidth * tileHeight) {
+						for (int i = 0; i < tileWidth; i++) {
+							for (int j = 0; j < tileHeight; j++) {
+								//System.out.println(tiles[i][j]);
+								tiles[i][j] = response[(j * tileWidth) + i];
+							}
+						}
+					}
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
-		} catch (IOException e) {
-			e.printStackTrace();
 		}
 		ticks++;
 	}
@@ -319,6 +363,34 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 		// Receive packet
 		socket.receive(packet);
 		return new String(packet.getData());
+	}
+	
+	public byte[] receivePacketData() throws IOException {
+		// Retrieve response from server
+		byte[] responseRawData = new byte[4096];
+		
+		// Initialize packet
+		DatagramPacket packet = new DatagramPacket(responseRawData, responseRawData.length);
+		
+		// Receive packet
+		socket.receive(packet);
+		return packet.getData();
+	}
+	
+	public void paint(Graphics g) {
+		graphicsThread.updateGraphicsObject(g);
+		graphicsThread.run();
+		//System.out.println(graphicsThread.getId());
+	}
+	
+	public void render(Graphics g) {
+		if (!(tiles == null)) {
+			for (int i = 0; i < tileWidth; i++) {
+				for (int j = 0; j < tileHeight; j++) {
+					g.drawImage(MediaLibrary.getImageFromLibrary(tiles[i][j]), i << 5, j << 5, this);
+				}
+			}
+		}
 	}
 	
 	public void run() {
