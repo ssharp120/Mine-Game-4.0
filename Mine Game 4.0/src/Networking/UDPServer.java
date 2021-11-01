@@ -29,6 +29,8 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
 import Client.PreloadDialog;
+import Networking.MinePacket.packetSource;
+import Networking.MinePacket.packetType;
 import SingleplayerClient.GameLoop;
 import Utilities.LevelFactory;
 
@@ -484,7 +486,7 @@ public class UDPServer implements Runnable {
 					log("Generating new world with default settings...", true);
 					queuedWorld = LevelFactory.generateTiles(0, 1024, 1024);
 				} 
-				log("Starting server from stored " + queuedWorld.getWidth() + " x " + queuedWorld.getHeight() + " world");
+				log("Starting server from stored " + queuedWorld.getWidth() + " x " + queuedWorld.getHeight() + " world\n");
 				game = new ServerGameLoop(queuedWorld);
 				new Thread(game).start();
 			}};
@@ -513,30 +515,43 @@ public class UDPServer implements Runnable {
 	public byte[] processData(String data, String IPAddress) { 
 		// Connection request
 		if (data.length() > 6 && data.contains("connect")) {
-			log("Received connection request from client " + IPAddress);
+			log("Received connection request from client " + IPAddress + "\n");
 			if (game == null) {
-				log("[ERROR] Server not running");
+				log("[ERROR] Server not running\n");
 				return "[SERVER] [ERROR] Server not running".getBytes();
 			}
 			else {
-				log("Sending server info to client " + IPAddress);
+				log("Sending server info to client " + IPAddress + "\n");
 				try {
+					game.connectClient(IPAddress);
 					return InetAddress.getLocalHost().toString().getBytes();
 				} catch (UnknownHostException e) {
 					e.printStackTrace();
 				}
 			}
 		} else if (data.length() > 4 && data.contains("tiles")) {
-			log("Received tile request from client" + IPAddress);
+			log("Received tile request from client" + IPAddress + "\n");
 			
 			if (game == null) {
-				log("[ERROR] Server not running");
+				log("[ERROR] Server not running\n");
 				return "[SERVER] [ERROR] Server not running".getBytes();
 			}
 			else {
-				log("Sending tile info to client " + IPAddress);
-				byte[] tileData = game.getTileData();
+				log("Sending tile info to client " + IPAddress + "\n");
+				byte[] tileData = game.getTileData(IPAddress);
 				return tileData;
+			}
+		} else if (data.length() > 3 && data.contains("move")) {
+			log("Received movement request from client" + IPAddress + "\n");
+			
+			if (game == null) {
+				log("[ERROR] Server not running\n");
+				return "[SERVER] [ERROR] Server not running".getBytes();
+			}
+			else {
+				log("Moving client " + IPAddress + "\n");
+				game.movePlayer(IPAddress, 32, 32);
+				return "".getBytes();
 			}
 		}
 		
@@ -703,27 +718,27 @@ public class UDPServer implements Runnable {
 			InetAddress IPAddress = packet.getAddress();
 			int port = packet.getPort();
 			
-			// Process data
-			byte[] pendingData = processData(receivedData, IPAddress.toString().substring(1) + ":" + port);
-			
-			// Console output
-			//log("Received \"" + receivedData.trim() + "\" from client " + IPAddress.toString().substring(1) + ":" + port, true);
-			//log("Sending \"" + processedData.trim() + "\" to client " + IPAddress.toString().substring(1) + ":" + port, true);
-			
-			// Initialize packet to send to client
-			DatagramPacket pendingPacket = new DatagramPacket(pendingData, pendingData.length, IPAddress, port);
-			
-			// Send the packet
-			try {
-				serverSocket.send(pendingPacket);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			if (receivedData.contains("connect")) sendResponsePacket(receivedData, packetType.CONNECTION, IPAddress, port);
+			if (receivedData.contains("tiles")) sendResponsePacket(receivedData, packetType.TILE_REQUEST, IPAddress, port);
+			if (receivedData.contains("move")) processData(receivedData, IPAddress.toString().substring(1));
 			
 			updateConsoleElements();
 		}
 		
 		System.exit(0);
+	}
+	
+	private void sendResponsePacket(packetType type, InetAddress IPAddress, int port) {
+		MinePacket outgoingPacket = new MinePacket(type, packetSource.SERVER);
+		if (outgoingPacket.valid())	outgoingPacket.send(serverSocket, IPAddress, port);
+		outgoingPacket = null;
+	}
+	
+	private void sendResponsePacket(String receivedData, packetType type, InetAddress IPAddress, int port) {
+		byte[] outgoingData = processData(receivedData, IPAddress.toString().substring(1));
+		MinePacket outgoingPacket = new MinePacket(type, packetSource.SERVER, outgoingData);
+		if (outgoingPacket.valid()) outgoingPacket.send(serverSocket, IPAddress, port);
+		outgoingPacket = null;
 	}
 	
 	public String toString() {

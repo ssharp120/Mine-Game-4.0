@@ -7,6 +7,7 @@ import java.util.List;
 import java.awt.Dimension;
 
 import Entities.Entity;
+import Entities.MultiPlayer;
 import Entities.OxygenGenerator;
 import Entities.PhysicalItem;
 import Entities.Player;
@@ -32,6 +33,7 @@ public class ServerLevel {
 	
 	private List<Entity> entities = new ArrayList<Entity>();
 	private List<Entity> queuedEntities = new ArrayList<Entity>();
+	private List<MultiPlayer> multiPlayers = new ArrayList<MultiPlayer>();	
 	
 	private int spawnX, spawnY;
 	
@@ -90,6 +92,14 @@ public class ServerLevel {
         }
 	}
 	
+	public synchronized boolean playerConnected(String IPAddress) {
+		boolean connected = false;
+		for (MultiPlayer player : this.getMultiPlayers()) {
+			if (player.getIPAddress().contains(IPAddress)) connected = true;
+		}
+		return connected;
+	}
+	
 	private void fillUnexploredAreas() {
 		exploredTiles = new boolean[width][height];
 		visibleTiles = new boolean[width][height];
@@ -138,8 +148,30 @@ public class ServerLevel {
         return this.entities;
     }
 	
+	public synchronized List<MultiPlayer> getMultiPlayers() {
+		return this.multiPlayers;
+	}
+	
 	public synchronized void addEntity(Entity entity) {
 		this.getEntities().add(entity);
+	}
+	
+	public synchronized void addMultiPlayer(MultiPlayer multiPlayer) {
+		this.getMultiPlayers().add(multiPlayer);
+	}
+	
+	public synchronized boolean clientsConnected() {
+		return this.getMultiPlayers().size() > 0;
+	}
+	
+	public boolean moveMultiPlayer(String IPAddress, int x, int y) {
+		for (MultiPlayer player : this.getMultiPlayers()) {
+			if (player.getIPAddress().contains(IPAddress)) {
+				player.move(x, y);
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	public void queueUpdate() {
@@ -236,6 +268,28 @@ public class ServerLevel {
 			}
 		}
 		return tileData;
+	}
+	
+	public byte[] getTileData(int x, int y) {
+		if (x < 0 || y < 0 || x >= width - 64 || y >= height - 64) return ("[ERROR] Coordinate out of bounds: " + x + ", " + y).getBytes();
+		if (tiles == null) return "[ERROR] Tile array is undefined".getBytes();
+		
+		byte[] tileData = new byte[64 * 64];
+		for (int i = x; i < x + 64; i++) {
+			for (int j = y ; j < y + 64; j++) {
+				tileData[(j - y) * 64 + i - x] = (byte) tiles[i][j];
+			}
+		}
+		return tileData;
+	}
+	
+	public byte[] getTileData(String IPAddress) {
+		for (MultiPlayer player : this.getMultiPlayers()) {
+			if (player.getIPAddress().contains(IPAddress)) {
+				return getTileData(player.getX() >> 5, player.getY() >> 5);
+			}
+		}
+		return getTileData();
 	}
 	
 	public void tick() {

@@ -8,6 +8,9 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
+import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.List;
 import java.awt.Image;
 
 import static Utilities.FileUtilities.loadImage;
@@ -22,8 +25,10 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
+import javax.swing.JTextArea;
 import javax.swing.event.MenuKeyEvent;
 
+import Entities.MultiPlayer;
 import Tiles.Tile;
 
 public class ServerGameLoop implements Runnable {
@@ -39,12 +44,15 @@ public class ServerGameLoop implements Runnable {
 	private JProgressBar UPSbar;
 	private JLabel mapLabel;
 	private JButton updateButton;
+	private JTextArea clientList;
 	
 	private Color backgroundColor = Color.GRAY;
 	
 	private GridBagLayout layout;
 	
 	private ServerLevel level;
+	
+	private List<String> connectedClients = new ArrayList<String>();
 	
 	public ServerGameLoop(BufferedImage image) {
 		initGUI();
@@ -105,12 +113,16 @@ public class ServerGameLoop implements Runnable {
 		UPSbar = new JProgressBar(0, MAXUPS);
 		mapLabel = new JLabel("", JLabel.CENTER);
 		updateButton = new JButton("Update tiles");
+		clientList = new JTextArea("Clients:");
 		
 		updateButton.setBackground(Color.LIGHT_GRAY);
 		updateButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if (!(level == null)) level.queueUpdate();
 			}});
+		
+		clientList.setBackground(Color.LIGHT_GRAY);
+		clientList.setForeground(Color.DARK_GRAY);
 		
 		frame.setBackground(backgroundColor);
 		frame.setFocusable(true);
@@ -170,6 +182,13 @@ public class ServerGameLoop implements Runnable {
 		c.weighty = 0.25;
 		panel.add(updateButton, c);
 		
+		c = generateConstraints(GridBagConstraints.NONE, 0, 3);
+		c.weightx = 0.5;
+		c.weighty = 0.25;
+		c.ipadx = 200;
+		c.ipady = 40;
+		panel.add(clientList, c);
+		
 		panel.setPreferredSize(new Dimension(800, 600));
 		frame.setMinimumSize(new Dimension(800, 600));
 		frame.add(panel);
@@ -208,6 +227,11 @@ public class ServerGameLoop implements Runnable {
 		else return level.getTileData();
 	}
 	
+	public byte[] getTileData(String IPAddress) {
+		if (level == null) return "[ERROR] No level".getBytes();
+		else return level.getTileData(IPAddress);
+	}
+	
 	public void tick() {
 		if (ticks % 20 == 0) {
 			// Test different UPS values
@@ -237,7 +261,38 @@ public class ServerGameLoop implements Runnable {
 		
 		level.tick();
 		
+		updateGUIElements();
+		
 		ticks++;
+	}
+	
+	private void updateGUIElements() {
+		String clientText = "Clients:";
+		if (clientsConnected()) {
+			for (String client : this.getConnectedClients()) {
+				clientText = clientText + "\n\t" + client.toString();
+			}
+		}
+		clientList.setText(clientText);
+	}
+	
+	private synchronized List<String> getConnectedClients() {
+		return connectedClients;
+	}
+	
+	protected synchronized void connectClient(String client) {
+		if (client == null) return;
+		connectedClients.add(client);
+		if (level == null || level.playerConnected(client)) return;
+		level.addMultiPlayer(new MultiPlayer(level, client, level.getSpawnPoint().width, level.getSpawnPoint().height, client));
+	}
+	
+	private synchronized boolean clientsConnected() {
+		return connectedClients.size() > 0;
+	}
+	
+	public boolean movePlayer(String IPAddress, int x, int y) {
+		return level.moveMultiPlayer(IPAddress, x, y);
 	}
 
 	public void run() {

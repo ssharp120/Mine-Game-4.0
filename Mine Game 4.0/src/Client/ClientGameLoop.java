@@ -387,7 +387,7 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 		if (!(tiles == null)) {
 			for (int i = 0; i < tileWidth; i++) {
 				for (int j = 0; j < tileHeight; j++) {
-					g.drawImage(MediaLibrary.getImageFromLibrary(tiles[i][j]), i << 5, j << 5, this);
+					if (tiles[i][j] > 2) g.drawImage(MediaLibrary.getImageFromLibrary(tiles[i][j]), i << 5, j << 5, this);
 				}
 			}
 		}
