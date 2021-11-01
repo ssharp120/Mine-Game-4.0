@@ -549,8 +549,13 @@ public class UDPServer implements Runnable {
 				return "[SERVER] [ERROR] Server not running".getBytes();
 			}
 			else {
-				log("Moving client " + IPAddress + "\n");
-				game.movePlayer(IPAddress, 32, 32);
+				int deltaX = 0, deltaY = 0;
+				if (!(data.contains("R") && data.contains("L")) && data.contains("R")) deltaX = 8;
+				else if (!(data.contains("R") && data.contains("L")) && data.contains("L")) deltaX = -8;
+				if (!(data.contains("U") && data.contains("D")) && data.contains("U")) deltaY = -8;
+				else if (!(data.contains("U") && data.contains("D")) && data.contains("D")) deltaY = 8;
+				log("Moving client " + IPAddress + " by " + deltaX + ", " + deltaY + "\n");
+				game.movePlayer(IPAddress, deltaX, deltaY);
 				return "".getBytes();
 			}
 		}
