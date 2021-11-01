@@ -292,8 +292,7 @@ public class ServerGameLoop implements Runnable {
 	}
 	
 	public boolean movePlayer(String IPAddress, int x, int y) {
-		if (ticks % 10 == 0) return level.moveMultiPlayer(IPAddress, x, y);
-		return false;
+		return level.moveMultiPlayer(IPAddress, x, y);
 	}
 
 	public void run() {

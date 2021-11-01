@@ -50,5 +50,7 @@ public class MultiPlayer {
 		y += deltaY;
 		if (x < 0) x = 0;
 		if (y < 0) y = 0;
+		if (x > level.getWidth() - 64) x = level.getWidth() - 64;
+		if (y > level.getHeight() - 64) y = level.getHeight() - 64;
 	}
 }

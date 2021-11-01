@@ -57,19 +57,19 @@ public class ServerLevel {
     	
         width = image.getWidth();
         height = image.getHeight();
-        tiles = new int[width][height];
-        durabilities = new double[width][height];
-        baseDurabilities = new double[width][height];
+        tiles = new int[getWidth()][getHeight()];
+        durabilities = new double[getWidth()][getHeight()];
+        baseDurabilities = new double[getWidth()][getHeight()];
         
         loadTiles(image);
 	}
 	
 	private void loadTiles(BufferedImage image) {
-        int[] tileColours = image.getRGB(0, 0, width, height, null, 0, width);
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
+        int[] tileColours = image.getRGB(0, 0, getWidth(), getHeight(), null, 0, getWidth());
+        for (int y = 0; y < getHeight(); y++) {
+            for (int x = 0; x < getWidth(); x++) {
                 tileCheck: for (Tile t : Tile.tiles) {
-                    if (t != null && t.getLevelColour() == tileColours[x + y * width]) {
+                    if (t != null && t.getLevelColour() == tileColours[x + y * getWidth()]) {
                         this.tiles[x][y] = t.getId();
                         break tileCheck;
                     }
@@ -101,28 +101,28 @@ public class ServerLevel {
 	}
 	
 	private void fillUnexploredAreas() {
-		exploredTiles = new boolean[width][height];
-		visibleTiles = new boolean[width][height];
+		exploredTiles = new boolean[getWidth()][getHeight()];
+		visibleTiles = new boolean[getWidth()][getHeight()];
 		
 		
-		for (int i = 0; i < width; i++) {
-			for (int j = 0; j < height; j++) {
+		for (int i = 0; i < getWidth(); i++) {
+			for (int j = 0; j < getHeight(); j++) {
 				// Leave all tiles unexplored except for a small area around the starting ship
 				if (tiles[i][j] == Tile.SHIP_TILE.getId() 
 						|| tiles[i][j] == Tile.SHIP_BACKGROUND.getId()
 						|| tiles[i][j] == Tile.SHIP_BACKGROUND_LAMP.getId()) {
 					for (int k = -5; k <= 5; k++) {
 						for (int l = -5; l <= 5; l++) {
-							exploredTiles[i + k][j + l] = (i + k >= 0 && i + k < width && j + l >= 0 && j + l < height);
-							visibleTiles[i + k][j + l] = (i + k >= 0 && i + k < width && j + l >= 0 && j + l < height);
+							exploredTiles[i + k][j + l] = (i + k >= 0 && i + k < getWidth() && j + l >= 0 && j + l < getHeight());
+							visibleTiles[i + k][j + l] = (i + k >= 0 && i + k < getWidth() && j + l >= 0 && j + l < getHeight());
 						}
 					}
 				} else if (tiles[i][j] == Tile.SKY.getId()) {
 					visibleTiles[i][j] = true;
-					if (j < height - 1 && !(tiles[i][j] == tiles[i][j + 1])) {
+					if (j < getHeight() - 1 && !(tiles[i][j] == tiles[i][j + 1])) {
 						byte remainingDistance = 5;
 						for (int l = 0; l <= remainingDistance; l++) {
-							if (j + l < height) visibleTiles[i][j + l] = true;
+							if (j + l < getHeight()) visibleTiles[i][j + l] = true;
 							if(!Tile.tiles[tiles[i][j + l]].isSolid()) remainingDistance++;
 						}
 					}	
@@ -132,16 +132,16 @@ public class ServerLevel {
 	}
 	
 	private void initDiscreteLightLevels() {
-		discreteLightLevels = new byte[width][height];
-		for (int i = 0; i < width; i++) {
-			for (int j = 0; j < height; j++) {
+		discreteLightLevels = new byte[getWidth()][getHeight()];
+		for (int i = 0; i < getWidth(); i++) {
+			for (int j = 0; j < getHeight(); j++) {
 				discreteLightLevels[i][j] = 127;
 			}
 		}
 	}
 	
 	public void initOxygenTethers() {
-		activatedOxygenTethers = new boolean[width][height];
+		activatedOxygenTethers = new boolean[getWidth()][getHeight()];
 	}
 	
 	public synchronized List<Entity> getEntities() {
@@ -179,12 +179,12 @@ public class ServerLevel {
 	}
 	
 	public Tile getTile(int x, int y) {
-		if (0 > x || x >= width || 0 > y || y >= height) return Tile.VOID;
+		if (0 > x || x >= getWidth() || 0 > y || y >= getHeight()) return Tile.VOID;
 		return Tile.tiles[tiles[x][y]];
 	}
 	
 	public void setTile(int x, int y, int id) {
-		if (!(0 > x || x >= width || 0 > y || y >= height) && id > 0 && id < Tile.tiles.length) {
+		if (!(0 > x || x >= getWidth() || 0 > y || y >= getHeight()) && id > 0 && id < Tile.tiles.length) {
 			tiles[x][y] = id;
 			if (Tile.tiles[id].getClass() == DestructibleTile.class) {
 				baseDurabilities[x][y] = ((DestructibleTile) Tile.tiles[tiles[x][y]]).baseDurability;
@@ -197,32 +197,32 @@ public class ServerLevel {
 	}
 	
 	public double getDurability(int x, int y) {
-		if (0 > x || x >= width || 0 > y || y >= height) return 0.0;
+		if (0 > x || x >= getWidth() || 0 > y || y >= getHeight()) return 0.0;
 		return durabilities[x][y];
 	}
 	
 	public void setDurability(int x, int y, double durability) {
-		if (!(0 > x || x >= width || 0 > y || y >= height)) durabilities[x][y] = durability;
+		if (!(0 > x || x >= getWidth() || 0 > y || y >= getHeight())) durabilities[x][y] = durability;
 	}
 	
 	public boolean isExplored(int x, int y) {
-		if (x < 0 || x >= width || y < 0 || y >= height) return false;
+		if (x < 0 || x >= getWidth() || y < 0 || y >= getHeight()) return false;
 		else return exploredTiles[x][y];
 	}
 	
 	public boolean isVisible(int x, int y) {
-		if (x < 0 || x >= width || y < 0 || y >= height) return false;
+		if (x < 0 || x >= getWidth() || y < 0 || y >= getHeight()) return false;
 		else return visibleTiles[x][y];
 	}
 	
 	public void activateOxygenTether(int x, int y) {
-		if (x > 0 && x < width && y > 0 && y < height) {
+		if (x > 0 && x < getWidth() && y > 0 && y < getHeight()) {
 			activatedOxygenTethers[x][y] = true;
 		}
 	}
 	
 	public boolean activatedOxygenTether(int x, int y) {
-		if (x > 0 && x < width && y > 0 && y < height) return activatedOxygenTethers[x][y];
+		if (x > 0 && x < getWidth() && y > 0 && y < getHeight()) return activatedOxygenTethers[x][y];
 		return false;
 	}
 	
@@ -231,10 +231,10 @@ public class ServerLevel {
 			for (int l = 0; l < radius * 2; l++) {
 				int distance = (((k - radius) * (k - radius)) + ((l - radius) * (l - radius))) * linearFalloff;
 				//System.out.print((byte) (127 - (transparencyDepth * distance)) + " ");
-				if (exploredTiles != null && i + k - radius > 0 && i + k - radius < width &&
-						j + l - radius > 0 && j + l - radius < height && 
+				if (exploredTiles != null && i + k - radius > 0 && i + k - radius < getWidth() &&
+						j + l - radius > 0 && j + l - radius < getHeight() && 
 						exploredTiles[i + k - radius][j + l - radius] && discreteLightLevels != null 
-						&& i + k - radius > 0 && i + k - radius < width && j + l - radius > 0 && j + l - radius < height
+						&& i + k - radius > 0 && i + k - radius < getWidth() && j + l - radius > 0 && j + l - radius < getHeight()
 							&& distance <= 255 && distance >= 0
 								&& (byte) (127 - distance) > discreteLightLevels[i + k - radius][j + l - radius]) {
 					discreteLightLevels[i + k - radius][j + l - radius] = (byte) (127 - distance);
@@ -246,7 +246,7 @@ public class ServerLevel {
 	}
 	
 	public int getDiscreteLightLevel(int x, int y) {
-		if (discreteLightLevels == null || x < 0 || y < 0 || x >= width || y >= height) return 0;
+		if (discreteLightLevels == null || x < 0 || y < 0 || x >= getWidth() || y >= getHeight()) return 0;
 		return discreteLightLevels[x][y];
 	}
 	
@@ -271,7 +271,7 @@ public class ServerLevel {
 	}
 	
 	public byte[] getTileData(int x, int y) {
-		if (x < 0 || y < 0 || x >= width - 64 || y >= height - 64) return ("[ERROR] Coordinate out of bounds: " + x + ", " + y).getBytes();
+		if (x < 0 || y < 0 || x >= getWidth() - 64 || y >= getHeight() - 64) return ("[ERROR] Coordinate out of bounds: " + x + ", " + y).getBytes();
 		if (tiles == null) return "[ERROR] Tile array is undefined".getBytes();
 		
 		byte[] tileData = new byte[64 * 64];
@@ -320,7 +320,7 @@ public class ServerLevel {
 				//System.out.println("i " + i + " j " + j);
 				int x = (i - playerX + 512 / scaleX) / scaleX;
 				int y = (j - playerY + 512 / scaleY) / scaleY;
-				if (i + scaleX / 2 > 0 && j + scaleY / 2 > 0 && i + scaleX / 2 < width && j + scaleY / 2 < height
+				if (i + scaleX / 2 > 0 && j + scaleY / 2 > 0 && i + scaleX / 2 < getWidth() && j + scaleY / 2 < getHeight()
 						&& x > 0 && x < image.getWidth() && y > 0 && y < image.getHeight()) {
 					if (exploredTiles[i + scaleX / 2][j + scaleY / 2]) {
 						if (activatedOxygenTethers[i + scaleX / 2][j + scaleY / 2]) image.setRGB(x, y, Color.CYAN.getRGB());
@@ -343,21 +343,21 @@ public class ServerLevel {
 			if (e == null) continue;
 			if (e.getClass() == OxygenGenerator.class) e.tick();
 		}
-		for (int i = 0; i < width; i++) {
-			for (int j = 0; j < height; j++) {
+		for (int i = 0; i < getWidth(); i++) {
+			for (int j = 0; j < getHeight(); j++) {
 				boolean change = false;
 				
 				if (!(tiles == null || exploredTiles == null) && exploredTiles[i][j] && tiles[i][j] > 2) {
 					// Apply gravity to sand not supported from the bottom
 					if (tiles[i][j] == Tile.SAND.getId()) {
-						if (j < height - 1 && tiles[i][j + 1] <= 2) {
+						if (j < getHeight() - 1 && tiles[i][j + 1] <= 2) {
 							tiles[i][j] = tiles[i][j + 1];
 							durabilities[i][j + 1] = ((DestructibleTile) Tile.SAND).baseDurability;
 							tiles[i][j + 1] = Tile.SAND.getId();
 							change = true;
 						}
 					} else if (tiles[i][j] == Tile.CACTUS.getId()) {
-						if (j < height - 1 && (!(tiles[i][j + 1] == Tile.SAND.getId() || tiles[i][j + 1] == Tile.CACTUS.getId())
+						if (j < getHeight() - 1 && (!(tiles[i][j + 1] == Tile.SAND.getId() || tiles[i][j + 1] == Tile.CACTUS.getId())
 								// Conditions for breakage:
 								|| tiles[i][j + 1] == Tile.SHIP_BACKGROUND.getId()
 								|| tiles[i][j + 1] == Tile.SHIP_BACKGROUND_LAMP.getId()
@@ -368,7 +368,7 @@ public class ServerLevel {
 							change = true;
 						}
 					} else if (tiles[i][j] == Tile.NATURAL_WOOD.getId()){
-						if (i > 1 && i < width - 1 && j < height - 1) {
+						if (i > 1 && i < getWidth() - 1 && j < getHeight() - 1) {
 							if (!(tiles[i][j +1] == Tile.NATURAL_WOOD.getId() 
 									|| Tile.tiles[tiles[i + 1][j]].isSolid() 
 									|| Tile.tiles[tiles[i - 1][j]].isSolid() 
@@ -392,7 +392,7 @@ public class ServerLevel {
 							}
 						}
 					} else if (tiles[i][j] == Tile.LEAVES.getId()){
-						if (i > 1 && i < width - 1 && j > 0 && j < height - 1) {
+						if (i > 1 && i < getWidth() - 1 && j > 0 && j < getHeight() - 1) {
 							if (!(tiles[i][j + 1] == Tile.NATURAL_WOOD.getId() 
 									|| tiles[i][j + 1] == Tile.LEAVES.getId()
 									|| Tile.tiles[tiles[i + 1][j]].isSolid() 
@@ -424,7 +424,7 @@ public class ServerLevel {
 						}
 					} else if (tiles[i][j] == Tile.OXYGEN_TETHER.getId()) {
 						activatedOxygenTethers[i][j] = false;
-						if (j < height - 1 && !Tile.tiles[tiles[i][j + 1]].isSolid()) {
+						if (j < getHeight() - 1 && !Tile.tiles[tiles[i][j + 1]].isSolid()) {
 							//addEntity(new PhysicalItem(1034, this, true, i << 5, j << 5, 0.05 - Math.random() * 0.1, - Math.random() * 0.075, new InventoryTile(34, 1)));
 							tiles[i][j] = Tile.SKY.getId();
 							change = true;
@@ -432,7 +432,7 @@ public class ServerLevel {
 						oxygenTetherLoop:
 							for (int k = -16; k <= 16; k++) {
 								for (int l = -16; l <= 16; l++) {
-									if (i + k > 0 && i + k < width && j + l > 0 && j + l < height) {
+									if (i + k > 0 && i + k < getWidth() && j + l > 0 && j + l < getHeight()) {
 										if (activatedOxygenTethers[i + k][j + l]) {
 											activatedOxygenTethers[i][j] = true;
 											break oxygenTetherLoop;
@@ -443,7 +443,7 @@ public class ServerLevel {
 						}
 					} else {// Apply gravity to tiles not supported on any side
 						activatedOxygenTethers[i][j] = false;
-						if (i > 1 && i < width - 1 && j > 1 && j < height - 1) {
+						if (i > 1 && i < getWidth() - 1 && j > 1 && j < getHeight() - 1) {
 							if (tiles[i - 1][j] <= 2 && tiles[i + 1][j] <= 2 && tiles[i][j - 1] <= 2 && tiles[i][j + 1] <= 2) {
 								int replacementID = tiles[i][j + 1];
 								int tileID = tiles[i][j];
@@ -464,12 +464,12 @@ public class ServerLevel {
 					// Determine conveyor position
 					if (tiles[i][j] >= Tile.CONVEYOR.getId() && tiles[i][j] <= Tile.CONVEYOR_MIDDLE.getId()) {
 						if (i > 0 && tiles[i - 1][j] >= Tile.CONVEYOR.getId() && tiles[i - 1][j] <= Tile.CONVEYOR_MIDDLE.getId()) {
-							if (i < width && tiles[i + 1][j] >= Tile.CONVEYOR.getId() && tiles[i + 1][j] <= Tile.CONVEYOR_MIDDLE.getId()) {
+							if (i < getWidth() && tiles[i + 1][j] >= Tile.CONVEYOR.getId() && tiles[i + 1][j] <= Tile.CONVEYOR_MIDDLE.getId()) {
 								tiles[i][j] = Tile.CONVEYOR_MIDDLE.getId();
 							} else {
 								tiles[i][j] = Tile.CONVEYOR_RIGHT_END.getId();
 							}
-						} else if (i < width && tiles[i + 1][j] >= Tile.CONVEYOR.getId() && tiles[i + 1][j] <= Tile.CONVEYOR_MIDDLE.getId()) {
+						} else if (i < getWidth() && tiles[i + 1][j] >= Tile.CONVEYOR.getId() && tiles[i + 1][j] <= Tile.CONVEYOR_MIDDLE.getId()) {
 							tiles[i][j] = Tile.CONVEYOR_LEFT_END.getId();
 						} else {
 							tiles[i][j] = Tile.CONVEYOR.getId();
@@ -497,10 +497,18 @@ public class ServerLevel {
 			}
 		}
 		
-		System.out.println("Updated " + width * height + " tiles in " + (System.currentTimeMillis() - startTime) + " ms");
+		System.out.println("Updated " + getWidth() * getHeight() + " tiles in " + (System.currentTimeMillis() - startTime) + " ms");
 	}
 	
 	public String toString() {
-		return "[SERVER] " + width + " x " + height + " server level";
+		return "[SERVER] " + getWidth() + " x " + getHeight() + " server level";
+	}
+
+	public int getWidth() {
+		return width;
+	}
+
+	public int getHeight() {
+		return height;
 	}
 }

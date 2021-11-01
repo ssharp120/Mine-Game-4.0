@@ -550,12 +550,12 @@ public class UDPServer implements Runnable {
 			}
 			else {
 				int deltaX = 0, deltaY = 0;
-				if (!(data.contains("R") && data.contains("L")) && data.contains("R")) deltaX = 8;
-				else if (!(data.contains("R") && data.contains("L")) && data.contains("L")) deltaX = -8;
-				if (!(data.contains("U") && data.contains("D")) && data.contains("U")) deltaY = -8;
-				else if (!(data.contains("U") && data.contains("D")) && data.contains("D")) deltaY = 8;
+				if (!(data.contains("R") && data.contains("L")) && data.contains("R")) deltaX = 2;
+				else if (!(data.contains("R") && data.contains("L")) && data.contains("L")) deltaX = -2;
+				if (!(data.contains("U") && data.contains("D")) && data.contains("U")) deltaY = -2;
+				else if (!(data.contains("U") && data.contains("D")) && data.contains("D")) deltaY = 2;
 				log("Moving client " + IPAddress + " by " + deltaX + ", " + deltaY + "\n");
-				game.movePlayer(IPAddress, deltaX, deltaY);
+				game.movePlayer(IPAddress, deltaX * 32, deltaY * 32);
 				return "".getBytes();
 			}
 		}
@@ -705,7 +705,7 @@ public class UDPServer implements Runnable {
 	public void run() {
 		while (active) {			
 			// Initialize packet
-			lastReceivedData = new byte[1024];
+			lastReceivedData = new byte[64];
 			DatagramPacket packet = new DatagramPacket(lastReceivedData, lastReceivedData.length);
 			
 			// Receive data
