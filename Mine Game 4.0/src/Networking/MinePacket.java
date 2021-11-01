@@ -6,12 +6,12 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 public class MinePacket {
-	enum packetType {
+	public enum packetType {
 		CONNECTION,
 		TILE_REQUEST,
 		MOVEMENT_REQUEST
 	}
-	enum packetSource {
+	public enum packetSource {
 		CLIENT,
 		SERVER
 	}

@@ -26,6 +26,9 @@ import javax.swing.JPanel;
 
 import Entities.Player;
 import Libraries.MediaLibrary;
+import Networking.MinePacket;
+import Networking.MinePacket.packetSource;
+import Networking.MinePacket.packetType;
 import SingleplayerClient.FullscreenWindow;
 import SingleplayerClient.InputHandler;
 import SingleplayerClient.Level;
@@ -118,6 +121,37 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 		FileUtilities.log("Starting socket on port " + defaultPort + "\n");
 		initializeSocket(defaultPort);
 		
+		addKeyListener(new KeyListener() {
+
+			public void keyTyped(KeyEvent e) {
+				
+			}
+
+			public void keyPressed(KeyEvent e) {
+				switch (e.getKeyCode()) {
+				case KeyEvent.VK_LEFT: 
+				case KeyEvent.VK_A:
+					sendPacket(packetType.MOVEMENT_REQUEST, "moveL".getBytes());
+					break;
+				case KeyEvent.VK_RIGHT:
+				case KeyEvent.VK_D:
+					sendPacket(packetType.MOVEMENT_REQUEST, "moveR".getBytes());
+					break;
+				case KeyEvent.VK_UP:
+				case KeyEvent.VK_W:
+					sendPacket(packetType.MOVEMENT_REQUEST, "moveU".getBytes());
+					break;
+				case KeyEvent.VK_DOWN:
+				case KeyEvent.VK_S:
+					sendPacket(packetType.MOVEMENT_REQUEST, "moveD".getBytes());
+					break;
+				default: break;
+				}
+			}
+
+			public void keyReleased(KeyEvent e) {}
+		});
+		
 		initializeTiles(64, 64);
 		initializeLibraries();
 	}
@@ -188,6 +222,38 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 			this.tileWidth = tileWidth;
 			this.tileHeight = tileHeight;
 		}
+	}
+	
+	private void sendPacket(packetType type) {
+		MinePacket outgoingPacket = new MinePacket(type, packetSource.CLIENT);
+		// Get server address
+		InetAddress address;
+		try {
+			address = InetAddress.getByName(serverIP);
+			if (serverIP.length() < 8) address = InetAddress.getLocalHost();
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return;
+		}
+		if (outgoingPacket.valid())	outgoingPacket.send(socket, address, currentPort);
+		outgoingPacket = null;
+	}
+	
+	private void sendPacket(packetType type, byte[] inputData) {
+		MinePacket outgoingPacket = new MinePacket(type, packetSource.CLIENT, inputData);
+		// Get server address
+		InetAddress address;
+		try {
+			address = InetAddress.getByName(serverIP);
+			if (serverIP.length() < 8) address = InetAddress.getLocalHost();
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return;
+		}
+		if (outgoingPacket.valid())	outgoingPacket.send(socket, address, currentPort);
+		outgoingPacket = null;
 	}
 	
 	public void initializeLibraries() {
