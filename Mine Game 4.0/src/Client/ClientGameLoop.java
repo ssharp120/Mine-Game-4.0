@@ -128,24 +128,26 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 			}
 
 			public void keyPressed(KeyEvent e) {
-				switch (e.getKeyCode()) {
-				case KeyEvent.VK_LEFT: 
-				case KeyEvent.VK_A:
-					sendPacket(packetType.MOVEMENT_REQUEST, "moveL".getBytes());
-					break;
-				case KeyEvent.VK_RIGHT:
-				case KeyEvent.VK_D:
-					sendPacket(packetType.MOVEMENT_REQUEST, "moveR".getBytes());
-					break;
-				case KeyEvent.VK_UP:
-				case KeyEvent.VK_W:
-					sendPacket(packetType.MOVEMENT_REQUEST, "moveU".getBytes());
-					break;
-				case KeyEvent.VK_DOWN:
-				case KeyEvent.VK_S:
-					sendPacket(packetType.MOVEMENT_REQUEST, "moveD".getBytes());
-					break;
-				default: break;
+				if (ticks % 2 == 0) {
+					switch (e.getKeyCode()) {
+					case KeyEvent.VK_LEFT: 
+					case KeyEvent.VK_A:
+						sendPacket(packetType.MOVEMENT_REQUEST, "moveL".getBytes());
+						break;
+					case KeyEvent.VK_RIGHT:
+					case KeyEvent.VK_D:
+						sendPacket(packetType.MOVEMENT_REQUEST, "moveR".getBytes());
+						break;
+					case KeyEvent.VK_UP:
+					case KeyEvent.VK_W:
+						sendPacket(packetType.MOVEMENT_REQUEST, "moveU".getBytes());
+						break;
+					case KeyEvent.VK_DOWN:
+					case KeyEvent.VK_S:
+						sendPacket(packetType.MOVEMENT_REQUEST, "moveD".getBytes());
+						break;
+					default: break;
+					}
 				}
 			}
 
@@ -241,6 +243,7 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 	}
 	
 	private void sendPacket(packetType type, byte[] inputData) {
+		System.out.println("[CLIENT] Sending data:   " + new String(inputData));
 		MinePacket outgoingPacket = new MinePacket(type, packetSource.CLIENT, inputData);
 		// Get server address
 		InetAddress address;
@@ -367,7 +370,7 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 			}
 		}
 		
-		if (ticks % 100 == 1) {
+		if (ticks % 10 == 1) {
 			try {
 				// Create tile request packet
 				DatagramPacket tileRequestPacket = createPacket("tiles", serverIP, currentPort);
@@ -450,10 +453,12 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 	}
 	
 	public void render(Graphics g) {
+		g.setColor(Color.BLACK);
+		g.fillRect(0, 0, this.getWidth(), this.getHeight());
 		if (!(tiles == null)) {
 			for (int i = 0; i < tileWidth; i++) {
 				for (int j = 0; j < tileHeight; j++) {
-					if (tiles[i][j] > 2) g.drawImage(MediaLibrary.getImageFromLibrary(tiles[i][j]), i << 5, j << 5, this);
+					if (tiles[i][j] > 1) g.drawImage(MediaLibrary.getImageFromLibrary(tiles[i][j]), i << 5, j << 5, this);
 				}
 			}
 		}
