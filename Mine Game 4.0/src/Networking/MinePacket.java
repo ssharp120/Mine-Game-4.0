@@ -69,6 +69,10 @@ public class MinePacket {
 		if (validState) processedData = inputData;
 	}
 	
+	public byte[] getProcessedData() {
+		return processedData;
+	}
+	
 	public boolean valid() {
 		return validState;
 	}

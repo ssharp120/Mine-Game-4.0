@@ -129,25 +129,33 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 
 			public void keyPressed(KeyEvent e) {
 				if (ticks % 2 == 0) {
+					boolean packetSent = false;
+					
 					switch (e.getKeyCode()) {
 					case KeyEvent.VK_LEFT: 
 					case KeyEvent.VK_A:
 						sendPacket(packetType.MOVEMENT_REQUEST, "moveL".getBytes());
+						packetSent = true;
 						break;
 					case KeyEvent.VK_RIGHT:
 					case KeyEvent.VK_D:
 						sendPacket(packetType.MOVEMENT_REQUEST, "moveR".getBytes());
+						packetSent = true;
 						break;
 					case KeyEvent.VK_UP:
 					case KeyEvent.VK_W:
 						sendPacket(packetType.MOVEMENT_REQUEST, "moveU".getBytes());
+						packetSent = true;
 						break;
 					case KeyEvent.VK_DOWN:
 					case KeyEvent.VK_S:
 						sendPacket(packetType.MOVEMENT_REQUEST, "moveD".getBytes());
+						packetSent = true;
 						break;
 					default: break;
 					}
+					
+					if (packetSent) updateTiles();
 				}
 			}
 
@@ -156,6 +164,31 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 		
 		initializeTiles(64, 64);
 		initializeLibraries();
+	}
+	
+	public void updateTiles() {
+		sendPacket(packetType.TILE_REQUEST);
+		
+		// Wait for response
+		byte[] response;
+		try {
+			response = receivePacketData();
+		} catch (IOException e) {
+			e.printStackTrace();
+			return;
+		}
+		
+		if (new String(response).contains("[ERROR]")) System.out.println(new String(response));
+		else {
+			if (tileWidth > 0 && tileHeight > 0 && response.length >= tileWidth * tileHeight) {
+				for (int i = 0; i < tileWidth; i++) {
+					for (int j = 0; j < tileHeight; j++) {
+						//System.out.println(tiles[i][j]);
+						tiles[i][j] = response[(j * tileWidth) + i];
+					}
+				}
+			}
+		}
 	}
 	
 	public class GraphicsThread extends Thread {
@@ -228,6 +261,7 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 	
 	private void sendPacket(packetType type) {
 		MinePacket outgoingPacket = new MinePacket(type, packetSource.CLIENT);
+		System.out.println("[CLIENT] Sending data:   " + new String(outgoingPacket.getProcessedData()));
 		// Get server address
 		InetAddress address;
 		try {
@@ -365,12 +399,14 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 					connectedToServer = true;
 					FileUtilities.log("Connected to server " + response);
 				}
+				
+				updateTiles();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
 		
-		if (ticks % 10 == 1) {
+		/*if (ticks % 10 == 1) {
 			try {
 				// Create tile request packet
 				DatagramPacket tileRequestPacket = createPacket("tiles", serverIP, currentPort);
@@ -395,7 +431,8 @@ public class ClientGameLoop extends JPanel implements Runnable, KeyListener, Mou
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-		}
+		}*/
+		
 		ticks++;
 	}
 	
