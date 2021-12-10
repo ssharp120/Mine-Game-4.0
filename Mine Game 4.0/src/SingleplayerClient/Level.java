@@ -19,6 +19,7 @@ import javax.imageio.ImageIO;
 
 import Entities.Crop;
 import Entities.ElectricalDevice;
+import Entities.Enemy;
 import Entities.Entity;
 import Entities.Mob;
 import Entities.OxygenGenerator;
@@ -60,6 +61,7 @@ public class Level {
 	private double[][] durabilities;
 	private double[][] baseDurabilities;
 	private byte[][] discreteLightLevels;
+	private boolean[][] drawCaveWall;
 	private byte skyLightLevel = -120;
 	public int width, height;
 	public int xOffset, yOffset;
@@ -78,6 +80,10 @@ public class Level {
 	private Player player;
 	private boolean queueUpdate = false;
 	private boolean playerConnectedToOxygenGenerator = false;
+	private int enemyCount;
+	private final int enemyCap = 255;
+	private double attractionStrength = 0.05;
+	private double attractionRadius = 128;
 	
 	private List<Entity> entities = new ArrayList<Entity>();
 	private List<Entity> queuedEntities = new ArrayList<Entity>();
@@ -111,6 +117,7 @@ public class Level {
 		spawnY = y;
 		sky = new Sky("sky1", game);
 		this.name = name;
+		
 		game = mg;
 		if (path != null) {
             this.filePath = path;
@@ -150,6 +157,10 @@ public class Level {
 				tileColors[i][j] = -1;
 			}
 		}
+	}
+	
+	public void initCaveWalls() {
+		drawCaveWall = new boolean[width][height];
 	}
 	
 	public void initOxygenTethers() {
@@ -246,12 +257,12 @@ public class Level {
 						}
 					}
 				} else if (tiles[i][j] == Tile.SKY.getId()) {
-					visibleTiles[i][j] = true;
+					visibleTiles[i][j] = !drawCaveWall[i][j];
 					if (j < height - 1 && !(tiles[i][j] == tiles[i][j + 1])) {
 						byte remainingDistance = 5;
 						for (int l = 0; l <= remainingDistance; l++) {
-							if (j + l < height) visibleTiles[i][j + l] = true;
-							if(!Tile.tiles[tiles[i][j + l]].isSolid()) remainingDistance++;
+							if (j + l < height) visibleTiles[i][j + l] = !drawCaveWall[i][j + l];
+							if (j + l < height && !Tile.tiles[tiles[i][j + l]].isSolid()) remainingDistance++;
 						}
 					}	
 				}
@@ -266,12 +277,13 @@ public class Level {
 	}
 	
 	private void loadLevelFromImage(BufferedImage image) {
-        	FileUtilities.log("Loading level " + index + " from " + filePath + "...\n\t");
-        	
         	this.image = image;
         	
             this.width = this.image.getWidth();
             this.height = this.image.getHeight();
+            
+            FileUtilities.log("Loading level " + index + " from " + width + " x " + height + " image...\n\t");
+            
             tiles = new int[width][height];
             durabilities = new double[width][height];
             baseDurabilities = new double[width][height];
@@ -287,15 +299,7 @@ public class Level {
         	
         	this.image = ImageIO.read(FileUtilities.getFile(filePath));
         	
-            this.width = this.image.getWidth();
-            this.height = this.image.getHeight();
-            tiles = new int[width][height];
-            durabilities = new double[width][height];
-            baseDurabilities = new double[width][height];
-            this.loadTiles();
-            FileUtilities.log("Level " + index + ", " + name + ", loaded from " + filePath + ":\n"
-            		+ "\tSize: " + width + "x" + height + ", " + width * height + " tiles\n"
-            		+ "\tSpawnpoint: " + spawnX + ", " + spawnY + "\n");
+            loadLevelFromImage(this.image);
         } catch (IOException e) {
         	FileUtilities.log("Error occured while loading level " + index + " from " + filePath);
             e.printStackTrace();
@@ -304,6 +308,7 @@ public class Level {
     }
 	
 	private void loadTiles() {
+		initCaveWalls();
         int[] tileColours = this.image.getRGB(0, 0, width, height, null, 0, width);
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
@@ -329,6 +334,21 @@ public class Level {
 	    		}
             }
         }
+        
+        for (int x = 0; x < width; x++) {
+        	boolean caveWall = false;
+        	for (int y = 0; y < height; y++) {
+        		if (tiles[x][y] == Tile.CAVE_WALL.getId()) {
+        			caveWall = true;
+        			if (y + 1 < height) tiles[x][y] = tiles[x][y + 1];
+        		}
+        		drawCaveWall[x][y] = caveWall;
+        	}
+        }
+	}
+	
+	public boolean drawCaveWall(int x, int y) {
+		return (x >= 0 && x < width && y >= 0 && y < height) && drawCaveWall[x][y];
 	}
 	
 	public Tile getTile(int x, int y) {
@@ -347,6 +367,8 @@ public class Level {
 			}
 			queueUpdate = true;
 		}
+		
+		getPlayer().queuePlayerModelUpdate();
 	}
 	
 	public double getDurability(int x, int y) {
@@ -358,6 +380,59 @@ public class Level {
 		if (!(0 > x || x >= width || 0 > y || y >= height)) durabilities[x][y] = durability;
 	}
 	
+	public void placeTile(int clickX, int clickY, int tileID) {
+		if (getPlayer() != null) {
+			if (getTile(clickX >> 5, clickY >> 5).getId() == 2) {
+				if (getTile((clickX >> 5) + 1, clickY >> 5).getId() == 2 && getTile((clickX >> 5) - 1, clickY >> 5).getId() == 2 && getTile(clickX >> 5, (clickY >> 5) + 1).getId() == 2 && getTile(clickX >> 5, (clickY >> 5) - 1).getId() == 2) return;
+				
+				int t = tileID;
+				
+				//System.out.println("Player x: Left: " + gameIn.player.x + ", Right: " + (gameIn.player.x + gameIn.player.spriteWidth) + ", Tile x: Left: " + ((clickX >> 5) << 5) + ", Right: " + (((clickX >> 5) << 5) + 32));
+				if (((clickX >> 5) << 5) + 32 >= getPlayer().x && (clickX >> 5) << 5 <= getPlayer().x + getPlayer().spriteWidth 
+						&& ((clickY >> 5) << 5) + 32 >= getPlayer().y && (clickY >> 5) << 5 <= getPlayer().y + getPlayer().spriteHeight
+						&& Tile.tiles[t].getClass() != BackgroundDestructibleTile.class) return;
+				
+				setTile(clickX >> 5, clickY >> 5, t);
+				if (Tile.tiles[t].getClass() == DestructibleTile.class) {
+					setDurability(clickX >> 5, clickY >> 5, ((DestructibleTile) Tile.tiles[t]).getBaseDurability());
+				}
+				if (Tile.tiles[t].getClass() == BackgroundDestructibleTile.class) {
+					setDurability(clickX >> 5, clickY >> 5, ((BackgroundDestructibleTile) Tile.tiles[t]).getBaseDurability());
+				}
+			}
+		}
+	}
+	
+	public void placeTile(int clickX, int clickY) {
+		if (getPlayer() != null) {
+			if (getTile(clickX >> 5, clickY >> 5).getId() == 2) {
+				if (!drawCaveWall[clickX >> 5][clickY >> 5] && getTile((clickX >> 5) + 1, clickY >> 5).getId() == 2 && getTile((clickX >> 5) - 1, clickY >> 5).getId() == 2 && getTile(clickX >> 5, (clickY >> 5) + 1).getId() == 2 && getTile(clickX >> 5, (clickY >> 5) - 1).getId() == 2) return;
+				
+				int t = getPlayer().inventory.getTileFromHotbar();
+				
+				//System.out.println("Player x: Left: " + player.x + ", Right: " + (player.x + player.spriteWidth) + ", Tile x: Left: " + ((clickX >> 5) << 5) + ", Right: " + (((clickX >> 5) << 5) + 32));
+				if (((clickX >> 5) << 5) + 32 >= getPlayer().x && (clickX >> 5) << 5 <= getPlayer().x + getPlayer().spriteWidth 
+						&& ((clickY >> 5) << 5) + 32 >= getPlayer().y && (clickY >> 5) << 5 <= getPlayer().y + getPlayer().spriteHeight
+						&& Tile.tiles[t].getClass() != BackgroundDestructibleTile.class) return;
+				
+				((InventoryTile) getPlayer().inventory.getActiveItem()).removeQuantity(1);
+				if (game.tracker != null) game.tracker.incrementBasicStat("Tiles Placed");
+				setTile(clickX >> 5, clickY >> 5, t);
+				if (Tile.tiles[t].getClass() == DestructibleTile.class) {
+					setDurability(clickX >> 5, clickY >> 5, ((DestructibleTile) Tile.tiles[t]).getBaseDurability());
+				}
+				if (Tile.tiles[t].getClass() == BackgroundDestructibleTile.class) {
+					setDurability(clickX >> 5, clickY >> 5, ((BackgroundDestructibleTile) Tile.tiles[t]).getBaseDurability());
+				}
+				if (t == Tile.CONVEYOR.getId()) {
+					if (clickX >> 5 > 0 && clickX >> 5 < width && clickY >> 5 > 0 && clickY >> 5 < height) {
+						checkConveyor(clickX >> 5, clickY >> 5);
+					}
+				}
+			}
+		}
+	}
+	
 	public synchronized void tick() {
 		if (queuedEntities != null && queuedEntities.size() > 0) {
 			entities.addAll(queuedEntities);
@@ -366,7 +441,7 @@ public class Level {
 		
 		currentProjectiles = 0;
 		
-		if (queueUpdate) {
+		if (queueUpdate && game.ticks % 2 == 1) {
 			updateTiles();
 			queueUpdate = false;
 		}
@@ -377,15 +452,17 @@ public class Level {
 		
 		playerConnectedToOxygenGenerator = false;
 		
+		enemyCount = 0;
+		
 		for (Entity e : getEntities()) {
 			if (e == null) continue;
 			e.tick();
 			if (e.getClass() == OxygenGenerator.class) {
 				if (entities.get(0).x > (e.x << 5) - 128 - 64 && entities.get(0).x < (e.x << 5) + 128 + 32
 						&& entities.get(0).y > (e.y << 5) - 128 - 128 && entities.get(0).y < (e.y << 5) + 128) {
-					player.connectOxygen();
-					player.addOxygen(0.0875);
-					player.addOxygenPoint(e.x * 32, e.y * 32);
+					getPlayer().connectOxygen();
+					getPlayer().addOxygen(0.0875);
+					getPlayer().addOxygenPoint(e.x * 32, e.y * 32);
 					oxygenConnected = true;
 					playerConnectedToOxygenGenerator = true;
 					//drawLightCircle(e.x, e.y, 4, 16);
@@ -407,6 +484,20 @@ public class Level {
 				if (((PhysicalItem) e).getItemTileID() == Tile.LAMP.getId() || ((PhysicalItem) e).getItemTileID() == Tile.TORCH.getId()) {
 					//drawLightCircle(e.x >> 5, e.y >> 5, 4, 16);
 				}
+				
+				if (attractionStrength > 0 && attractionRadius > 0) {
+					if (Math.sqrt(Math.pow(Math.abs(e.x - player.x), 2) + Math.pow(Math.abs(e.y - player.y), 2)) < attractionRadius) {
+						double horizontalAttractionStrength = attractionStrength / 2;
+						double verticalAttractionStrength = attractionStrength * Math.sqrt(3) / 2;
+						double vX = horizontalAttractionStrength * Math.signum(player.x + player.spriteWidth / 2 - e.x + 16);
+						double vY = verticalAttractionStrength * Math.signum(player.y + player.spriteHeight / 2 - e.y + 16);
+						if (((PhysicalItem) e).getSpeed() < attractionStrength * 10) ((PhysicalItem) e).addSpeed(vX, vY);
+					}
+				}
+			}
+			
+			if (e.getClass() == Enemy.class) {
+				enemyCount++;
 			}
 		}
 		entities.removeIf(i -> i.markedForDeletion);
@@ -423,19 +514,19 @@ public class Level {
 			/*else*/ sky.tick(1);
 		}
 		if (!oxygenConnected) {
-			player.disconnectOxygen();
-			player.removeOxygen(0.01);
+			getPlayer().disconnectOxygen();
+			getPlayer().removeOxygen(0.01);
 		}
 		for (int i = -64; i < 64; i++) {
 			for (int j = -32; j < 32; j++) {
-				if (player.x >= -16 * 32 && player.x >> 5 < width + 16 * 32 && player.y >= -8 * 32 && player.y >> 5 < height + 8 * 32
-						&& i * i + j * j <= 64 && (player.x >> 5) + i >= 0 && (player.x >> 5) + i < width
-						&& (player.y >> 5) + j >= 0 && (player.y >> 5) + j < height
-						&& !visibleTiles[(player.x >> 5) + i][(player.y >> 5) + j]) visibleTiles[(player.x >> 5) + i][(player.y >> 5) + j] = true;
-				if (player.x >= -16 * 32 && player.x >> 5 < width + 16 * 32 && player.y >= -8 * 32 && player.y >> 5 < height + 8 * 32
-					&& i * i + j * j <= 32 * 32 && (player.x >> 5) + i >= 0 && (player.x >> 5) + i < width
-					&& (player.y >> 5) + j >= 0 && (player.y >> 5) + j < height
-					&& visibleTiles[(player.x >> 5) + i][(player.y >> 5) + j]) exploredTiles[(player.x >> 5) + i][(player.y >> 5) + j] = true;
+				if (getPlayer().x >= -16 * 32 && getPlayer().x >> 5 < width + 16 * 32 && getPlayer().y >= -8 * 32 && getPlayer().y >> 5 < height + 8 * 32
+						&& i * i + j * j <= 64 && (getPlayer().x >> 5) + i >= 0 && (getPlayer().x >> 5) + i < width
+						&& (getPlayer().y >> 5) + j >= 0 && (getPlayer().y >> 5) + j < height
+						&& !visibleTiles[(getPlayer().x >> 5) + i][(getPlayer().y >> 5) + j]) visibleTiles[(getPlayer().x >> 5) + i][(getPlayer().y >> 5) + j] = true;
+				if (getPlayer().x >= -16 * 32 && getPlayer().x >> 5 < width + 16 * 32 && getPlayer().y >= -8 * 32 && getPlayer().y >> 5 < height + 8 * 32
+					&& i * i + j * j <= 32 * 32 && (getPlayer().x >> 5) + i >= 0 && (getPlayer().x >> 5) + i < width
+					&& (getPlayer().y >> 5) + j >= 0 && (getPlayer().y >> 5) + j < height
+					&& visibleTiles[(getPlayer().x >> 5) + i][(getPlayer().y >> 5) + j]) exploredTiles[(getPlayer().x >> 5) + i][(getPlayer().y >> 5) + j] = true;
 			}
 		}
 		
@@ -447,13 +538,13 @@ public class Level {
 			for (int i = -16; i < 16; i++) {
 				for (int j = -16; j < 16; j++) {
 	
-					if ((player.x >> 5) + i >= 0 && (player.x >> 5) + i < width
-						&& (player.y >> 5) + j >= 0 && (player.y >> 5) + j < height
-						&& visibleTiles[(player.x >> 5) + i][(player.y >> 5) + j]
-						&& exploredTiles[(player.x >> 5) + i][(player.y >> 5) + j]) {
+					if ((getPlayer().x >> 5) + i >= 0 && (getPlayer().x >> 5) + i < width
+						&& (getPlayer().y >> 5) + j >= 0 && (getPlayer().y >> 5) + j < height
+						&& visibleTiles[(getPlayer().x >> 5) + i][(getPlayer().y >> 5) + j]
+						&& exploredTiles[(getPlayer().x >> 5) + i][(getPlayer().y >> 5) + j]) {
 						//System.out.println("i " + i + " j " + j);
-						if (tiles[(player.x >> 5) + i][(player.y >> 5) + j] == Tile.OXYGEN_TETHER.getId()
-								&& activatedOxygenTethers[(player.x >> 5) + i][(player.y >> 5) + j]) {
+						if (tiles[(getPlayer().x >> 5) + i][(getPlayer().y >> 5) + j] == Tile.OXYGEN_TETHER.getId()
+								&& activatedOxygenTethers[(getPlayer().x >> 5) + i][(getPlayer().y >> 5) + j]) {
 							connection = true;
 							if (i * i + j * j < bestX * bestX + bestY + bestY) {
 								bestX = i;
@@ -466,10 +557,10 @@ public class Level {
 			}
 			
 			if (connection) {
-				player.connectOxygen();
+				getPlayer().connectOxygen();
 				double distanceMultiplier = Math.pow(((double) (bestX * bestX + bestY * bestY))/16, -1.8);
-				player.addOxygen(distanceMultiplier < 0.0875 ? distanceMultiplier : 0.0875);
-				player.addOxygenPoint((((player.x >> 5) + bestX) << 5) - 4, (((player.y >> 5) + bestY) << 5) + 2);
+				getPlayer().addOxygen(distanceMultiplier < 0.0875 ? distanceMultiplier : 0.0875);
+				getPlayer().addOxygenPoint((((getPlayer().x >> 5) + bestX) << 5) - 4, (((getPlayer().y >> 5) + bestY) << 5) + 2);
 			}
 		}
 		
@@ -488,32 +579,37 @@ public class Level {
 		potentialConnection = floatingElectricalDevice != null;
 		
 		if (game.input.drop.isPressed() && game.ticks % 16 == 0) {
-			int verticalDelta = game.convertCoordinates(currentMouseXOnPanel, currentMouseYOnPanel).height - player.y;
+			int verticalDelta = game.convertCoordinates(currentMouseXOnPanel, currentMouseYOnPanel).height - getPlayer().y;
 			
 			double vY = Math.log(Math.sqrt(Math.abs(verticalDelta))) * Math.signum(verticalDelta);
 			double vX = 0;
-			int x = player.x;
-			if (player.getMovingDir() == 3) {
-				x += game.player.spriteWidth;
+			int x = getPlayer().x - 16;
+			if (getPlayer().getMovingDir() == 3) {
+				x += game.player.spriteWidth + 16;
 				vX = 3.5 - Math.abs(vY);
 			} else {
 				vX = -3.5 + Math.abs(vY);
 			}
 			
-			if (player.inventory.getActiveItem() != null) {
-				if (player.inventory.getActiveItem().getClass() == Ingredient.class) {
-					addEntity(new PhysicalItem(1000 + player.inventory.getActiveItem().getItemID(), this, true, 
-							x, player.y + player.spriteHeight / 4, vX, vY, new Ingredient(((Ingredient) player.inventory.getActiveItem()).getItemID(), 1)));
-					((Ingredient) player.inventory.getActiveItem()).removeQuantity(1);
-				} else if (player.inventory.getActiveItem().getClass() == InventoryTile.class) {
-					addEntity(new PhysicalItem(1000 + player.inventory.getActiveItem().getItemID(), this, true, 
-							x, player.y + player.spriteHeight / 4, vX, vY, new InventoryTile(((InventoryTile) player.inventory.getActiveItem()).getTileID(), 1)));
-					((InventoryTile) player.inventory.getActiveItem()).removeQuantity(1);
+			if (getPlayer().inventory.getActiveItem() != null) {
+				boolean stack = game.input.ctrl.isPressed();
+				int quantity = 1;
+				if (getPlayer().inventory.getActiveItem().getClass() == Ingredient.class) {
+					if (stack) quantity = ((Ingredient) getPlayer().inventory.getActiveItem()).getQuantity();
+					addEntity(new PhysicalItem(1000 + getPlayer().inventory.getActiveItem().getItemID(), this, true, 
+							x, getPlayer().y + getPlayer().spriteHeight / 4, vX, vY, new Ingredient(((Ingredient) getPlayer().inventory.getActiveItem()).getItemID(), quantity)));
+					((Ingredient) getPlayer().inventory.getActiveItem()).removeQuantity(quantity);
+				} else if (getPlayer().inventory.getActiveItem().getClass() == InventoryTile.class) {
+					if (stack) quantity = ((InventoryTile) getPlayer().inventory.getActiveItem()).getQuantity();
+					addEntity(new PhysicalItem(1000 + getPlayer().inventory.getActiveItem().getItemID(), this, true, 
+							x, getPlayer().y + getPlayer().spriteHeight / 4, vX, vY, new InventoryTile(((InventoryTile) getPlayer().inventory.getActiveItem()).getTileID(), quantity)));
+					((InventoryTile) getPlayer().inventory.getActiveItem()).removeQuantity(quantity);
 				} else {
-					addEntity(new PhysicalItem(1000 + player.inventory.getActiveItem().getItemID(), this, true, 
-							x, player.y + player.spriteHeight / 4, vX, vY, player.inventory.getActiveItem()));
-					player.inventory.getActiveItem().markedForDeletion = true;
+					addEntity(new PhysicalItem(1000 + getPlayer().inventory.getActiveItem().getItemID(), this, true, 
+							x, getPlayer().y + getPlayer().spriteHeight / 4, vX, vY, getPlayer().inventory.getActiveItem()));
+					getPlayer().inventory.getActiveItem().markedForDeletion = true;
 				}
+				getPlayer().queuePlayerModelUpdate();
 			}
 		}
 		
@@ -526,6 +622,41 @@ public class Level {
 				}
 				if (projectilesToRemove <= 0) return;
 			}
+		}
+		
+		if (enemyCount > enemyCap || game.drawResolution == null) return;
+		
+		for (int i = game.xOffset >> 5; i < (game.xOffset + game.drawResolution.width) >> 5; i++) {
+			for (int j = game.yOffset >> 5; j < (game.yOffset + game.drawResolution.height) >> 5; j++) {
+				if (i >= 0 && j >= 0 && i < width && j < height) {
+					if (drawCaveWall[i][j] && tiles[i][j] <= 2 && discreteLightLevels[i][j] < 122) {
+						if (Math.random() < 0.00000024) generateEnemy("Slime", i << 5, j << 5, 1, 10, 32, 32, 0);
+					}
+				}
+			}
+		}
+	}
+	
+	public void setAttractionStrength(double strength) {
+		this.attractionStrength = strength;
+	}
+	
+	public void setAttractionRadius(double radius) {
+		this.attractionRadius = radius;
+	}
+	
+	public double getAttractionStrength() {
+		return attractionStrength;
+	}
+	
+	public double getAttractionRadius() {
+		return attractionRadius;
+	}
+ 	
+	private void generateEnemy(String name, int x, int y, int speed, int baseHealth, int hitboxWidth, int hitboxHeight, int type) {
+		switch (type) {
+		case 0: this.addEntity(new Enemy(7701 + type, this, name, x, y, speed, baseHealth, hitboxWidth, hitboxHeight, getPlayer().getLocalGravity(), 0.8, 14.5939)); break;
+		default: break;
 		}
 	}
 	
@@ -648,7 +779,8 @@ public class Level {
 								}
 							}
 						}
-					} else {// Apply gravity to tiles not supported on any side
+					} else if (tiles[i][j] == Tile.TORCH.getId() || tiles[i][j] == Tile.WOOD_PLATFORM.getId() && drawCaveWall[i][j]) {} // Do nothing
+					else { // Apply gravity to tiles not supported on any side
 						activatedOxygenTethers[i][j] = false;
 						if (i > 1 && i < width - 1 && j > 1 && j < height - 1) {
 							if (tiles[i - 1][j] <= 2 && tiles[i + 1][j] <= 2 && tiles[i][j - 1] <= 2 && tiles[i][j + 1] <= 2) {
@@ -661,8 +793,10 @@ public class Level {
 									durabilities[i][j + 1] = ((BackgroundDestructibleTile) Tile.tiles[tileID]).getBaseDurability();
 									baseDurabilities[i][j + 1] = ((BackgroundDestructibleTile) Tile.tiles[tileID]).getBaseDurability();
 								}
+	
 								tiles[i][j] = replacementID;
 								tiles[i][j + 1] = tileID;
+								
 								change = true;
 							}
 						}
@@ -681,7 +815,7 @@ public class Level {
 						} else {
 							tiles[i][j] = Tile.CONVEYOR.getId();
 						}
-					}
+					} else conveyorSpeeds[i][j] = 0;
 					
 					// Causes inconsistent performance
 					/*if (!(i == game.input.lastDestructibleX && j == game.input.lastDestructibleY) && durabilities[i][j] < baseDurabilities[i][j]) {
@@ -700,6 +834,9 @@ public class Level {
 				if (change) {
 					i--;
 					j--;
+					
+					//i = game.xOffset >> 5;
+					//j = game.yOffset >> 5;
 				}
 			}
 		}
@@ -718,20 +855,45 @@ public class Level {
 		double flattenedSine = Math.signum(skySineFunction) * Math.max(0, Math.min(1, 1.25 * Math.pow(Math.abs(skySineFunction), 0.5)));
 		
 		skyLightLevel = (byte) Math.ceil(-127 * flattenedSine);
-		for (int i = (player.x - game.getDrawResolution().width / 2) >> 5; 
-				i < (player.x + game.getDrawResolution().width) >> 5; i++) {
-			for (int j = (player.y - game.getDrawResolution().height) >> 5; 
-					j < (player.y + game.getDrawResolution().height) >> 5; j++) {
-				if (i < 0 || i >= width || j < 0 || j >= height) continue;
-				discreteLightLevels[i][j] = skyLightLevel;
+		
+		boolean[][] skipLight = new boolean[width][height];
+		for (int i = (getPlayer().x - game.getDrawResolution().width / 2) >> 5; 
+				i < (getPlayer().x + game.getDrawResolution().width) >> 5; i++) {
+			for (int j = (getPlayer().y - game.getDrawResolution().height) >> 5; 
+					j < (getPlayer().y + game.getDrawResolution().height) >> 5; j++) {
+				if (i < 1 || i >= width - 1 || j < 0 || j >= height) continue;
+				if (!drawCaveWall[i][j] && skyLightLevel > discreteLightLevels[i][j]) discreteLightLevels[i][j] = skyLightLevel;
+				else if (drawCaveWall[i][j]) {
+					if (!drawCaveWall[i][j - 1] && tiles[i][j - 1] <= 2) {
+						int l = j;
+						byte exposedLightLevel = discreteLightLevels[i][j - 1];
+						while (l < height && exposedLightLevel >= -127 && !Tile.tiles[tiles[i][l - 2]].isSolid()) {
+							//System.out.println(exposedLightLevel);
+							if (exposedLightLevel <= -5) exposedLightLevel = (byte) (exposedLightLevel * 6 / 5 < -127 ? -127 : exposedLightLevel * 6 / 5);
+							else if (exposedLightLevel > 1) exposedLightLevel = (byte) (Math.sqrt(exposedLightLevel));
+							else exposedLightLevel = -5;
+							if (exposedLightLevel < -127) exposedLightLevel = -127;
+							discreteLightLevels[i][l] = exposedLightLevel;
+
+							byte newExposedLightLevel = exposedLightLevel;
+							if (newExposedLightLevel <= -5) newExposedLightLevel = (byte) (newExposedLightLevel * 9 / 5 < -127 ? -127 : newExposedLightLevel * 9 / 5);
+							else if (newExposedLightLevel > 1) newExposedLightLevel = (byte) (-Math.sqrt(newExposedLightLevel));
+							discreteLightLevels[i - 1][l] = newExposedLightLevel > discreteLightLevels[i - 1][l] ? newExposedLightLevel : discreteLightLevels[i - 1][l];
+							discreteLightLevels[i + 1][l] = newExposedLightLevel > discreteLightLevels[i + 1][l] ? newExposedLightLevel : discreteLightLevels[i + 1][l];
+							
+							skipLight[i][l] = true;
+							l++;
+						}
+					}
+					if (!skipLight[i][j]) discreteLightLevels[i][j] = -127;
+				}
 			}
 		}
 		
-		//System.out.println("Sky light level: " + skyLightLevel + " (Raw sine: " + skySineFunction + ")"  + " (Flattened sine: " + flattenedSine + ")");
-		for (int i = (player.x - game.getDrawResolution().width) >> 5; 
-				i < (player.x + 3 * game.getDrawResolution().width) >> 5; i++) {
-			for (int j = (player.y - game.getDrawResolution().height) >> 5; 
-					j < (player.y + 3 * game.getDrawResolution().height) >> 5; j++) {
+		for (int i = (getPlayer().x - game.getDrawResolution().width) >> 5; 
+				i < (getPlayer().x + 3 * game.getDrawResolution().width) >> 5; i++) {
+			for (int j = (getPlayer().y - game.getDrawResolution().height) >> 5; 
+					j < (getPlayer().y + 3 * game.getDrawResolution().height) >> 5; j++) {
 				if (i < 0 || i >= width || j < 0 || j >= height) continue;
 				if (tiles != null && tiles[i][j] == Tile.LAMP.getId()) {
 					drawLightCircle(i, j, 16, 1);
@@ -745,10 +907,13 @@ public class Level {
 			}
 		}
 		
+		//System.out.println("Sky light level: " + skyLightLevel + " (Raw sine: " + skySineFunction + ")"  + " (Flattened sine: " + flattenedSine + ")");
+
+		
 		if (game.input.light.isPressed()) {
 			if (entities != null && entities.get(0).getClass() == Player.class) {
-				if (player.getMovingDir() == 2)	drawLightCircle(player.x >> 5, player.y >> 5, 2, 8);
-				else if (player.getMovingDir() == 3) drawLightCircle((player.x >> 5) + 3, player.y >> 5, 2, 8);
+				if (getPlayer().getMovingDir() == 2)	drawLightCircle(getPlayer().x >> 5, getPlayer().y >> 5, 2, 8);
+				else if (getPlayer().getMovingDir() == 3) drawLightCircle((getPlayer().x >> 5) + 3, getPlayer().y >> 5, 2, 8);
 			}
 		}
 	}
@@ -764,7 +929,7 @@ public class Level {
 						&& i + k - radius > 0 && i + k - radius < width && j + l - radius > 0 && j + l - radius < height
 							&& distance <= 255 && distance >= 0
 								&& (byte) (127 - distance) > discreteLightLevels[i + k - radius][j + l - radius]) {
-					discreteLightLevels[i + k - radius][j + l - radius] = (byte) (127 - distance);
+					if ((byte) (127 - distance) > discreteLightLevels[i + k - radius][j + l - radius]) discreteLightLevels[i + k - radius][j + l - radius] = (byte) (127 - distance);
 				}
 			}
 			//System.out.println("");
@@ -783,15 +948,35 @@ public class Level {
 	}
 	
 	public boolean isExplored(int x, int y) {
-		if (x < 0 || x >= width || y < 0 || y >= height) return false;
-		else return exploredTiles[x][y];
+		return (x >= 0 && x < width && y >= 0 && y < height && exploredTiles[x][y]);
+	}
+	
+	public boolean isVisibleNear(int x, int y) {
+		return (x > 0 && x < width - 1 && y > 0 && y < height - 1 
+				&& (visibleTiles[x + 1][y] || visibleTiles[x - 1][y] 
+						|| visibleTiles[x][y + 1] || visibleTiles[x][y - 1]
+				|| visibleTiles[x + 1][y + 1] || visibleTiles[x + 1][y - 1]
+				|| visibleTiles[x - 1][y + 1] || visibleTiles[x - 1][y - 1]));
+	}
+	
+	public boolean visibleProximity(int x, int y, int length) {
+		if (length == 1) return isVisibleNear(x, y);
+		else if (x < length || y < length || x >= width - length || y >= height - length) return false;
+		else if (length == 2) return ((visibleTiles[x + length][y] || visibleTiles[x - length][y] 
+						|| visibleTiles[x][y + length] || visibleTiles[x][y - length])
+						|| visibleTiles[x + length][y + length] || visibleTiles[x + length][y - length]
+						|| visibleTiles[x - length][y + length] || visibleTiles[x - length][y - length]);
+		return (x >= length && x < width - length && y >= length && y < height - length && (visibleTiles[x + length][y] || visibleTiles[x - length][y] || visibleTiles[x][y + length] || visibleTiles[x][y - length]));
 	}
 	
 	public boolean isVisible(int x, int y) {
-		if (x < 0 || x >= width || y < 0 || y >= height) return false;
-		else return visibleTiles[x][y];
+		return (x >= 0 && x < width && y >= 0 && y < height && visibleTiles[x][y]);
 	}
 		
+	public boolean getLeftButtonHeld() {
+		return leftButtonHeld;
+	}
+	
 	public void checkLeafDecay(int x, int y) {
 		if (tiles[x][y] == Tile.LEAVES.getId()) {
 			boolean woodFound = false;
@@ -808,7 +993,7 @@ public class Level {
 				for (int i = 0; i < woodRadius; i++) {
 					for (int j = 0; j < woodRadius; j++) {
 						if (tiles[x + i][y + j] == Tile.LEAVES.getId()) tiles[x + i][y + j] = Tile.SKY.getId();
-						if (Math.random() < 0.25) player.inventory.addItem(ItemFactory.createItem("i", new int[] {6, 1}));
+						if (Math.random() < 0.25) getPlayer().inventory.addItem(ItemFactory.createItem("i", new int[] {6, 1}));
 					}
 				}
 			}
@@ -878,7 +1063,7 @@ public class Level {
 					e.markedForDeletion = true;
 					
 					for (InventoryItem i : ((Crop) e).returnDroppables()) {
-						player.inventory.addItem(i);
+						getPlayer().inventory.addItem(i);
 					}
 				}
 			} else if (e != null && ElectricalDevice.class.isAssignableFrom(e.getClass())) {
@@ -888,7 +1073,7 @@ public class Level {
 						FileUtilities.log("Picked up an electrical device\n");
 						game.audioManager.play(2);
 						((ElectricalDevice) e).clearAllConnections();
-						player.inventory.addItem(new InventoryEntity(e));
+						getPlayer().inventory.addItem(new InventoryEntity(e));
 						e.markedForDeletion = true;
 						e = null;
 					} else if (game.input.ctrl.isPressed()) {
@@ -897,21 +1082,21 @@ public class Level {
 						game.audioManager.play(4);
 					} else {
 						if (e.getClass() == PowerGenerator.class) {
-							if (player.inventory.getActiveItem() != null 
-									&& player.inventory.getActiveItem().getClass() == Ingredient.class 
-									&& ((Ingredient) (player.inventory.getActiveItem())).getItemID() == 12)	{
+							if (getPlayer().inventory.getActiveItem() != null 
+									&& getPlayer().inventory.getActiveItem().getClass() == Ingredient.class 
+									&& ((Ingredient) (getPlayer().inventory.getActiveItem())).getItemID() == 12)	{
 								FileUtilities.log("Fueled up power generator ");
 								int totalPower = 0;
 								int quantity = 0;
 								boolean fuelSuccessful = false;
 								if (game.input.shift.isPressed()) {
-									while (((Ingredient) (player.inventory.getActiveItem())).getQuantity() >= 1) {
+									while (((Ingredient) (getPlayer().inventory.getActiveItem())).getQuantity() >= 1) {
 										double energy = 2000 + Math.floor(Math.random() * 1000);
 										
 										fuelSuccessful = ((PowerGenerator) e).insertFuel(energy);
 										
 										if (fuelSuccessful) {
-											((Ingredient) (player.inventory.getActiveItem())).removeQuantity(1);
+											((Ingredient) (getPlayer().inventory.getActiveItem())).removeQuantity(1);
 											quantity++;
 											totalPower += energy;
 										} else {
@@ -924,7 +1109,7 @@ public class Level {
 									fuelSuccessful = ((PowerGenerator) e).insertFuel(energy);
 									
 									if (fuelSuccessful) {
-										((Ingredient) (player.inventory.getActiveItem())).removeQuantity(1);
+										((Ingredient) (getPlayer().inventory.getActiveItem())).removeQuantity(1);
 										quantity++;
 										totalPower += energy;
 									}
@@ -938,28 +1123,28 @@ public class Level {
 			} else if (e != null && e.getClass() == StoneFurnace.class) {
 				//System.out.println("x: " + clickX + " y: " + clickY + " target x: " + ((e.x << 5) - 1) + " target y " + ((e.y << 5) - 16) + " target width: " + 36 + " target height: " + 48);
 				if (Utilities.PhysicsUtilities.checkIntersection(clickX, clickY, (e.x << 5), (e.y << 5), 32, 32, true)) {
-					if (player.inventory.getActiveItem() != null 
-							&& player.inventory.getActiveItem().getClass() == Ingredient.class 
-							&& ((Ingredient) (player.inventory.getActiveItem())).getItemID() == 12)	{
+					if (getPlayer().inventory.getActiveItem() != null 
+							&& getPlayer().inventory.getActiveItem().getClass() == Ingredient.class 
+							&& ((Ingredient) (getPlayer().inventory.getActiveItem())).getItemID() == 12)	{
 						FileUtilities.log("Fueled up stone furnace with ");
 						int coal = 0;
 						if (!game.input.shift.isPressed()) {
 							coal = 1;
 							if (!((StoneFurnace) e).fuel()) coal = 0;
 						} else {
-							for(int i = 0; i <= ((Ingredient) (player.inventory.getActiveItem())).getQuantity(); i++) {
+							for(int i = 0; i <= ((Ingredient) (getPlayer().inventory.getActiveItem())).getQuantity(); i++) {
 								if (!((StoneFurnace) e).fuel()) break;
 								coal++;
 							}
 						}
 						FileUtilities.log(coal + " coal\n");
-						if (coal > 0) ((Ingredient) (player.inventory.getActiveItem())).removeQuantity(coal);
-					} else if (player.inventory.getActiveItem() != null 
-							&& player.inventory.getActiveItem().getClass() == InventoryTile.class 
-							&& (((InventoryTile) (player.inventory.getActiveItem())).getTileID() == Tile.IRON_ORE.getId()
-							|| ((InventoryTile) (player.inventory.getActiveItem())).getTileID() == Tile.COPPER_ORE.getId()
-							|| ((InventoryTile) (player.inventory.getActiveItem())).getTileID() == Tile.COBBLESTONE.getId()))	{
-						((StoneFurnace) e).setStoredItem(player.inventory.getActiveItem(), game.input.shift.isPressed());
+						if (coal > 0) ((Ingredient) (getPlayer().inventory.getActiveItem())).removeQuantity(coal);
+					} else if (getPlayer().inventory.getActiveItem() != null 
+							&& getPlayer().inventory.getActiveItem().getClass() == InventoryTile.class 
+							&& (((InventoryTile) (getPlayer().inventory.getActiveItem())).getTileID() == Tile.IRON_ORE.getId()
+							|| ((InventoryTile) (getPlayer().inventory.getActiveItem())).getTileID() == Tile.COPPER_ORE.getId()
+							|| ((InventoryTile) (getPlayer().inventory.getActiveItem())).getTileID() == Tile.COBBLESTONE.getId()))	{
+						((StoneFurnace) e).setStoredItem(getPlayer().inventory.getActiveItem(), game.input.shift.isPressed());
 					}
 				}
 			}
@@ -970,9 +1155,9 @@ public class Level {
 					if (game.input.alt.isPressed()) {
 						FileUtilities.log("Toggled output direction of production device: " + e.toString() + "\n");
 						((ProductionDevice) e).toggleOutputDirection();
-					} else if (player.inventory.getActiveItem() != null && ((ProductionDevice) e).isAcceptableInput(player.inventory.getActiveItem())) {
-						FileUtilities.log("Trying to insert " + player.inventory.getActiveItem().toString() + " into " + e.toString() + "\n");
-						if (!((ProductionDevice) e).tryToPopulateInputWithClonedItems(new InventoryItem[] {player.inventory.getActiveItem()})) {
+					} else if (getPlayer().inventory.getActiveItem() != null && ((ProductionDevice) e).isAcceptableInput(getPlayer().inventory.getActiveItem())) {
+						FileUtilities.log("Trying to insert " + getPlayer().inventory.getActiveItem().toString() + " into " + e.toString() + "\n");
+						if (!((ProductionDevice) e).tryToPopulateInputWithClonedItems(new InventoryItem[] {getPlayer().inventory.getActiveItem()})) {
 							FileUtilities.log("\tInsertion failed");
 							System.out.print(" :(");
 							FileUtilities.log("\n");
@@ -980,8 +1165,8 @@ public class Level {
 							FileUtilities.log("\tInsertion successful");
 							System.out.print(" ;)");
 							FileUtilities.log("\n");
-							System.out.println("Manually added item " + player.inventory.getActiveItem().toString() + " to production device " + ((ProductionDevice) e).toString());
-							player.inventory.getActiveItem().markedForDeletion = true;
+							System.out.println("Manually added item " + getPlayer().inventory.getActiveItem().toString() + " to production device " + ((ProductionDevice) e).toString());
+							getPlayer().inventory.getActiveItem().markedForDeletion = true;
 						}
 					}
 				}
@@ -1002,11 +1187,11 @@ public class Level {
 							else if (!floatingElectricalDevice.equals(e)) {
 								double wireDistance = Math.sqrt((floatingElectricalDevice.x - e.x) * (floatingElectricalDevice.x - e.x) + (floatingElectricalDevice.y - e.y) * (floatingElectricalDevice.y - e.y));
 								// Check to see if the player has enough copper wire in their active item slot
-								if (player.inventory.getActiveItem() != null 
-										&& player.inventory.getActiveItem().getClass() == Ingredient.class 
-										&& ((Ingredient) (player.inventory.getActiveItem())).getItemID() == 11
-										&& ((Ingredient) (player.inventory.getActiveItem())).getQuantity() > Math.ceil(wireDistance)) {
-									((Ingredient) (player.inventory.getActiveItem())).removeQuantity((int) Math.ceil(wireDistance));
+								if (getPlayer().inventory.getActiveItem() != null 
+										&& getPlayer().inventory.getActiveItem().getClass() == Ingredient.class 
+										&& ((Ingredient) (getPlayer().inventory.getActiveItem())).getItemID() == 11
+										&& ((Ingredient) (getPlayer().inventory.getActiveItem())).getQuantity() > Math.ceil(wireDistance)) {
+									((Ingredient) (getPlayer().inventory.getActiveItem())).removeQuantity((int) Math.ceil(wireDistance));
 									FileUtilities.log((int) Math.ceil(wireDistance) + " wire consumed\n");
 									if (floatingElectricalDevice.connectDevice((ElectricalDevice) e, (int) Math.ceil(wireDistance))
 											&& ((ElectricalDevice) e).connectDevice(floatingElectricalDevice, (int) Math.ceil(wireDistance))) {
@@ -1033,7 +1218,7 @@ public class Level {
 				} else if (e != null && e.getClass() == StoneFurnace.class) {
 					//System.out.println("x: " + clickX + " y: " + clickY + " target x: " + ((e.x << 5) - 1) + " target y " + ((e.y << 5) - 16) + " target width: " + 36 + " target height: " + 48);
 					if (Utilities.PhysicsUtilities.checkIntersection(clickX, clickY, (e.x << 5), (e.y << 5), 32, 32, true)) {
-						((StoneFurnace) e).removeItem(player.inventory, game.input.shift.isPressed());
+						((StoneFurnace) e).removeItem(getPlayer().inventory, game.input.shift.isPressed());
 					}
 				}
 			}
@@ -1046,15 +1231,15 @@ public class Level {
 	
 	public boolean checkLeftClickTileCollision(int clickX, int clickY) {
 		if (clickX > 0 && clickY > 0 && clickX < width && clickY < height) {
-			if ((player.inventory.getActiveItem() == null || !(player.inventory.getActiveItem().getClass().getSuperclass() == InventoryTool.class))
+			if ((getPlayer().inventory.getActiveItem() == null || !(getPlayer().inventory.getActiveItem().getClass().getSuperclass() == InventoryTool.class))
 					&& tiles[clickX][clickY] >= Tile.CONVEYOR.getId() && tiles[clickX][clickY] <= Tile.CONVEYOR_MIDDLE.getId()) {
 				if (conveyorSpeeds[clickX][clickY] == 0) setConveyor(clickX, clickY, 0.5);
 				else if (game.input.ctrl.isPressed()) setConveyor(clickX, clickY, 0);
 				else flipConveyor(clickX, clickY);
 				resetDestructibleTile(clickX, clickY);
 				return true;
-			} else if (!(player.inventory.getActiveItem() == null) && ColorSelector.class.isAssignableFrom(player.inventory.getActiveItem().getClass())) {
-				setTileColor(clickX, clickY, ((ColorSelector) player.inventory.getActiveItem()).getColor().getRGB());
+			} else if (!(getPlayer().inventory.getActiveItem() == null) && ColorSelector.class.isAssignableFrom(getPlayer().inventory.getActiveItem().getClass())) {
+				setTileColor(clickX, clickY, ((ColorSelector) getPlayer().inventory.getActiveItem()).getColor().getRGB());
 			}
 		}
 		return false;
@@ -1080,8 +1265,8 @@ public class Level {
 		}
 		
 		// Damage player based on proximity
-		if (Math.pow(Math.abs(player.x >> 5 - x), 2) + Math.pow(Math.abs(player.y >> 5 - y), 2) < 32) {
-			player.damage(128);
+		if (Math.pow(Math.abs(getPlayer().x >> 5 - x), 2) + Math.pow(Math.abs(getPlayer().y >> 5 - y), 2) < 32) {
+			getPlayer().damage(128);
 		}
 	}
 	
@@ -1187,10 +1372,10 @@ public class Level {
 		double wireDistance = Math.sqrt((d.getLevelX() - currentMouseXOnPanel) * (d.getLevelX() - currentMouseXOnPanel)
 				+ (d.getLevelY() - currentMouseYOnPanel) * (d.getLevelY() - currentMouseYOnPanel));
 		
-		if (player.inventory.getActiveItem() != null 
-				&& player.inventory.getActiveItem().getClass() == Ingredient.class 
-				&& ((Ingredient) (player.inventory.getActiveItem())).getItemID() == 11
-				&& ((Ingredient) (player.inventory.getActiveItem())).getQuantity() > Math.ceil(wireDistance / 32)) g2.setColor(Color.GREEN);
+		if (getPlayer().inventory.getActiveItem() != null 
+				&& getPlayer().inventory.getActiveItem().getClass() == Ingredient.class 
+				&& ((Ingredient) (getPlayer().inventory.getActiveItem())).getItemID() == 11
+				&& ((Ingredient) (getPlayer().inventory.getActiveItem())).getQuantity() > Math.ceil(wireDistance / 32)) g2.setColor(Color.GREEN);
 		else g2.setColor(Color.RED);
 		
 		g2.setStroke(new BasicStroke(4));
@@ -1244,21 +1429,47 @@ public class Level {
 	
 	public void destructible(int targetX, int targetY, double damage) {
 		Tile t = getTile(targetX, targetY);
-		if (t.getId() != 8191 && (t.getClass() == DestructibleTile.class || t.getClass() == BackgroundDestructibleTile.class || t.getClass() == Platform.class)) {
+		if (t.getId() != 8191 && t.getId() > 2 && (t.getClass() == DestructibleTile.class || t.getClass() == BackgroundDestructibleTile.class || t.getClass() == Platform.class)) {
 			double initialDurability = getDurability(targetX, targetY);
 			setDurability(targetX, targetY, initialDurability - damage);
+			player.queuePlayerModelUpdate();
+			player.queueMeleeImage();
+			
+			// Tile destroyed
 			if (getDurability(targetX, targetY) <= 0) {
-				if (tiles[targetX][targetY] == 8) game.player.inventory.addItem(new InventoryTile(17, 1));
-				else if (tiles[targetX][targetY] == 21) game.player.inventory.addItem(new Ingredient(12, 3 + (int) Math.ceil(8 * Math.random())));
-				else game.player.inventory.addItem(new InventoryTile(tiles[targetX][targetY], 1));
+				/*
+				if (tiles[targetX][targetY] == 8) player.inventory.addItem(new InventoryTile(17, 1));
+				else if (tiles[targetX][targetY] == 21) player.inventory.addItem(new Ingredient(12, 3 + (int) Math.ceil(8 * Math.random())));
+				else player.inventory.addItem(new InventoryTile(tiles[targetX][targetY], 1));
+				*/
+				
+				int tileID = t.getId();
+				double vX = Math.random() * 0.2 - 0.1;
+				double vY = Math.random() * 0.1 - 0.075;
+				PhysicalItem item;
+				if (tileID == Tile.STONE.getId()) {
+					item = new PhysicalItem(1000 + tileID, this, true, targetX << 5, targetY << 5, vX, vY, new InventoryTile(Tile.COBBLESTONE.getId(), 1));
+				} else if (tileID == Tile.COAL_ORE.getId()) {
+					item = new PhysicalItem(1000 + 12, this, true, targetX << 5, targetY << 5, vX, vY, new Ingredient(12, 3 + (int) Math.ceil(8 * Math.random())));
+				} else {
+					item = new PhysicalItem(1000 + tileID, this, true, targetX << 5, targetY << 5, vX, vY, new InventoryTile(tileID, 1));
+				}
+				queueEntity(item);
+				
+				player.queuePlayerModelUpdate();
 				setTile(targetX, targetY, 2);
 				if (game.tracker != null) game.tracker.incrementBasicStat("Tiles Mined");
 				queueUpdate = true;
+				player.queueMeleeImage(25);
 			}
 		}
 	}
 	
 	public void setLeftButtonHeld(boolean held) {
 		leftButtonHeld = held;
+	}
+
+	public Player getPlayer() {
+		return player;
 	}
 }

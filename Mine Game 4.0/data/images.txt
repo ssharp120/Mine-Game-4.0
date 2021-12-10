@@ -33,6 +33,9 @@
 32 tile/dry_wall
 33 tile/cactus
 34 tile/oxygen_tether
+35 tile/cave_wall
+36 tile/iron_post
+37 tile/wood_frame
 5000 gui/arrow
 5001 gui/arrow_success
 5002 gui/arrowsmall
@@ -65,7 +68,14 @@
 7502 entity/player/walk2
 7503 entity/player/walk3
 7504 entity/player/walk4
+7505 entity/player/punch
+7506 entity/player/arm1
+7507 entity/player/arm2
+7508 entity/player/arm3
+7509 entity/player/arm4
+7510 entity/player/punch_arm
 7700 entity/enemy/dummy
+7701 entity/enemy/slime
 8190 tile/barrier
 8191 tile/air
 8192 tile/crack
@@ -103,6 +113,7 @@
 12018 item/paint
 12019 item/bottle
 12020 item/science
+12021 item/slime_jelly
 15000 entity/machine/stone_furnace_filled
 15001 entity/machine/stone_furnace_iron
 15002 entity/machine/stone_furnace_copper

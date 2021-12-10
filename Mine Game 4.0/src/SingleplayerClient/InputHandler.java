@@ -317,7 +317,8 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 			gameIn.level.explode(clickX >> 5, clickY >> 5);
 		}
 		if (gameIn.player.inventory.getTileFromHotbar() != 2) {
-			placeTile(clickX, clickY);
+			gameIn.level.placeTile(clickX, clickY);
+			gameIn.player.queueMeleeImage(20);
 		}
 		if (gameIn.player.inventory.getActiveItem() != null) {			
 			if (gameIn.player.inventory.getActiveItem().getClass() == Ingredient.class) {
@@ -381,59 +382,6 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 							return;
 						}
 					}
-				}
-			}
-		}
-	}
-	
-	public void placeTile(int clickX, int clickY) {
-		if (gameIn.player != null && gameIn.level != null) {
-			if (gameIn.level.getTile(clickX >> 5, clickY >> 5).getId() == 2) {
-				if (gameIn.level.getTile((clickX >> 5) + 1, clickY >> 5).getId() == 2 && gameIn.level.getTile((clickX >> 5) - 1, clickY >> 5).getId() == 2 && gameIn.level.getTile(clickX >> 5, (clickY >> 5) + 1).getId() == 2 && gameIn.level.getTile(clickX >> 5, (clickY >> 5) - 1).getId() == 2) return;
-				
-				int t = gameIn.player.inventory.getTileFromHotbar();
-				
-				//System.out.println("Player x: Left: " + gameIn.player.x + ", Right: " + (gameIn.player.x + gameIn.player.spriteWidth) + ", Tile x: Left: " + ((clickX >> 5) << 5) + ", Right: " + (((clickX >> 5) << 5) + 32));
-				if (((clickX >> 5) << 5) + 32 >= gameIn.player.x && (clickX >> 5) << 5 <= gameIn.player.x + gameIn.player.spriteWidth 
-						&& ((clickY >> 5) << 5) + 32 >= gameIn.player.y && (clickY >> 5) << 5 <= gameIn.player.y + gameIn.player.spriteHeight
-						&& Tile.tiles[t].getClass() != BackgroundDestructibleTile.class) return;
-				
-				((InventoryTile) gameIn.player.inventory.getActiveItem()).removeQuantity(1);
-				if (gameIn.tracker != null) gameIn.tracker.incrementBasicStat("Tiles Placed");
-				gameIn.level.setTile(clickX >> 5, clickY >> 5, t);
-				if (Tile.tiles[t].getClass() == DestructibleTile.class) {
-					gameIn.level.setDurability(clickX >> 5, clickY >> 5, ((DestructibleTile) Tile.tiles[t]).getBaseDurability());
-				}
-				if (Tile.tiles[t].getClass() == BackgroundDestructibleTile.class) {
-					gameIn.level.setDurability(clickX >> 5, clickY >> 5, ((BackgroundDestructibleTile) Tile.tiles[t]).getBaseDurability());
-				}
-				if (t == Tile.CONVEYOR.getId()) {
-					if (clickX >> 5 > 0 && clickX >> 5 < gameIn.level.width && clickY >> 5 > 0 && clickY >> 5 < gameIn.level.height) {
-						gameIn.level.checkConveyor(clickX >> 5, clickY >> 5);
-					}
-				}
-			}
-		}
-	}
-	
-	public void placeTile(int clickX, int clickY, int tileID) {
-		if (gameIn.player != null && gameIn.level != null) {
-			if (gameIn.level.getTile(clickX >> 5, clickY >> 5).getId() == 2) {
-				if (gameIn.level.getTile((clickX >> 5) + 1, clickY >> 5).getId() == 2 && gameIn.level.getTile((clickX >> 5) - 1, clickY >> 5).getId() == 2 && gameIn.level.getTile(clickX >> 5, (clickY >> 5) + 1).getId() == 2 && gameIn.level.getTile(clickX >> 5, (clickY >> 5) - 1).getId() == 2) return;
-				
-				int t = tileID;
-				
-				//System.out.println("Player x: Left: " + gameIn.player.x + ", Right: " + (gameIn.player.x + gameIn.player.spriteWidth) + ", Tile x: Left: " + ((clickX >> 5) << 5) + ", Right: " + (((clickX >> 5) << 5) + 32));
-				if (((clickX >> 5) << 5) + 32 >= gameIn.player.x && (clickX >> 5) << 5 <= gameIn.player.x + gameIn.player.spriteWidth 
-						&& ((clickY >> 5) << 5) + 32 >= gameIn.player.y && (clickY >> 5) << 5 <= gameIn.player.y + gameIn.player.spriteHeight
-						&& Tile.tiles[t].getClass() != BackgroundDestructibleTile.class) return;
-				
-				gameIn.level.setTile(clickX >> 5, clickY >> 5, t);
-				if (Tile.tiles[t].getClass() == DestructibleTile.class) {
-					gameIn.level.setDurability(clickX >> 5, clickY >> 5, ((DestructibleTile) Tile.tiles[t]).getBaseDurability());
-				}
-				if (Tile.tiles[t].getClass() == BackgroundDestructibleTile.class) {
-					gameIn.level.setDurability(clickX >> 5, clickY >> 5, ((BackgroundDestructibleTile) Tile.tiles[t]).getBaseDurability());
 				}
 			}
 		}
@@ -565,8 +513,14 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 	public void mouseWheelMoved(MouseWheelEvent arg0) {
 		int scrollDelta = arg0.getWheelRotation();
 		if (controlScheme == ControlScheme.GAMEPLAY) {
-			if (scrollDelta > 0) for (int i = 0; i < scrollDelta; i++)  gameIn.player.inventory.incrementHotbarSlot();
-			if (scrollDelta < 0) for (int i = 0; i < -scrollDelta; i++) gameIn.player.inventory.decrementHotbarSlot();
+			if (scrollDelta > 0) for (int i = 0; i < scrollDelta; i++)  {
+				gameIn.player.inventory.incrementHotbarSlot();
+				gameIn.player.queuePlayerModelUpdate();
+			}
+			if (scrollDelta < 0) for (int i = 0; i < -scrollDelta; i++) {
+				gameIn.player.inventory.decrementHotbarSlot();
+				gameIn.player.queuePlayerModelUpdate();
+			}
 		} else if (controlScheme == ControlScheme.BASIC_CRAFTING) {
 			gameIn.basicCraftingGUI.handleScroll(scrollDelta);
 		} else if (controlScheme == ControlScheme.PAUSE_MENU) {

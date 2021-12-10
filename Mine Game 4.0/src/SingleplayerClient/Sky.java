@@ -23,7 +23,7 @@ public class Sky {
 	public long finetime;
 	public int timeWarp;
 	public int day;
-	public int startingTime = 75000;
+	public int startingTime = 365000;
 	public long currentTime;
 	public int[] data = new int[4];
 	public double[] ratios = new double[1];

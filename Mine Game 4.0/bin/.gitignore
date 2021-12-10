@@ -1,8 +1,5 @@
 /SingleplayerClient/
-/Structures/
-/Tiles/
+/Entities/
 /UI/
 /Utilities/
-/Client/
-/Networking/
-/Entities/
+/Tiles/

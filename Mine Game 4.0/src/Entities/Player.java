@@ -6,6 +6,8 @@ import java.awt.Composite;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.image.BufferedImage;
 import java.awt.Point;
 import java.awt.Stroke;
 import java.awt.image.ImageObserver;
@@ -49,12 +51,18 @@ public class Player extends Mob {
 	public static int spriteWidth = 64;
 	public static int spriteHeight = 128;
 	
+	private BufferedImage playerModel;
+	
+	private int lastX, lastY;
+	
+	private boolean showInventoryItem;
+	
 	// Position, velocity and acceleration stored as doubles
 	public double dX, dY;
 	public double vX, vY;
 	public double aX, aY;
 	
-	protected double localGravity = 0.025;
+	private double localGravity = 0.025;
 	
 	public boolean drawInfo;
 	
@@ -73,6 +81,7 @@ public class Player extends Mob {
 	private boolean toggleMiniMap;
 	private boolean toggleTechTree;
 	private boolean toggleLighting;
+	private boolean queuePlayerModelUpdate = false;
 	
 	// Physics variables
 	protected double airResistance = 0.001, friction = 0, mass = 100;
@@ -83,6 +92,10 @@ public class Player extends Mob {
 	protected boolean oxygenConnected;
 	private List<Point> oxyPoints = new ArrayList<Point>();
 	
+	private double meleeDamage = 0.25;
+	private boolean meleeImage = false;
+	private int meleeTimer = 0;
+	
 	public Player(Level level, String name, int x, int y, InputHandler input) {
 		super(level, name, x, y, 1, 100, spriteWidth, spriteHeight);
 		this.username = name;
@@ -90,10 +103,11 @@ public class Player extends Mob {
 		game = level.getGameLoop();
 		dX = x;
 		dY = y;
-		inventory = new Inventory(100, 80, controls);
+		inventory = new Inventory(100, 80, controls, this);
 	}
 
 	public void tick() {
+		meleeImage = false;
 		oxyPoints.removeIf(i -> Math.pow(Math.abs(i.x - x + 32)^2 + Math.abs(i.y * 32 - y + 64)^2, 0.5) > 22);
 		
 		// Ensure health is never negative
@@ -125,6 +139,34 @@ public class Player extends Mob {
 		
 		inventory.tick();
 		
+		if (level.getGameLoop().input.leftButtonHeld) {
+			for (Entity e : level.getEntities()) {
+				if (e.getClass() == Enemy.class) {
+					if (getMovingDir() == 2) {
+						if (x - 4 > e.x && x - 4 < e.x + ((Enemy) e).hitboxWidth
+								&& (y + spriteHeight / 2 - 48 > e.y && y + spriteHeight / 2 - 48 < e.y + ((Enemy) e).hitboxHeight
+										|| y + spriteHeight / 2 - 24 > e.y && y + spriteHeight / 2 - 24 < e.y + ((Enemy) e).hitboxHeight
+										|| y + spriteHeight / 2 > e.y && y + spriteHeight / 2 < e.y + ((Enemy) e).hitboxHeight)) {
+							((Enemy) e).damage(meleeDamage);
+							((Enemy) e).addVelocity(Math.random() * -0.5, Math.random() * -0.375);
+							meleeImage = true;
+						}
+						//x - xOffset - 8, y - yOffset + spriteHeight / 2 - 48, 8, 48);
+					} else if (getMovingDir() == 3) {
+						if (x + spriteWidth + 4 > e.x && x + spriteWidth + 4 < e.x + ((Enemy) e).hitboxWidth
+								&& (y + spriteHeight / 2 - 48 > e.y && y + spriteHeight / 2 - 48 < e.y + ((Enemy) e).hitboxHeight
+										|| y + spriteHeight / 2 - 24 > e.y && y + spriteHeight / 2 - 24 < e.y + ((Enemy) e).hitboxHeight
+										|| y + spriteHeight / 2 > e.y && y + spriteHeight / 2 < e.y + ((Enemy) e).hitboxHeight)) {
+							((Enemy) e).damage(meleeDamage);
+							((Enemy) e).addVelocity(Math.random() * 0.5, Math.random() * -0.375);
+							meleeImage = true;
+						}
+						//x - xOffset + spriteWidth, y - yOffset + spriteHeight / 2 - 48, 8, 48);
+					}
+				}
+			}
+		}
+		
 		// Handle tile destruction
 		if (controls.getControlScheme() == InputHandler.ControlScheme.GAMEPLAY) {
 			if (controls.leftButtonHeld) {
@@ -133,20 +175,24 @@ public class Player extends Mob {
 					if (inventory.getActiveItem() != null && inventory.getActiveItem().getClass().getSuperclass() == InventoryTool.class && level.getTile(controls.lastDestructibleX, controls.lastDestructibleY).getId() != Tile.SKY.getId()) {
 						j = ((InventoryTool) inventory.getActiveItem()).getHardness() / 2;
 						
+						int effectiveTilesLength = ((InventoryTool) inventory.getActiveItem()).getEffectiveTiles().length;
+						int neutralTilesLength = ((InventoryTool) inventory.getActiveItem()).getNeutralTiles().length;
+						int ineffectiveTilesLength = ((InventoryTool) inventory.getActiveItem()).getIneffectiveTiles().length;
+						
 						// Check if the targeted tile is categorized as effective, neutral or ineffective based on the currently held tool
-						for (int i = 0; i < ((InventoryTool) inventory.getActiveItem()).getEffectiveTiles().length; i++) {
+						for (int i = 0; i < effectiveTilesLength; i++) {
 							if (level.getTile(controls.lastDestructibleX, controls.lastDestructibleY).getId() == ((InventoryTool) inventory.getActiveItem()).getEffectiveTiles()[i]) {
 								// Effective hit
 								j = ((InventoryTool) inventory.getActiveItem()).getHardness(); 
 							}
 						}
-						for (int i = 0; i < ((InventoryTool) inventory.getActiveItem()).getNeutralTiles().length; i++) {
+						for (int i = 0; i < neutralTilesLength; i++) {
 							if (level.getTile(controls.lastDestructibleX, controls.lastDestructibleY).getId() == ((InventoryTool) inventory.getActiveItem()).getNeutralTiles()[i]) {
 								// Neutral hit
 								j = ((InventoryTool) inventory.getActiveItem()).getHardness() / 2; 
 							}
 						}
-						for (int i = 0; i < ((InventoryTool) inventory.getActiveItem()).getIneffectiveTiles().length; i++) {
+						for (int i = 0; i < ineffectiveTilesLength; i++) {
 							if (level.getTile(controls.lastDestructibleX, controls.lastDestructibleY).getId() == ((InventoryTool) inventory.getActiveItem()).getIneffectiveTiles()[i]) {
 								// Ineffective hit
 								j = ((InventoryTool) inventory.getActiveItem()).getHardness() / 10; 
@@ -154,7 +200,7 @@ public class Player extends Mob {
 						}
 						
 						// Damage the currently held tool
-						((InventoryTool) inventory.getActiveItem()).removeDurability(1 / j);
+						((InventoryTool) inventory.getActiveItem()).removeDurability(Math.pow(j, -2));
 					} else {
 						j = 0.1;
 					}
@@ -177,6 +223,12 @@ public class Player extends Mob {
 				else if (game.input.pageDown.isPressed()) ((ColorSelector) inventory.getActiveItem()).shiftBrightness(-delta);
 			}
 		}
+		
+		if (meleeTimer > 0) {
+			meleeImage = true;
+			meleeTimer--;
+		}
+		else meleeTimer = 0;
 	}
 	
 	public void calculatePhysics() {
@@ -236,8 +288,9 @@ public class Player extends Mob {
 		// Handle climbing on platforms
 		if (!collisionBelow(x, y, spriteWidth, spriteHeight, level) || controls.down.isPressed() && arePlatformsBelow(x, y, spriteWidth, spriteHeight, level) 
 				|| (!controls.up.isPressed() && arePlatformsAbove(x, y, spriteWidth, spriteHeight, level) & vY < 0) ) { 
-			aY = localGravity;
+			aY = getLocalGravity();
 			canJump = true;
+			queuePlayerModelUpdate();
 			if (controls.getControlScheme() != InputHandler.ControlScheme.GAMEPLAY || (!controls.left.isPressed() && !controls.right.isPressed())) {
 				if (vX > 0) {
 					aX -= airResistance * vX;
@@ -351,24 +404,24 @@ public class Player extends Mob {
 		int deltaX = Math.toIntExact(Math.round(Math.floor(dX))) - x;
 		if (deltaX > 0) {
 			for (int i = 0; i < deltaX; i++) {
-				if (level.getGameLoop() != null) level.getGameLoop().repaint();
+				//if (level.getGameLoop() != null) level.getGameLoop().repaint();
 				x++;
 			}
 		} else {		
 			for (int i = 0; i < -deltaX; i++) {
-				if (level.getGameLoop() != null) level.getGameLoop().repaint();
+				//if (level.getGameLoop() != null) level.getGameLoop().repaint();
 				x--;
 			}
 		}
 		int deltaY = Math.toIntExact(Math.round(Math.floor(dY))) - y;
 		if (deltaY > 0) {
 			for (int i = 0; i < deltaY; i++) {
-				if (level.getGameLoop() != null) level.getGameLoop().repaint();
+				//if (level.getGameLoop() != null) level.getGameLoop().repaint();
 				y++;
 			}
 		} else {		
 			for (int i = 0; i < -deltaY; i++) {
-				if (level.getGameLoop() != null) level.getGameLoop().repaint();
+				//if (level.getGameLoop() != null) level.getGameLoop().repaint();
 				y--;
 			}
 		}
@@ -447,7 +500,121 @@ public class Player extends Mob {
 			if (!(e.getMessage() == null)) FileUtilities.log(e.getMessage());
 		}
 		
+		int newImageID = lastImageID;
+		
 		if (getMovingDir() == 2) {
+			if (vX >= -0.001) newImageID = 7501;
+			else if (collisionBelow(x, y, spriteWidth, spriteHeight, level) && vX < -2.5) newImageID = 7501 + (((int) (game.ticks / 20))) % 4;
+			else newImageID = 7501 + (((int) (game.ticks / 60))) % 4;
+			
+			if (meleeImage) newImageID = 7505;
+		} else if (getMovingDir() == 3) {
+			if (vX <= 0.001) newImageID = 7501;
+			else if (collisionBelow(x, y, spriteWidth, spriteHeight, level) && vX > 2.5) newImageID = 7501 + (((int) (game.ticks / 20))) % 4;
+			else newImageID = 7501 + (((int) (game.ticks / 60))) % 4;
+			
+			if (meleeImage) newImageID = 7505;
+		}		
+		
+		showInventoryItem = !(newImageID == 7505) || (inventory.getActiveItem() != null && InventoryTool.class.isAssignableFrom(inventory.getActiveItem().getClass()));
+		
+		// Redraw player model only when the movement state changes
+		if (!game.displayLighting) {
+			playerModel = MediaLibrary.getBufferedImageFromLibrary(newImageID);
+			drawInventoryItem(playerModel, observer, newImageID);
+		} else if (!(newImageID == lastImageID) 
+				|| level.getDiscreteLightLevel((x + playerModel.getWidth() - 1) >> 5, y >> 5) == -127 
+				|| level.getDiscreteLightLevel(x >> 5, y >> 5) == -127
+				|| queuePlayerModelUpdate) {
+			queuePlayerModelUpdate = false;
+			playerModel = MediaLibrary.getBufferedImageFromLibrary(newImageID);
+			lastImageID = newImageID;
+			
+			drawInventoryItem(playerModel, observer, newImageID);
+			
+			int pixel;
+			float[] HSB = new float[3];
+			int alpha;
+			int red;
+			int green;
+			int blue;
+			
+			int newPixelRGB;
+			int newRed;
+			int newGreen;
+			int newBlue;
+			int newPixelARGB;
+			
+			float lightLevel;
+			
+			int width = playerModel.getWidth();
+			int height = playerModel.getHeight();
+			
+			for (int i = 0; i < width; i++) {
+				for (int j = 0; j < height; j++) {
+					pixel = playerModel.getRGB(i, j);
+					
+					// Skip fully transparent pixels
+					if (pixel == 0x00FFFFFF) continue;
+					
+					// Take the current pixel's RGBA value and extract its components
+					alpha = (pixel>>24)&0xFF;
+					red = (pixel>>16)&0xFF;
+					green = (pixel>>8)&0xFF;
+					blue = pixel&0xFF;
+					
+					// Convert the pixel's RGB components to HSB
+					Color.RGBtoHSB(red, green, blue, HSB);
+					
+					// Change the brightness channel based on the current light level
+					lightLevel = getMovingDir() == 2 ? level.getDiscreteLightLevel((x + playerModel.getWidth() - 1 - i) >> 5, (y + j) >> 5) : level.getDiscreteLightLevel((x + i) >> 5, (y + j) >> 5);
+					if (lightLevel >= -127 && lightLevel <= 127 && (127F + lightLevel) / 255F < HSB[2]) HSB[2] = (127F + lightLevel) / 255F;
+					
+					// Convert the modified HSB components to RGB
+					newPixelRGB = Color.HSBtoRGB(HSB[0], HSB[1], HSB[2]);
+					newRed = (newPixelRGB>>16)&0xFF;
+					newGreen = (newPixelRGB>>8)&0xFF;
+					newBlue = newPixelRGB&0xFF;
+					newPixelARGB = (alpha<<24|newRed<<16|newGreen<<8|newBlue);
+					
+					// Write to the BufferedImage
+					playerModel.setRGB(i, j, newPixelARGB);
+				}
+			}
+		}
+		
+		int tempSpriteWidth = playerModel.getWidth();
+		int tempSpriteHeight = playerModel.getHeight();
+		
+		if (getMovingDir() == 2) {
+			g.drawImage(playerModel, x - xOffset + spriteWidth, y - yOffset - 3, -tempSpriteWidth, tempSpriteHeight, observer);
+			if (shouldFly) g.drawImage(MediaLibrary.getImageFromLibrary(7499), x - xOffset + tempSpriteWidth, y - yOffset - 3, -tempSpriteWidth, tempSpriteHeight, observer);
+			
+			if (drawInfo) {
+				Graphics2D g2 = (Graphics2D) g;
+				g2.setStroke(new BasicStroke(1));
+				g2.setColor(Color.RED);
+				g2.drawLine(x - xOffset - 4, y - yOffset + tempSpriteHeight / 2 - 48, x - xOffset - 4, y - yOffset + tempSpriteHeight / 2);
+				//g.drawRect(x - xOffset - 8, y - yOffset + tempSpriteHeight / 2 - 48, 8, 48);
+			}
+		} else if (getMovingDir() == 3) {
+			g.drawImage(playerModel, x - xOffset, y - yOffset - 3, tempSpriteWidth, tempSpriteHeight, observer);
+			if (shouldFly) g.drawImage(MediaLibrary.getImageFromLibrary(7499), x - xOffset, y - yOffset - 3, tempSpriteWidth, tempSpriteHeight, observer);
+			
+			if (drawInfo) {
+				Graphics2D g2 = (Graphics2D) g;
+				g2.setStroke(new BasicStroke(1));
+				g2.setColor(Color.RED);
+				g2.drawLine(x - xOffset + tempSpriteWidth + 4, y - yOffset + tempSpriteHeight / 2 - 48, x - xOffset + tempSpriteWidth + 4, y - yOffset + tempSpriteHeight / 2);
+				//g.drawRect(x - xOffset + tempSpriteWidth, y - yOffset + tempSpriteHeight / 2 - 48, 8, 48);
+			}
+		}
+		
+		lastX = x;
+		lastY = y;
+		
+		
+		/*if (getMovingDir() == 2) {
 			if (vX >= -0.001) lastImageID = 7501;
 			else if (collisionBelow(x, y, spriteWidth, spriteHeight, level) && vX < -2.5) lastImageID = 7501 + (((int) (game.ticks / 20))) % 4;
 			else lastImageID = 7501 + (((int) (game.ticks / 60))) % 4;
@@ -459,6 +626,61 @@ public class Player extends Mob {
 			else lastImageID = 7501 + (((int) (game.ticks / 60))) % 4;
 			g.drawImage(MediaLibrary.getImageFromLibrary(lastImageID), x - xOffset, y - yOffset - 3, spriteWidth, spriteHeight, observer);
 			if (shouldFly) g.drawImage(MediaLibrary.getImageFromLibrary(7499), x - xOffset, y - yOffset - 3, spriteWidth, spriteHeight, observer);
+		}*/
+	}
+	
+	public void drawInventoryItem(BufferedImage playerModel, ImageObserver observer, int imageID) {
+		Graphics2D playerModelGraphics;
+		if (showInventoryItem && !(inventory.getActiveItem() == null)) {
+			if (meleeImage) {
+				BufferedImage enlargedPlayerModel = new BufferedImage(spriteWidth + 64, spriteHeight, BufferedImage.TYPE_INT_ARGB);
+				playerModelGraphics = (Graphics2D) enlargedPlayerModel.getGraphics();
+				playerModelGraphics.drawImage(playerModel, 0, 0, observer);
+				this.playerModel = enlargedPlayerModel;
+			} else playerModelGraphics = (Graphics2D) playerModel.getGraphics();
+			
+			int width = 24;
+			int height = 24;		
+			
+			int newXOffset = 0;
+			int newYOffset = 0;
+			
+			// Change if player image numbers change
+			switch (imageID % 5) {
+			case 2: newXOffset = -1; break;
+			case 4: newXOffset = 1; break;
+			}
+			
+			double angle = 0;
+			
+			int armYOffset = 0;
+			
+			if (meleeImage) {
+				newXOffset = 32;
+				newYOffset = 32;
+				armYOffset = (int) Math.round(8 * Math.sin(game.ticks / 4));
+				newYOffset = -32 + armYOffset;
+			} else angle = Math.PI / 2;
+			
+			if (InventoryTool.class.isAssignableFrom(inventory.getActiveItem().getClass())) {
+				width = 32;
+				height = 32;
+			}	
+			
+			inventory.getActiveItem().drawRotated(playerModelGraphics, spriteWidth / 2 - 14 + newXOffset, spriteHeight / 2 - 6 + newYOffset, width, height, angle, observer);
+			
+			// Draw arm
+			playerModelGraphics.drawImage(MediaLibrary.getImageFromLibrary(imageID + 5), 0, armYOffset, observer);
+		} else {
+			if (meleeImage) {
+				BufferedImage enlargedPlayerModel = new BufferedImage(spriteWidth + 64, spriteHeight, BufferedImage.TYPE_INT_ARGB);
+				playerModelGraphics = (Graphics2D) enlargedPlayerModel.getGraphics();
+				playerModelGraphics.drawImage(playerModel, 0, 0, observer);
+				this.playerModel = enlargedPlayerModel;
+			} else playerModelGraphics = (Graphics2D) playerModel.getGraphics();
+			
+			// Draw arm
+			playerModelGraphics.drawImage(MediaLibrary.getImageFromLibrary(imageID + 5), 0, 0, observer);
 		}
 	}
 	
@@ -519,6 +741,14 @@ public class Player extends Mob {
 	}
 	
 	// Utility functions, getters and setters	
+	
+	public void queueMeleeImage() {
+		meleeImage = true;
+	}
+	
+	public void queueMeleeImage(int meleeTime) {
+		if (meleeTime > meleeTimer) meleeTimer = meleeTime;
+	}
 	
 	public String getUsername() {
 		return username;
@@ -597,7 +827,8 @@ public class Player extends Mob {
 			aX = 0;
 			aY = 
 			health = 100.0;
-			inventory = new Inventory(100, 80, controls);
+			inventory = new Inventory(100, 80, controls, this);
+			queuePlayerModelUpdate();
 		}
 	}
 	
@@ -711,7 +942,19 @@ public class Player extends Mob {
 		}
 	}
 
+	public void queuePlayerModelUpdate() {
+		queuePlayerModelUpdate = true;
+	}
+	
 	public void draw(Graphics g) {
 		
+	}
+
+	public double getLocalGravity() {
+		return localGravity;
+	}
+
+	public void setLocalGravity(double localGravity) {
+		this.localGravity = localGravity;
 	}
 }

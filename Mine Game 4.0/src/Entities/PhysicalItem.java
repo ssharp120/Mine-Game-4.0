@@ -53,12 +53,10 @@ public class PhysicalItem extends Projectile {
 		hitboxWidth = MediaLibrary.getImageFromLibrary(item.getImageID()).getWidth(level.getGameLoop());
 		hitboxHeight = MediaLibrary.getImageFromLibrary(item.getImageID()).getHeight(level.getGameLoop()) * 7 / 8;
 		
-		if (level.getGameLoop().input.collect.isPressed()) {
-			if (PhysicsUtilities.checkIntersection(x + (hitboxWidth / 2), y + (hitboxWidth / 2), level.getGameLoop().player.x, level.getGameLoop().player.y, level.getGameLoop().player.spriteWidth, level.getGameLoop().player.spriteHeight, true)) {
-				item.markedForDeletion = false;
-				level.getGameLoop().player.inventory.addItem(item);
-				this.markedForDeletion = true;
-			}
+		if (PhysicsUtilities.checkIntersection(x + (hitboxWidth / 2), y + (hitboxWidth / 2), level.getGameLoop().player.x, level.getGameLoop().player.y, level.getGameLoop().player.spriteWidth, level.getGameLoop().player.spriteHeight, true)) {
+			item.markedForDeletion = false;
+			level.getGameLoop().player.inventory.addItem(item);
+			this.markedForDeletion = true;
 		}
 	}
 	

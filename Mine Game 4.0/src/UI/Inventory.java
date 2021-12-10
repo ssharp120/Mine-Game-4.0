@@ -6,6 +6,7 @@ import java.awt.Graphics;
 import java.awt.image.ImageObserver;
 
 import Entities.Furniture;
+import Entities.Player;
 import SingleplayerClient.InputHandler;
 import SingleplayerClient.Level;
 import SingleplayerClient.InputHandler.ControlScheme;
@@ -23,6 +24,7 @@ public class Inventory {
 	private int freeItemOrigin;
 	private Dimension mouseLocation = new Dimension(offset, offset);
 	private InputHandler controls;
+	private Player player;
 	
 	public int getIconSize() {
 		return iconSize;
@@ -38,10 +40,11 @@ public class Inventory {
 
 	private Dimension topLeft[];
 	
-	public Inventory(int slots, int stackSize, InputHandler controls) {
+	public Inventory(int slots, int stackSize, InputHandler controls, Player player) {
 		this.slots = slots;
 		this.stackSize = stackSize;
 		this.controls = controls;
+		this.player = player;
 		items = new InventoryItem[slots];
 		//items[0] = new Pickaxe(10000, 25.0, 200000.0, 175000.0, "Steel Pickaxe");
 		//items[1] = new Shovel(10001, 25.0, 200000.0, 175000.0, "Steel Shovel");
@@ -384,6 +387,7 @@ public class Inventory {
 	}
 
 	public void hotbarSlotCheck() {
+		player.queuePlayerModelUpdate();
 		if (selectedHotbarSlot < 0) selectedHotbarSlot = 9;
 		if (selectedHotbarSlot > 9) selectedHotbarSlot = 0;
 	}

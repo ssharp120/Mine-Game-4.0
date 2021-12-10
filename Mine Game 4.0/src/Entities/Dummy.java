@@ -31,7 +31,6 @@ public class Dummy extends Mob {
 
 	public void draw(Graphics g) {
 		g.drawImage(texture, x - level.getGameLoop().xOffset, y - level.getGameLoop().yOffset, texture.getWidth(), texture.getHeight(), level.getGameLoop());
-		System.out.println(hitboxWidth);
 		g.setColor(Color.LIGHT_GRAY);
 		g.drawString(this.name, x + (hitboxWidth / 2) - (g.getFontMetrics().stringWidth(this.name) / 2) - level.getGameLoop().xOffset,
 				y - level.getGameLoop().yOffset - hitboxHeight + 128 - 48);

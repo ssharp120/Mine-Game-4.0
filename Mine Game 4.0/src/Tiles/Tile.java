@@ -13,7 +13,7 @@ public class Tile {
     public static final Tile OVERLAY = 					new Tile(1, 0xFF000000, "Overlay");
     public static final Tile SKY = 						new Tile(2, 0xFF71C9DD, "Sky");
     public static final SolidTile WOOD = 				new DestructibleTile(3, 0XFF5B2F00, "Wooden Planks", 0.7, true, 2.0, 50.0);
-    public static final Tile NATURAL_WOOD =     		new BackgroundDestructibleTile(4, 0xFFAF833C, "Log", true, 2.0, 50.0);
+    public static final Tile NATURAL_WOOD =     		new BackgroundDestructibleTile(4, 0xFFAF833C, "Log", true, 2.0, 250.0);
     public static final SolidTile DIRT = 				new DestructibleTile(5, 0xFF6D553F, "Dirt", 0.6, true, 1.2, 50.0);
     public static final SolidTile GRASS = 				new DestructibleTile(6, 0xFF5A8B2F, "Grass", 0.6, true, 1.2, 50.0);
     public static final SolidTile SAND = 				new DestructibleTile(7, 0xFFFFEB87, "Sand", 0.4, true, 1.0, 40.0);
@@ -44,6 +44,9 @@ public class Tile {
     public static final Tile DRY_WALL =					new BackgroundDestructibleTile(32, 0xFFE6E6E6, "Dry Wall", false, 1.0, 25.0);
     public static final Tile CACTUS =	 				new BackgroundDestructibleTile(33, 0xFF55EE55, "Cactus", true, 2.0, 12.5);
     public static final Tile OXYGEN_TETHER =			new BackgroundDestructibleTile(34, 0xFFEEE4E2, "Oxygen Tether", true, 3.0, 80.0);
+    public static final Tile CAVE_WALL =				new BackgroundDestructibleTile(35, 0xFF595959, "Cave Wall", false, 5.0, 250.0);
+    public static final Tile IRON_POST = 				new BackgroundDestructibleTile(36, 0xFFA4A4A4, "Iron Post", false, 3.0, 98.75);
+    public static final Tile WOOD_FRAME = 				new BackgroundDestructibleTile(37, 0xEED8C11, "Wood Frame", false, 2.0, 67.5);
     
     public Tile(int id, int levelColour, String name) {
         this.id = id;

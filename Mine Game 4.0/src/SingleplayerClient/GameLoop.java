@@ -133,8 +133,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			if (input.end.isPressed()) basicCraftingGUI.scrollToBottom();
 		}
 		
-		if (input.getControlScheme() == ControlScheme.GAMEPLAY && input.alt.isPressed()) displayConveyorSpeeds = true;
-		else displayConveyorSpeeds = false;
+		displayConveyorSpeeds = input.getControlScheme() == ControlScheme.GAMEPLAY && input.alt.isPressed();
 		
 		//System.out.println("Total time " + (System.currentTimeMillis() - startTime));
 	}
@@ -445,7 +444,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 					for (int x = (xOffset >> 5) - 1; x < ((xOffset + ((int) drawResolution.getWidth())) >> 5) + 1; x++) {
 			            	boolean ds = false;
 		            	    int id0 = level.getTile(x, y).getId();
-		            	    if (id0 == Tile.SKY.getId() || id0 == Tile.BARRIER.getId() || id0 == Tile.VOID.getId()) continue;
+		            	    		
 		            	    Image im0 = defaultImage;
 		            	    for (Tile t : Tile.tiles) {
 		            	    	if (t != null) {
@@ -468,8 +467,29 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		            	    	}
 		            	    }
 		            	    
-		            	    if (displayFog && (!level.isVisible(x, y) || im0 == null)) {
-		            	    	im0 = defaultImage;
+	            	    	if (level.drawCaveWall(x, y) && (id0 == Tile.SKY.getId() || id0 == Tile.BARRIER.getId() || id0 == Tile.VOID.getId())) {
+	            	    		im0 = MediaLibrary.getImageFromLibrary(Tile.CAVE_WALL.getId());
+	            	    	} else if (level.drawCaveWall(x, y) && (id0 == Tile.TORCH.getId() || id0 == Tile.WOOD_PLATFORM.getId())) {
+	            	    		g.drawImage(MediaLibrary.getImageFromLibrary(Tile.CAVE_WALL.getId()), (x << 5) - xOffset, (y << 5) - yOffset, this);
+	            	    	}
+		            	    
+		            	    boolean transparentFogFlag = displayFog && !level.isVisible(x, y) && (level.isVisibleNear(x, y) || level.visibleProximity(x, y, 2) || level.visibleProximity(x, y, 3));
+		            	    
+		            	    if (transparentFogFlag) {
+		            	    	g.drawImage(im0, (x << 5) - xOffset, (y << 5) - yOffset, this);
+			            	    if (ds) g.drawImage(MediaLibrary.getImageFromLibrary(8192), (x << 5) - xOffset, (y << 5) - yOffset, this);
+			            	    
+			            	    int transparency = 200;
+			            	    if (level.visibleProximity(x, y, 2)) transparency = 128;
+			            	    if (level.isVisibleNear(x, y)) transparency = 64;
+			            	    
+		            	    	g.setColor(new Color(0, 0, 0, transparency));
+		            	    	g.fillRect((x << 5) - xOffset, (y << 5) - yOffset, 32, 32);
+		            	    	continue;
+		            	    } else if (displayFog && (!level.isVisible(x, y) || im0 == null)) {
+		            	    	g.setColor(new Color(0, 0, 0));
+		            	    	g.fillRect((x << 5) - xOffset, (y << 5) - yOffset, 32, 32);
+		            	    	continue;
 		            	    }
 		            	    
 		            	    g.drawImage(im0, (x << 5) - xOffset, (y << 5) - yOffset, this);
@@ -499,7 +519,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		            	    }
 		            	//tilesRendered++;
 	                }
-	            }
+				}
 				
 				//System.out.println("Tiles rendered: " + tilesRendered);
 			}
@@ -551,25 +571,10 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		int tempXOffset = xOffset;
 		int tempYOffset = yOffset;
 		
-		if (player != null) {
-			xOffset = (int) (player.x - (drawResolution.getWidth()/2));
-			yOffset = (int) (player.y - (drawResolution.getHeight()/2));	
-			if (xOffset < 0) {
-				player.drawPlayerModel((Graphics2D) g, 0, yOffset, this);
-			} else if (xOffset > (level.width << 5) - drawResolution.getWidth()) {
-				player.drawPlayerModel((Graphics2D) g, (level.width << 5) - drawResolution.width, yOffset, this);
-			} else player.drawPlayerModel(((Graphics2D) g), xOffset, yOffset, this);
-			
-		}
-		
-		// Measure player rendering time
-		graphicsTimes[2] = System.currentTimeMillis() - currentTime;
-		currentTime = System.currentTimeMillis();
-		
 		level.draw(g, this);
 		
 		// Measure level rendering time
-		graphicsTimes[3] = System.currentTimeMillis() - currentTime;
+		graphicsTimes[2] = System.currentTimeMillis() - currentTime;
 		currentTime = System.currentTimeMillis();
 		
 		if (displayLighting) {
@@ -577,18 +582,33 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		
 			for (int y = (tempYOffset >> 5) - 1; y < ((tempYOffset + ((int) drawResolution.getHeight())) >> 5) + 1; y++) {
 				for (int x = (tempXOffset >> 5) - 1; x < ((tempXOffset + ((int) drawResolution.getWidth())) >> 5) + 1; x++) {
-					int id0 = level.getTile(x, y).getId();
 	    	    	// Render lighting
-	    	    	if (id0 >= 0 && level.getDiscreteLightLevel(x, y) >= -127 && level.getDiscreteLightLevel(x, y) < 127) {
+	    	    	if ((level.isVisible(x, y) || level.isVisibleNear(x, y) || level.visibleProximity(x, y, 2) || level.visibleProximity(x, y, 3))
+	    	    			&& (level.getTile(x, y).getId() > 2 || level.drawCaveWall(x, y))
+	    	    			&& level.getDiscreteLightLevel(x, y) >= -127 && level.getDiscreteLightLevel(x, y) < 127) {
 	    	    		g.setColor(new Color(0, 0, 0, 127 - level.getDiscreteLightLevel(x, y)));
 	        	    	g.fillRect((x << 5) - tempXOffset, (y << 5) - tempYOffset, 32, 32);
 	    	    	}
 				}
 			}
-		
 		}
 		
 		// Measure lighting time
+		graphicsTimes[3] = System.currentTimeMillis() - currentTime;
+		currentTime = System.currentTimeMillis();
+		
+		if (player != null) {
+			xOffset = (int) (player.x - (drawResolution.getWidth()/2));
+			yOffset = (int) (player.y - (drawResolution.getHeight()/2));
+			
+			if (xOffset < 0) {
+				player.drawPlayerModel((Graphics2D) g, 0, yOffset, this);
+			} else if (xOffset > (level.width << 5) - drawResolution.getWidth()) {
+				player.drawPlayerModel((Graphics2D) g, (level.width << 5) - drawResolution.width, yOffset, this);
+			} else player.drawPlayerModel(((Graphics2D) g), xOffset, yOffset, this);
+		}
+		
+		// Measure player rendering time
 		graphicsTimes[4] = System.currentTimeMillis() - currentTime;
 		currentTime = System.currentTimeMillis();
 		
@@ -639,9 +659,9 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 				switch (i) {
 				case 0: timeLabel = "Sky ------"; break;
 				case 1: timeLabel = "Tiles ----"; break;
-				case 2: timeLabel = "Player ---"; break;
-				case 3: timeLabel = "Level ----"; break;
-				case 4: timeLabel = "Lights ---"; break;
+				case 2: timeLabel = "Level ----"; break;
+				case 3: timeLabel = "Lights ---"; break;
+				case 4: timeLabel = "Player ---"; break;
 				case 5: timeLabel = "GUI/HUD --"; break;
 				}
 				
@@ -699,12 +719,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			else iconSize = targetY / 9;
 			int outline = 24;
 			int i = (offset - outline) / 2 + iconSize + outline + 32;
-			if (displayTile.getId() >= 13 && displayTile.getId() <= 18) {
-				g.drawImage(MediaLibrary.getImageFromLibrary(13), ((int) drawResolution.getWidth() / 2) - 32, i, this);
-				g.drawImage(MediaLibrary.getImageFromLibrary(14), ((int) drawResolution.getWidth() / 2), i, this);
-				g.drawImage(MediaLibrary.getImageFromLibrary(15), ((int) drawResolution.getWidth() / 2) - 32, i + 32, this);
-				g.drawImage(MediaLibrary.getImageFromLibrary(16), ((int) drawResolution.getWidth() / 2), i + 32, this);
-			} else g.drawImage(MediaLibrary.getImageFromLibrary(displayTile.getId()), ((int) drawResolution.getWidth() / 2) - 32, i, 64, 64, this);
+			g.drawImage(MediaLibrary.getImageFromLibrary(displayTile.getId()), ((int) drawResolution.getWidth() / 2) - 32, i, 64, 64, this);
 			if (displayTile.getClass() == DestructibleTile.class) {
 				str = String.format("%.3f", tileDurability) + " / ";
 				str += String.format("%.3f", ((DestructibleTile) displayTile).baseDurability);

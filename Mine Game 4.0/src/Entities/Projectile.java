@@ -201,4 +201,9 @@ public class Projectile extends Entity {
 	public double getSpeed() {
 		return Math.sqrt(vX * vX + vY * vY);
 	}
+	
+	public void addSpeed(double vX, double vY) {
+		this.vX += vX;
+		this.vY += vY;
+	}
 }

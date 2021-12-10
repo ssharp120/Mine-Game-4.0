@@ -112,6 +112,14 @@ public class LevelFactory {
 			int minGypsumHeight = 1;
 			int maxGypsumHeight = 3;
 			
+			double caveOccurrence = 0.01;
+			double caveLinearity = 0.1;
+			double caveDiameterVariety = 0.15;
+			int minCaveLength = 200;
+			int maxCaveLength = 1000;
+			int maxCaveDiameter = 10;
+			int minCaveDiameter = 4;
+			int minCaves = Math.min(20, Math.max(5, width/100));
 			
 			// Define initial terrain heights
 			stoneHeights[0] = height / 2;
@@ -257,7 +265,6 @@ public class LevelFactory {
 				for (int j = stoneHeights[i]; j < stoneHeights[i] + 8; j++) {
 					if (Math.random() > (j - stoneHeights[i] + 2)/10D) image.setRGB(i, height - j, Tile.STONE.getLevelColour());
 				}
-			
 			}
 			
 			FileUtilities.logLevelGeneration("Generating ores");
@@ -273,11 +280,17 @@ public class LevelFactory {
 			for (int i = 0; i < 256; i++) {
 				gypsumOccurrences[i] = 0.000625 - Math.abs(54 - i) * 0.0000095;
 			}
+			
 			// Generate ores
+			int coalOccurrenceLength = coalOccurrences.length;
+			int ironOccurrenceLength = ironOccurrences.length;
+			int copperOccurrenceLength = copperOccurrences.length;
+			int gypsumOccurrenceLength = gypsumOccurrences.length;
+			
 			for (int i = 0; i < width; i++) {
 				for (int j = 0; j < stoneHeights[i]; j++) {
 					// Coal ore
-					if (stoneHeights[i] - j < coalOccurrences.length && Math.random() < coalOccurrences[stoneHeights[i] - j]) {
+					if (stoneHeights[i] - j < coalOccurrenceLength && Math.random() < coalOccurrences[stoneHeights[i] - j]) {
 						int coalWidth = (int) Math.round(minCoalWidth + Math.random() * (maxCoalWidth - minCoalWidth));
 						int coalHeight = (int) Math.round(minCoalHeight + Math.random() * (maxCoalHeight - minCoalHeight));
 						for (int k = 0; k < coalWidth; k++) {
@@ -289,7 +302,7 @@ public class LevelFactory {
 						}
 					}
 					// Iron ore
-					if (stoneHeights[i] - j < ironOccurrences.length && Math.random() < ironOccurrences[stoneHeights[i] - j]) {
+					if (stoneHeights[i] - j < ironOccurrenceLength && Math.random() < ironOccurrences[stoneHeights[i] - j]) {
 						int ironWidth = (int) Math.round(minIronWidth + Math.random() * (maxIronWidth - minIronWidth));
 						int ironHeight = (int) Math.round(minIronHeight + Math.random() * (maxIronHeight - minIronHeight));
 						for (int k = 0; k < ironWidth; k++) {
@@ -301,7 +314,7 @@ public class LevelFactory {
 						}
 					}
 					// Copper ore
-					if (stoneHeights[i] - j < copperOccurrences.length && Math.random() < copperOccurrences[stoneHeights[i] - j]) {
+					if (stoneHeights[i] - j < copperOccurrenceLength && Math.random() < copperOccurrences[stoneHeights[i] - j]) {
 						int copperWidth = (int) Math.round(minCopperWidth + Math.random() * (maxCopperWidth - minCopperWidth));
 						int copperHeight = (int) Math.round(minCopperHeight + Math.random() * (maxCopperHeight - minCopperHeight));
 						for (int k = 0; k < copperWidth; k++) {
@@ -313,7 +326,7 @@ public class LevelFactory {
 						}
 					}
 					// Gypsum deposits
-					if (stoneHeights[i] - j < gypsumOccurrences.length && Math.random() < gypsumOccurrences[stoneHeights[i] - j]) {
+					if (stoneHeights[i] - j < gypsumOccurrenceLength && Math.random() < gypsumOccurrences[stoneHeights[i] - j]) {
 						int gypsumWidth = (int) Math.round(minGypsumWidth + Math.random() * (maxGypsumWidth - minGypsumWidth));
 						int gypsumHeight = (int) Math.round(minGypsumHeight + Math.random() * (maxGypsumHeight - minGypsumHeight));
 						for (int k = 0; k < gypsumWidth; k++) {
@@ -323,6 +336,73 @@ public class LevelFactory {
 								}
 							}
 						}
+					}
+				}
+			}
+			
+			// Generate caves
+			int caves = 0;
+			while (caves < minCaves) {
+				for (int i = 0; i < width; i++) {
+					if (Math.random() < caveOccurrence) {
+						int depth = (int) Math.round(Math.random() * Math.random() * stoneHeights[i]);
+						int length = (int) Math.round(Math.random() * maxCaveLength);
+						int diameter = (int) Math.round(Math.max(minCaveDiameter, Math.random() * maxCaveDiameter));
+						double slope = Math.random() * 4 - 2;
+						
+						int lastY = height - stoneHeights[i] + depth;
+						
+						int landTimer = (int) Math.round(Math.random() * 25) + 10;
+						
+						for (int k = -length; k < length && k + i > diameter && k + i < width - diameter; k++) {
+							boolean encounteredLand = false;
+							lastY = lastY + (int) Math.round(slope);
+							
+							for (int ii = -diameter; ii <= diameter; ii++) {
+								for (int jj = -diameter; jj <= diameter; jj++) {
+									int x = i + k + ii;
+									int y = lastY + jj;
+									if ((Math.pow(ii, 2) + Math.pow(jj, 2) < Math.pow(diameter, 2)) 
+											&& x > 0 && x < width 
+											&& y > 0 && y < height - 2) {
+										if (image.getRGB(x, y) == Tile.STONE.getLevelColour()
+												|| image.getRGB(x, y) == Tile.COAL_ORE.getLevelColour()
+												|| image.getRGB(x, y) == Tile.IRON_ORE.getLevelColour()
+												|| image.getRGB(x, y) == Tile.COPPER_ORE.getLevelColour()
+												|| image.getRGB(x, y) == Tile.GYPSUM_DEPOSIT.getLevelColour()) {
+											image.setRGB(x, y, Tile.SKY.getLevelColour());
+										} else if (image.getRGB(x, y) == Tile.DIRT.getLevelColour()
+												|| image.getRGB(x, y) == Tile.GRASS.getLevelColour()
+												|| image.getRGB(x, y) == Tile.SAND.getLevelColour()) {
+											image.setRGB(x, y, Tile.SKY.getLevelColour());
+											encounteredLand = true;
+										}
+									}
+								}
+							}
+							
+							if (encounteredLand) landTimer--;
+							if (landTimer <= 0) break;
+							
+							if (Math.random() > caveLinearity) {
+								slope += Math.random() * 1 - 0.5;
+								if (Math.abs(slope) > diameter / 4) {
+									slope = Math.signum(slope) * diameter / 4;
+								}
+								if (Math.random() < 0.01) {
+									slope = -slope;
+								}
+							}
+							
+							if (Math.random() < caveDiameterVariety) {
+								diameter = Math.round(Math.max(minCaveDiameter, Math.min(maxCaveDiameter, diameter += Math.random() * 2.5 - 1.25)));
+							}
+							/*if (stoneHeights[i] + depth + (int) Math.round(k * slope) > 0 && stoneHeights[i] + depth + (int) Math.round(k * slope) < height) {
+								image.setRGB(i + k, stoneHeights[i] + depth + (int) Math.round(k * slope), Tile.TNT.getLevelColour());
+							}*/
+						}
+						
+						if (length > minCaveLength) caves++;
 					}
 				}
 			}
@@ -362,8 +442,15 @@ public class LevelFactory {
 				FileUtilities.logLevelGeneration("\t\tx = "  + startX);
 				FileUtilities.logLevelGeneration("\t\t and");
 				FileUtilities.logLevelGeneration("\t\ty = "  + startY);
+				
+				
+				
 			}
 			
+			// Determine cave wall start height
+			for (int i = 0; i < width; i++) {
+				image.setRGB(i, height - stoneHeights[i], Tile.CAVE_WALL.getLevelColour());
+			}
 			
 		break;
 				
@@ -589,8 +676,11 @@ public class LevelFactory {
 			FileUtilities.logLevelGeneration("Saving level horizon");
 			String levelHorizonPath = "level_" + FileUtilities.TIMESTAMP_AT_RUNTIME + "_horizon";
 			FileUtilities.createFile(levelHorizonPath);
-			FileUtilities.writeToPosition(levelHorizonPath, terrainHeights.length, 0);
-			for (int j = 1; j <= terrainHeights.length; j++) {
+			
+			int terrainHeightsLength = terrainHeights.length;
+			
+			FileUtilities.writeToPosition(levelHorizonPath, terrainHeightsLength, 0);
+			for (int j = 1; j <= terrainHeightsLength; j++) {
 				FileUtilities.writeToPosition(levelHorizonPath, terrainHeights[j - 1], j*4);
 			}
 		}
