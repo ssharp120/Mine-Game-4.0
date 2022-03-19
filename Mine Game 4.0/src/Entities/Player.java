@@ -53,7 +53,8 @@ public class Player extends Mob {
 	
 	private BufferedImage playerModel;
 	
-	private int lastX, lastY;
+	public int lastX, lastY;
+	private boolean graphicsPositionLocked = false;
 	
 	private boolean showInventoryItem;
 	
@@ -402,6 +403,7 @@ public class Player extends Mob {
 		
 		// For each pixel in the delta between the new double position components and old integer position components, render the entire game and step one pixel in the corresponding direction
 		int deltaX = Math.toIntExact(Math.round(Math.floor(dX))) - x;
+		//x += deltaX;
 		if (deltaX > 0) {
 			for (int i = 0; i < deltaX; i++) {
 				//if (level.getGameLoop() != null) level.getGameLoop().repaint();
@@ -414,6 +416,7 @@ public class Player extends Mob {
 			}
 		}
 		int deltaY = Math.toIntExact(Math.round(Math.floor(dY))) - y;
+		//y += deltaY;
 		if (deltaY > 0) {
 			for (int i = 0; i < deltaY; i++) {
 				//if (level.getGameLoop() != null) level.getGameLoop().repaint();
@@ -485,7 +488,7 @@ public class Player extends Mob {
 		}
 	}
 	
-	public void drawPlayerModel(Graphics2D g, int xOffset, int yOffset, ImageObserver observer) {
+	public void drawPlayerModel(Graphics2D g, int xOffset, int yOffset, int drawResolutionWidth, int drawResolutionHeight, ImageObserver observer) {
 		g.setColor(Color.GRAY);
 		
 		try {
@@ -586,6 +589,9 @@ public class Player extends Mob {
 		int tempSpriteWidth = playerModel.getWidth();
 		int tempSpriteHeight = playerModel.getHeight();
 		
+		xOffset = (int) (x - (drawResolutionWidth/2));
+		yOffset = (int) (y - (drawResolutionHeight/2));
+		
 		if (getMovingDir() == 2) {
 			g.drawImage(playerModel, x - xOffset + spriteWidth, y - yOffset - 3, -tempSpriteWidth, tempSpriteHeight, observer);
 			if (shouldFly) g.drawImage(MediaLibrary.getImageFromLibrary(7499), x - xOffset + tempSpriteWidth, y - yOffset - 3, -tempSpriteWidth, tempSpriteHeight, observer);
@@ -609,9 +615,6 @@ public class Player extends Mob {
 				//g.drawRect(x - xOffset + tempSpriteWidth, y - yOffset + tempSpriteHeight / 2 - 48, 8, 48);
 			}
 		}
-		
-		lastX = x;
-		lastY = y;
 		
 		
 		/*if (getMovingDir() == 2) {
@@ -637,6 +640,7 @@ public class Player extends Mob {
 				playerModelGraphics = (Graphics2D) enlargedPlayerModel.getGraphics();
 				playerModelGraphics.drawImage(playerModel, 0, 0, observer);
 				this.playerModel = enlargedPlayerModel;
+				playerModelGraphics.dispose();
 			} else playerModelGraphics = (Graphics2D) playerModel.getGraphics();
 			
 			int width = 24;
@@ -671,6 +675,8 @@ public class Player extends Mob {
 			
 			// Draw arm
 			playerModelGraphics.drawImage(MediaLibrary.getImageFromLibrary(imageID + 5), 0, armYOffset, observer);
+			playerModelGraphics.dispose();
+			
 		} else {
 			if (meleeImage) {
 				BufferedImage enlargedPlayerModel = new BufferedImage(spriteWidth + 64, spriteHeight, BufferedImage.TYPE_INT_ARGB);
@@ -681,6 +687,7 @@ public class Player extends Mob {
 			
 			// Draw arm
 			playerModelGraphics.drawImage(MediaLibrary.getImageFromLibrary(imageID + 5), 0, 0, observer);
+			playerModelGraphics.dispose();
 		}
 	}
 	

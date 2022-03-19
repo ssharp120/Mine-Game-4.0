@@ -602,10 +602,10 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			yOffset = (int) (player.y - (drawResolution.getHeight()/2));
 			
 			if (xOffset < 0) {
-				player.drawPlayerModel((Graphics2D) g, 0, yOffset, this);
+				player.drawPlayerModel((Graphics2D) g, 0, yOffset, (int) drawResolution.getWidth(), (int) drawResolution.getHeight(), this);
 			} else if (xOffset > (level.width << 5) - drawResolution.getWidth()) {
-				player.drawPlayerModel((Graphics2D) g, (level.width << 5) - drawResolution.width, yOffset, this);
-			} else player.drawPlayerModel(((Graphics2D) g), xOffset, yOffset, this);
+				player.drawPlayerModel((Graphics2D) g, (level.width << 5) - drawResolution.width, yOffset, (int) drawResolution.getWidth(), (int) drawResolution.getHeight(), this);
+			} else player.drawPlayerModel(((Graphics2D) g), xOffset, yOffset, (int) drawResolution.getWidth(), (int) drawResolution.getHeight(), this);
 		}
 		
 		// Measure player rendering time
