@@ -97,7 +97,7 @@ public class BasicCraftingGUI extends CraftingMenu {
 			y += itemSize + padding;
 			x = xInitial;
 		}
-		if (numItemsAbove > 0) {
+		/*if (numItemsAbove > 0) {
 			int indicatorX = xInitial + (itemSize * 4 / 5 + padding)/2 - itemSize / 4;
 			g.drawImage(MediaLibrary.getImageFromLibrary(5002), indicatorX, yInitial, itemSize / 2, itemSize / 2, observer);
 			g.setColor(Color.RED);
@@ -110,7 +110,7 @@ public class BasicCraftingGUI extends CraftingMenu {
 			g.setColor(Color.RED);
 			g.setFont(MediaLibrary.getFontFromLibrary("Indicator"));
 			g.drawString("" + numItemsBelow, indicatorX + itemSize / 4 - g.getFontMetrics().stringWidth("" + numItemsAbove) / 2, screenHeight - 50 - itemSize / 2 - padding / 4 - g.getFontMetrics().getDescent());
-		}
+		}*/
 		scrollMax = y - screenHeight + 200 + scrollY;
 	}
 	

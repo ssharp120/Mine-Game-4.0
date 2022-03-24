@@ -58,8 +58,6 @@ public class PreloadDialog extends JFrame {
 					new Dimension(1200, 900),
 					new Dimension(1366, 768),
 					new Dimension(1024, 768),
-					new Dimension(1280, 720),
-					new Dimension(800, 600)
 				};
 		JComboBox resolutionSelect;
 		JCheckBox fullscreenSelect;

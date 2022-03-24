@@ -17,6 +17,7 @@ import java.util.List;
 
 import javax.imageio.ImageIO;
 
+import Entities.Battery;
 import Entities.Crop;
 import Entities.ElectricalDevice;
 import Entities.Enemy;
@@ -462,9 +463,19 @@ public class Level {
 						&& entities.get(0).y > (e.y << 5) - 128 - 128 && entities.get(0).y < (e.y << 5) + 128) {
 					getPlayer().connectOxygen();
 					getPlayer().addOxygen(0.0875);
+					getPlayer().addPower(0.025);
 					getPlayer().addOxygenPoint(e.x * 32, e.y * 32);
 					oxygenConnected = true;
 					playerConnectedToOxygenGenerator = true;
+					//drawLightCircle(e.x, e.y, 4, 16);
+				}
+			}
+			if (e.getClass() == Battery.class) {
+				if (entities.get(0).x > (e.x << 5) - 128 - 64 && entities.get(0).x < (e.x << 5) + 128 + 32
+						&& entities.get(0).y > (e.y << 5) - 128 - 128 && entities.get(0).y < (e.y << 5) + 128) {
+					if (((Battery) e).getCurrentPowerStored() > 0) {
+						if (getPlayer().addPower(0.25)) ((Battery) e).drain(0.25);
+					}
 					//drawLightCircle(e.x, e.y, 4, 16);
 				}
 			}

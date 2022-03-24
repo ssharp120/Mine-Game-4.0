@@ -389,7 +389,9 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 	
 	public void updateTileInfo(int clickX, int clickY) {
 		if (gameIn.level != null) {
-			if (gameIn.level.getTile(clickX >> 5, clickY >> 5).getId() != 2) {
+			gameIn.selectedTileX = clickX >> 5;
+			gameIn.selectedTileY = clickY >> 5;
+			if (gameIn.level.getTile(clickX >> 5, clickY >> 5).getId() != 2 && gameIn.level.isVisible(clickX >> 5, clickY >> 5)) {
 				gameIn.displayTileInfo = true;
 				gameIn.displayTile = gameIn.level.getTile(clickX >> 5, clickY >> 5);
 				gameIn.tileDurability = gameIn.level.getDurability(clickX >> 5, clickY >> 5);
@@ -527,6 +529,15 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 			gameIn.pauseMenuGUI.handleScroll(scrollDelta);
 		} else if (controlScheme == ControlScheme.TECH_TREE) {
 			gameIn.techTreeGUI.handleScroll(scrollDelta);
+		} else if (controlScheme == ControlScheme.INVENTORY) {
+			if (scrollDelta > 0) for (int i = 0; i < scrollDelta; i++)  {
+				gameIn.player.inventory.incrementHotbarSlot();
+				gameIn.player.queuePlayerModelUpdate();
+			}
+			if (scrollDelta < 0) for (int i = 0; i < -scrollDelta; i++) {
+				gameIn.player.inventory.decrementHotbarSlot();
+				gameIn.player.queuePlayerModelUpdate();
+			}
 		}
 	}
 }

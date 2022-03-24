@@ -17,6 +17,7 @@ public class Inventory {
 	private int stackSize;
 	private int iconSize = 64;
 	private int offset = 64;
+	private int outer_offset = 256;
 	private int slotsPerRow = 10;
 	private InventoryItem freeItem;
 	private InventoryItem activeItem;
@@ -67,26 +68,23 @@ public class Inventory {
 	}
 	
 	public void draw(Graphics g, int screenWidth, int screenHeight, ImageObserver observer) {
-		int targetX = screenWidth - (2 * offset), targetY = screenHeight - (2 * offset);
-		g.translate(offset, offset);
-		g.setColor(new Color(255, 255, 255, 132));
-		g.fillRect(0, 0, targetX, targetY);
-		g.setColor(Color.darkGray);
-		g.draw3DRect(0, 0, targetX, targetY, true);
+		int targetX = screenWidth - (2 * offset), targetY = screenHeight;
+		int spacing = 8;
+		slotsPerRow = 10; //(targetX - offset) / (iconSize + spacing) - 2;
 		
 		if (targetX / 16 < targetY / 9) iconSize = targetX / 16;
 		else iconSize = targetY / 9;
 		
-		int spacing = 8;
-		slotsPerRow = (targetX - offset) / (iconSize + spacing);
+		g.translate(outer_offset >> 2, outer_offset + outer_offset >> 1);
+		
 		int iconOffset = (targetX - offset - (slotsPerRow * (iconSize + spacing) - spacing)) / 2;
 		for (int i = 0; i < slots; i++) {
-			g.setColor(new Color(i * (128/slots) + 16, i * (128/slots) + 16, i * (128/slots) + 16, 255));
+			g.setColor(new Color(128 - i * (128/slots), 128 - i * (128/slots), 128 - i * (128/slots), 92));
 			g.fillRect((i % slotsPerRow) * iconSize + offset / 2 + iconOffset + ((i % slotsPerRow) * spacing), (i / slotsPerRow) * iconSize + offset / 2 + ((i / slotsPerRow) * spacing), iconSize, iconSize);
-			topLeft[i] = new Dimension(offset + (i % slotsPerRow) * iconSize + offset / 2 + iconOffset + ((i % slotsPerRow) * spacing), offset + (i / slotsPerRow) * iconSize + offset / 2 + ((i / slotsPerRow) * spacing));
+			topLeft[i] = new Dimension((outer_offset >> 2) + (i % slotsPerRow) * iconSize + offset / 2 + iconOffset + ((i % slotsPerRow) * spacing), outer_offset + (i / slotsPerRow) * iconSize + offset / 2 + ((i / slotsPerRow) * spacing));
 			if (items[i] != null && !(isFreeItemSet() && i == freeItemOrigin)) items[i].draw(g, (i % slotsPerRow) * iconSize + offset / 2 + iconOffset + ((i % slotsPerRow) * spacing), (i / slotsPerRow) * iconSize + offset / 2 + ((i / slotsPerRow) * spacing), iconSize, iconSize, observer);
 		}
-		g.translate(-offset, -offset);
+		g.translate(-(outer_offset >> 2), -(outer_offset + outer_offset >> 1));
 		if (isFreeItemSet()) drawFreeItem(g, observer);
 	}
 	
@@ -97,18 +95,29 @@ public class Inventory {
 		int iconOffset = (targetX - (slotsPerRow * (iconSize + spacing) - spacing) + offset) / 2;
 		if (targetX / 16 < targetY / 9) iconSize = targetX / 16;
 		else iconSize = targetY / 9;
+		
+		if (screenWidth > 1800) {
+			targetX = screenWidth - (2 * offset);
+			targetY = screenHeight;
+			spacing = 8;
+			slotsPerRow = 10; //(targetX - offset) / (iconSize + spacing) - 2;
+		
+			if (targetX / 16 < targetY / 9) iconSize = targetX / 16;
+			else iconSize = targetY / 9;
+		}
+		
 		int outline = 6 + iconSize / 6;
-		g.setColor(new Color(255, 255, 255, 178));
+		g.setColor(new Color(64, 64, 64, 64));
 		g.fillRect(offset / 2 + iconOffset - outline / 2, (offset - outline) / 2, ((iconSize + spacing) * 10) - spacing + outline, iconSize + outline);
 		for (int i = 0; i < 10; i++) {
-			g.setColor(new Color(i * (128/10) + 16, i * (128/10) + 16, i * (128/10) + 16, 255));
+			g.setColor(new Color(128 - i * (128/10) + 16, 128 - i * (128/10) + 16, 128 - i * (128/10) + 16, 128));
 			g.fillRect((i % slotsPerRow) * iconSize + offset / 2 + iconOffset + ((i % slotsPerRow) * spacing), (i / slotsPerRow) * iconSize + offset / 2 + ((i / slotsPerRow) * spacing), iconSize, iconSize);
 			if (items[i] != null) items[i].draw(g, (i % slotsPerRow) * iconSize + offset / 2 + iconOffset + ((i % slotsPerRow) * spacing), (i / slotsPerRow) * iconSize + offset / 2 + ((i / slotsPerRow) * spacing), iconSize, iconSize, observer);
 			if (i == selectedHotbarSlot + 1 || (i == 9 && i == selectedHotbarSlot)) {
 				int j = 10 - selectedHotbarSlot;
-				g.setColor(new Color(j * (128/10) + 16, j * (128/10) + 16, j * (128/10) + 16, 255));
+				g.setColor(new Color(j * (128/10) + 16, j * (128/10) + 16, j * (128/10) + 16, 8));
 				g.fillRect((selectedHotbarSlot % slotsPerRow) * iconSize + (offset - outline) / 2 + iconOffset + ((selectedHotbarSlot % slotsPerRow) * spacing), (offset - outline) / 2, iconSize + outline, iconSize + outline);
-				g.setColor(new Color(selectedHotbarSlot * (128/10) + 16, selectedHotbarSlot * (128/10) + 16, selectedHotbarSlot * (128/10) + 16, 255));
+				g.setColor(new Color(128 - selectedHotbarSlot * (128/10) + 64, 128 - selectedHotbarSlot * (128/10) + 64, 128 - selectedHotbarSlot * (128/10) + 64, 168));
 				g.fillRect((selectedHotbarSlot % slotsPerRow) * iconSize + offset / 2 + iconOffset + ((selectedHotbarSlot % slotsPerRow) * spacing), (selectedHotbarSlot / slotsPerRow) * iconSize + offset / 2 + ((selectedHotbarSlot / slotsPerRow) * spacing), iconSize, iconSize);
 				if (items[selectedHotbarSlot] != null) items[selectedHotbarSlot].draw(g, (selectedHotbarSlot % slotsPerRow) * iconSize + offset / 2 + iconOffset + ((selectedHotbarSlot % slotsPerRow) * spacing), 
 						(selectedHotbarSlot / slotsPerRow) * iconSize + offset / 2 + ((selectedHotbarSlot / slotsPerRow) * spacing), iconSize, iconSize, observer);

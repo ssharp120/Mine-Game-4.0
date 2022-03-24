@@ -105,7 +105,7 @@ public class Sky {
 		for (int i = 0; i < 16; i++) {
 			for (int j = 0; j < 8; j++) {
 				g.setColor(gradientColors[i][j]);
-				g.fillRect(i * (int) screen.getWidth()/16, j * (int) screen.getHeight()/8, (int) screen.getWidth()/16, (int) screen.getHeight()/8);
+				g.fillRect(i * (int) screen.getWidth()/16, j * (int) screen.getHeight()/8, (int) screen.getWidth()/16 + 1, (int) screen.getHeight()/8 + 1);
 			}
 		}
 		/*g.drawImage(images[0], 32, 64, 1000, 160, observer);

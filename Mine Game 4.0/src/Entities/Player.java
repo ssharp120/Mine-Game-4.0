@@ -23,6 +23,7 @@ import SingleplayerClient.Level;
 import SingleplayerClient.InputHandler.ControlScheme;
 import Tiles.Tile;
 import UI.*;
+import Utilities.Electricity;
 import Utilities.FileUtilities;
 import Tiles.DestructibleTile;
 import Tiles.SolidTile;
@@ -30,7 +31,7 @@ import Tiles.SolidTile;
 import static Utilities.PhysicsUtilities.*;
 import static Utilities.FileUtilities.*;
 
-public class Player extends Mob {
+public class Player extends Mob implements Electricity {
 	// Parent GameLoop and InputHandler
 	private GameLoop game;
 	private InputHandler controls;
@@ -89,13 +90,18 @@ public class Player extends Mob {
 	public double maxVelocityX = 3, maxVelocityY = 20;
 	
 	// Oxygen variables
-	protected double oxygen = 100D;
+	protected double oxygen = 10D;
 	protected boolean oxygenConnected;
 	private List<Point> oxyPoints = new ArrayList<Point>();
 	
 	private double meleeDamage = 0.25;
 	private boolean meleeImage = false;
 	private int meleeTimer = 0;
+	
+	private double maximumStoredPower = 100;
+	private double storedPower = 100;
+	
+	private double powerUsage = 0;
 	
 	public Player(Level level, String name, int x, int y, InputHandler input) {
 		super(level, name, x, y, 1, 100, spriteWidth, spriteHeight);
@@ -104,7 +110,7 @@ public class Player extends Mob {
 		game = level.getGameLoop();
 		dX = x;
 		dY = y;
-		inventory = new Inventory(100, 80, controls, this);
+		inventory = new Inventory(60, 80, controls, this);
 	}
 
 	public void tick() {
@@ -117,9 +123,17 @@ public class Player extends Mob {
 		// Java...
 		if (controls.esc.isPressed() && controls.getControlScheme() == ControlScheme.GAMEPLAY) controls.setControlScheme(ControlScheme.PAUSE_MENU); 
 		
+		powerUsage = 0;
+		
 		if (oxygen == 0) {
 			// Suffocate if out of oxygen
 			damage(0.010 + Math.random() * 0.002);
+		} else if (oxygen <= 10 && storedPower > 0) {
+			powerUsage += 0.015;
+			addOxygen(0.005);
+		}else if (oxygen <= 25 && storedPower > 0) {
+			powerUsage += 0.01;
+			addOxygen(0.0005);
 		} else if (health < 100){
 			// Heal the player if not actively taking damage
 			heal(0.005 + Math.random() * 0.002);
@@ -230,6 +244,20 @@ public class Player extends Mob {
 			meleeTimer--;
 		}
 		else meleeTimer = 0;
+		
+		storedPower -= powerUsage;
+	}
+	
+	public boolean addPower(double power) {
+		storedPower += power;
+		if (storedPower >= maximumStoredPower) {
+			storedPower = maximumStoredPower;
+			return false;
+		} else if (storedPower < 0) {
+			storedPower = 0;
+			return true;
+		}
+		return true;	
 	}
 	
 	public void calculatePhysics() {
@@ -457,6 +485,7 @@ public class Player extends Mob {
 		if (inventory.isActive()) {
 			game.drawHUD = false;
 			inventory.draw(g, game.drawResolution.width, game.drawResolution.height, game);
+			inventory.drawHotbar(g, game.drawResolution.width, game.drawResolution.height, game);
 		} else {
 			game.drawHUD = true;
 		}
@@ -465,8 +494,8 @@ public class Player extends Mob {
 		}		
 		
 		drawMeter(health, Color.RED, Color.getHSBColor((float) ((health%100)/100), 1F, 0.5F), g, observer, 0, 0);
-		drawMeter(oxygen, Color.CYAN, Color.CYAN, g, observer, 128 + 32, 0);
-		drawMeter(level.getPercentExplored(), Color.GREEN, Color.PINK, g, observer, 0, 128 + 32);
+		drawMeter(oxygen, Color.CYAN, Color.CYAN, g, observer, 0, 128 + 32);
+		drawMeter(storedPower, Color.YELLOW, Color.YELLOW, g, observer, 0, 256 + 64);
 		
 		g.setFont(MediaLibrary.getFontFromLibrary("INFOFont"));
 		if (drawInfo) printMovementInfo(g, 196, 196);
@@ -694,6 +723,10 @@ public class Player extends Mob {
 	public void drawMeter(double percent, Color color, Color blendedColor, Graphics g, ImageObserver observer, int xOffset, int yOffset) {
 		g.translate(xOffset, yOffset);
 		
+		Color darkBackgroundColor = new Color(64, 64, 64, 64);
+		Color lightBackgroundColor = new Color(128, 128, 128, 128);
+		Color wireColor = new Color(144, 144, 144, 128);
+		
 		g.setColor(Color.DARK_GRAY);
 		g.fillOval(32, 32, 128, 128);
 		
@@ -703,14 +736,14 @@ public class Player extends Mob {
 		Stroke h2 = new BasicStroke(4);
 		Stroke h3 = new BasicStroke(6);
 		g2.setStroke(h1);
-		g2.setColor(Color.LIGHT_GRAY);
+		g2.setColor(lightBackgroundColor);
 		g2.drawArc(32, 32, 128, 128, 90, 360);
 
 		g2.setStroke(h2);
-		g2.setColor(Color.BLUE);
+		g2.setColor(wireColor);
 		g2.drawArc(32, 32, 128, 128, 90, 360);
 		g2.setStroke(back1);
-		g2.setColor(Color.GRAY);
+		g2.setColor(darkBackgroundColor);
 		g2.drawArc(32, 32, 128, 128, 90, 360);
 		g2.setColor(color);
 		g2.setStroke(h3);
@@ -721,12 +754,12 @@ public class Player extends Mob {
 		}
 		
 		g2.setStroke(h1);
-		g2.setColor(Color.LIGHT_GRAY);
+		g2.setColor(lightBackgroundColor);
 		g2.drawArc(52, 52, 88, 88, 90, 360);
-		g2.setColor(Color.BLUE);
+		g2.setColor(wireColor);
 		g2.setStroke(h2);
 		g2.drawArc(52, 52, 88, 88, 90, 360);
-		g2.setColor(Color.GRAY);
+		g2.setColor(darkBackgroundColor);
 		g2.setStroke(back1);
 		g2.drawArc(52, 52, 88, 88, 90, 360);
 		g2.setStroke(h2);

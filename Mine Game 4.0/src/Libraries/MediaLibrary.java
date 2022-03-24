@@ -116,6 +116,7 @@ public class MediaLibrary {
 		fontLibrary.put("Offset Numbering XL", new Font("Georgia", Font.PLAIN, 128));
 		fontLibrary.put("StatisticFont", new Font("Copperplate Gothic", Font.BOLD, 64));
 		fontLibrary.put("TechTreeFont", new Font("Copperplate Gothic", Font.PLAIN, 64));
+		fontLibrary.put("Item Numbering", new Font("Tahoma", Font.BOLD, 16));
 	}
 	
 	public static Font getFontFromLibrary(String fontIndex) {

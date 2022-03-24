@@ -2,12 +2,14 @@ package SingleplayerClient;
 
 import static Utilities.FileUtilities.loadImage;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.Stroke;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -98,6 +100,9 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 	
 	private GraphicsThread graphicsThread;
 	
+	public int selectedTileX;
+	public int selectedTileY;
+	
 	private long[] graphicsTimes;
 	private long levelUpdateTime;
 	
@@ -146,7 +151,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		frame = new JFrame("Mine Game 4.0");
         frame.setIconImage(loadImage("icon.png"));
 		frame.setResizable(true);
-		frame.setMinimumSize(new Dimension(800, 600));
+		frame.setMinimumSize(new Dimension(1024, 768));
 		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		frame.addWindowListener(new java.awt.event.WindowAdapter() {
 		    public void windowClosing(java.awt.event.WindowEvent windowEvent) {
@@ -239,7 +244,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 		frame = new JFrame("Mine Game 4.0");
         frame.setIconImage(loadImage("icon.png"));
 		frame.setResizable(true);
-		frame.setMinimumSize(new Dimension(800, 600));
+		frame.setMinimumSize(new Dimension(1024, 768));
 		
 		// Set the default close event to do nothing so we can run a custom dialog
 		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
@@ -642,6 +647,23 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			techTreeGUI.draw(g, drawResolution.width, drawResolution.height, this, input);
 		}
 		
+		// Selected tile lines
+		if (level.getTile(selectedTileX, selectedTileY).getId() > 2 && level.isVisible(selectedTileX, selectedTileY)) {
+			g.setColor(new Color(192, 192, 192, 128));
+			((Graphics2D) g).setStroke(new BasicStroke(1));
+			int startX = (selectedTileX << 5) - xOffset;
+			int startY = (selectedTileY << 5) - yOffset;
+			int outline_size = 4;
+			g.drawLine(startX, startY, startX + outline_size, startY);
+			g.drawLine(startX, startY, startX, startY + outline_size);
+			g.drawLine(startX + 32 - outline_size, startY, startX + 32, startY);
+			g.drawLine(startX, startY + 32 - outline_size, startX, startY + 32);
+			g.drawLine(startX + 32, startY, startX + 32, startY + outline_size);
+			g.drawLine(startX + 32, startY + 32 - outline_size, startX + 32, startY + 32);
+			g.drawLine(startX, startY + 32, startX + outline_size, startY + 32);
+			g.drawLine(startX + 32 - outline_size, startY + 32, startX + 32, startY + 32);
+		}
+		
 		// Measure GUI and HUD rendering time
 		graphicsTimes[5] = System.currentTimeMillis() - currentTime;
 		currentTime = System.currentTimeMillis() - currentTime;
@@ -720,6 +742,10 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 			int outline = 24;
 			int i = (offset - outline) / 2 + iconSize + outline + 32;
 			g.drawImage(MediaLibrary.getImageFromLibrary(displayTile.getId()), ((int) drawResolution.getWidth() / 2) - 32, i, 64, 64, this);
+			
+			str = displayTile.getName();
+			g.drawString(str, ((int) drawResolution.getWidth() / 2) - (metr.stringWidth(str) / 2), i + 100);
+			
 			if (displayTile.getClass() == DestructibleTile.class) {
 				str = String.format("%.3f", tileDurability) + " / ";
 				str += String.format("%.3f", ((DestructibleTile) displayTile).baseDurability);
@@ -728,7 +754,7 @@ public class GameLoop extends JPanel implements Runnable, KeyListener, MouseList
 				str = String.format("%.3f", tileDurability) + " / ";
 				str += String.format("%.3f", ((BackgroundDestructibleTile) displayTile).baseDurability);
 			}
-			g.drawString(str, ((int) drawResolution.getWidth() / 2) - (metr.stringWidth(str) / 2), i + 100);
+			g.drawString(str, ((int) drawResolution.getWidth() / 2) - (metr.stringWidth(str) / 2), i + 150);
 		}
 		
 		g.setColor(Color.GREEN);

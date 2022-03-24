@@ -66,14 +66,34 @@ public class InventoryTile extends InventoryItem {
 	public void draw(Graphics g, int x, int y, int iconWidth, int iconHeight, ImageObserver observer) {
 		int offset = iconWidth / 8;
 		g.drawImage(MediaLibrary.getImageFromLibrary(tileID), x + offset, y + offset, iconWidth - (2 * offset), iconHeight - (2 * offset), observer);
-		Font tileFont = MediaLibrary.getFontFromLibrary("HUDFont").deriveFont((float) (iconHeight / 3));
-		g.setFont(tileFont);
-		g.setColor(Color.decode("#AFAFAF"));
-		if (quantity > 1 && quantity < 10) {
-			FontMetrics metr = new JPanel().getFontMetrics(tileFont);
-			g.drawString("" + quantity, metr.stringWidth("0") + x + iconWidth - (3 * offset) - 3, y + iconHeight - (offset) + 4);
+		Font tileFont = MediaLibrary.getFontFromLibrary("Item Numbering").deriveFont((float) (iconHeight / 4) + 3);
+		FontMetrics metr;
+		int spacing = 2;
+		if (iconWidth > 100) {
+			g.setFont(tileFont);
+			g.setColor(new Color(0, 0, 0, 248));
+			metr = new JPanel().getFontMetrics(tileFont);
+			if (quantity > 1 && quantity < 10) {
+				g.drawString("" + quantity, x + iconWidth - (offset) - 10, y + iconHeight - (offset) + 8);
+			}
+			else if (quantity > 1) {
+				g.drawString("" + (int) (quantity / 10), x + iconWidth - (2 * offset) - 7, y + iconHeight - (offset) + 8);
+				g.drawString("" + quantity % 10, x + iconWidth - (offset) - 2, y + iconHeight - (offset) + 8);
+			}
+			spacing = 5;
 		}
-		else if (quantity > 1) g.drawString("" + quantity, x + iconWidth - (3 * offset) - 3, y + iconHeight - (offset) + 4);
+		
+		tileFont = MediaLibrary.getFontFromLibrary("Item Numbering").deriveFont((float) (iconHeight / 4));
+		g.setFont(tileFont);
+		g.setColor(new Color(248, 248, 248, 232));
+		metr = new JPanel().getFontMetrics(tileFont);
+		if (quantity > 1 && quantity < 10) {
+			g.drawString("" + quantity, x + iconWidth - (offset) - 8, y + iconHeight - (offset) + 8);
+		}
+		else if (quantity > 1) {
+			g.drawString("" + (int) (quantity / 10), x + iconWidth - (2 * offset) - 5, y + iconHeight - (offset) + 8);
+			g.drawString("" + quantity % 10, x + iconWidth - (offset) - 5 + spacing, y + iconHeight - (offset) + 8);
+		}
 	}
 	
 	public String toString() {
